@@ -9,6 +9,7 @@
 
 import Link from "next/link";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { PageHeader } from "@/components/layout/page-header";
 import { OrdenesTable } from "@/components/ordenes/ordenes-table";
 import { getClientesParaSelect, getOrdenes } from "@/lib/data/ordenes";
 import { cn } from "@/lib/utils";
@@ -34,18 +35,15 @@ export default async function OrdenesPage({
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-10">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Órdenes de servicio</h1>
-          <p className="text-sm text-muted-foreground">
-            {ordenes.length} {ordenes.length === 1 ? "orden" : "órdenes"}
-            {hayFiltros ? " (filtradas)" : ""}
-          </p>
-        </div>
-        <Link href="/ordenes/nueva" className={buttonVariants()}>
-          Nueva orden
-        </Link>
-      </div>
+      <PageHeader
+        title="Órdenes de servicio"
+        description="Registra y consulta las OS de cada cliente"
+        actions={
+          <Link href="/ordenes/nueva" className={buttonVariants()}>
+            Nueva orden
+          </Link>
+        }
+      />
 
       <form
         method="GET"
@@ -100,7 +98,10 @@ export default async function OrdenesPage({
           Filtrar
         </Button>
         {hayFiltros && (
-          <Link href="/ordenes" className={cn(buttonVariants({ variant: "ghost" }))}>
+          <Link
+            href="/ordenes"
+            className={cn(buttonVariants({ variant: "ghost" }))}
+          >
             Limpiar
           </Link>
         )}

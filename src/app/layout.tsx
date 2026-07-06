@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { AppSidebar } from "@/components/layout/app-sidebar";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Órdenes de servicio",
-  description: "Gestión de órdenes de servicio — MVP",
+  title: "GS Group Consulting",
+  description: "Sistema de gestión — GS Group Consulting",
 };
 
 export default function RootLayout({
@@ -24,10 +25,13 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="es"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="flex min-h-full">
+        <AppSidebar />
+        <main className="flex flex-1 flex-col">{children}</main>
+      </body>
     </html>
   );
 }

@@ -24,6 +24,7 @@ src/
 │       └── [id]/editar/page.tsx  # Ruta dinámica de edición
 └── components/
     ├── ui/            # Primitivos genéricos (shadcn/ui) — sin dominio
+    ├── layout/        # Chrome de la app (sidebar, encabezado de página) — sin dominio
     └── <entidad>/      # Componentes específicos del dominio
 ```
 
@@ -94,6 +95,21 @@ src/
   la raíz solo le dice al CLI de shadcn/ui dónde inyectar las variables
   de tema al instalar un componente nuevo — no implica que el CSS deba
   moverse a otra carpeta.
+
+### `components/layout/`
+- Chrome de toda la app: `app-sidebar.tsx` (menú lateral, se monta una
+  sola vez en `app/layout.tsx`) y `page-header.tsx` (título +
+  descripción a la izquierda, botones de acción a la derecha — cada
+  `page.tsx` lo usa como primer hijo de su contenedor).
+- `nav-config.ts` es la única fuente de verdad de los links del sidebar.
+  Al agregar una pantalla nueva, se agrega su entrada acá (no se edita
+  `app-sidebar.tsx` a mano por cada ruta).
+- No conoce el dominio (nada de "orden", "cliente", Supabase). Si un
+  componente de layout necesita datos de negocio, se los pasan por
+  props desde `page.tsx`/`layout.tsx`, no hace fetch propio.
+- Cada `page.tsx` sigue siendo dueño de su propio contenedor
+  (`max-w`, padding) — el listado usa `max-w-6xl`, los formularios
+  `max-w-3xl`. `components/layout/` no impone un ancho global.
 
 ### `components/ui/`
 - Primitivos de shadcn/ui, instalados con `npx shadcn add <componente>`.
