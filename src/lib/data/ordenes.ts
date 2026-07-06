@@ -212,3 +212,66 @@ export async function updateOrdenRecord(
     .eq("id", id);
   if (error) throw new Error(`No se pudo actualizar la orden: ${error.message}`);
 }
+
+// Normaliza solo las claves presentes en el parche (a diferencia de
+// normalizarInput, que espera el formulario completo) — así el editor
+// inline de fila puede mandar únicamente los campos que el usuario tocó.
+function normalizarCampos(input: Partial<OrdenServicioFormValues>) {
+  const normalizado: Record<string, unknown> = {};
+  if ("cliente_id" in input) normalizado.cliente_id = input.cliente_id;
+  if ("nombre_servicio" in input) normalizado.nombre_servicio = input.nombre_servicio;
+  if ("estado_id" in input) normalizado.estado_id = input.estado_id ?? null;
+  if ("horas_cargadas" in input) normalizado.horas_cargadas = input.horas_cargadas ?? null;
+  if ("asesor_gestion_riesgos_id" in input)
+    normalizado.asesor_gestion_riesgos_id = input.asesor_gestion_riesgos_id ?? null;
+  if ("tarifa_valor_transporte" in input)
+    normalizado.tarifa_valor_transporte = input.tarifa_valor_transporte ?? null;
+  if ("responsable_sec_id" in input)
+    normalizado.responsable_sec_id = input.responsable_sec_id ?? null;
+  if ("numero_os_cliente" in input) normalizado.numero_os_cliente = orNull(input.numero_os_cliente);
+  if ("fecha_recepcion_os" in input) normalizado.fecha_recepcion_os = orNull(input.fecha_recepcion_os);
+  if ("nombre_empresa_usuaria" in input)
+    normalizado.nombre_empresa_usuaria = orNull(input.nombre_empresa_usuaria);
+  if ("nit_empresa_usuaria" in input) normalizado.nit_empresa_usuaria = orNull(input.nit_empresa_usuaria);
+  if ("cronograma" in input) normalizado.cronograma = orNull(input.cronograma);
+  if ("secuencia" in input) normalizado.secuencia = orNull(input.secuencia);
+  if ("tipo_servicio" in input) normalizado.tipo_servicio = orNull(input.tipo_servicio);
+  if ("fecha_sipab" in input) normalizado.fecha_sipab = orNull(input.fecha_sipab);
+  if ("observaciones_iniciales" in input)
+    normalizado.observaciones_iniciales = orNull(input.observaciones_iniciales);
+  return normalizado;
+}
+
+export async function updateOrdenCampos(id: number, campos: Partial<OrdenServicioFormValues>) {
+  const normalizado = normalizarCampos(campos);
+  if (Object.keys(normalizado).length === 0) return;
+
+  if (!isSupabaseConfigured || !supabase) {
+    const index = mockOrdenes.findIndex((o) => o.id === id);
+    if (index === -1) throw new Error("Orden no encontrada");
+    mockOrdenes[index] = {
+      ...mockOrdenes[index],
+      ...normalizado,
+      fecha_actualizacion: new Date().toISOString(),
+    };
+    return;
+  }
+
+  const { error } = await supabase
+    .from("ordenes_servicio")
+    .update({ ...normalizado, fecha_actualizacion: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw new Error(`No se pudo actualizar la orden: ${error.message}`);
+}
+
+export async function deleteOrdenRecord(id: number) {
+  if (!isSupabaseConfigured || !supabase) {
+    const index = mockOrdenes.findIndex((o) => o.id === id);
+    if (index === -1) throw new Error("Orden no encontrada");
+    mockOrdenes.splice(index, 1);
+    return;
+  }
+
+  const { error } = await supabase.from("ordenes_servicio").delete().eq("id", id);
+  if (error) throw new Error(`No se pudo eliminar la orden: ${error.message}`);
+}

@@ -62,7 +62,6 @@ export default async function EditarOrdenPage({
       </div>
 
       <OrdenForm
-        mode="editar"
         ordenId={orden.id}
         defaultValues={defaultValues}
         clientes={clientes.map((c) => ({ id: c.id, label: c.nombre_cliente }))}

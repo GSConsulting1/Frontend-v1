@@ -33,3 +33,7 @@ export const ordenServicioSchema = z.object({
 });
 
 export type OrdenServicioFormValues = z.infer<typeof ordenServicioSchema>;
+
+// Usado para validar parches parciales (edición inline fila por fila, donde
+// solo se envían los campos que el usuario realmente cambió).
+export const ordenServicioPartialSchema = ordenServicioSchema.partial();

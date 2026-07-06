@@ -25,6 +25,7 @@ src/
 └── components/
     ├── ui/            # Primitivos genéricos (shadcn/ui) — sin dominio
     ├── layout/        # Chrome de la app (sidebar, encabezado de página) — sin dominio
+    ├── forms/         # Composición de formularios genérica — sin dominio
     └── <entidad>/      # Componentes específicos del dominio
 ```
 
@@ -111,6 +112,17 @@ src/
   (`max-w`, padding) — el listado usa `max-w-6xl`, los formularios
   `max-w-3xl`. `components/layout/` no impone un ancho global.
 
+### `components/forms/`
+- Piezas de composición de formularios reusables entre entidades, sin
+  conocer ninguna: `form-field.tsx` (Label + control + mensaje de error,
+  envuelve cualquier input/select/textarea) y `save-button.tsx` (variante
+  de `Button` con un anillo animado en el borde mientras `pending` es
+  true — pensado para guardados en lote donde no hay una navegación que
+  ya comunique "está cargando").
+- Si un componente de este folder empieza a necesitar props específicas
+  de una entidad (ej. "orden"), es señal de que en realidad pertenece a
+  `components/<entidad>/`, no acá.
+
 ### `components/ui/`
 - Primitivos de shadcn/ui, instalados con `npx shadcn add <componente>`.
   No se editan a mano salvo para theming; no conocen el dominio
@@ -122,6 +134,29 @@ src/
   vía de props desde `page.tsx` — no hacen fetch propio salvo que sean
   Client Components que llaman a un Server Action (ej. `orden-form.tsx`
   → `actions.ts`).
+- `orden-campos.tsx` agrupa TODOS los campos editables de una orden,
+  cliente incluido, para que `orden-form.tsx` (página completa de
+  edición), `orden-row-editor.tsx` (editar una fila existente inline) y
+  `orden-draft-row-editor.tsx` (crear una fila nueva inline) rendericen
+  exactamente los mismos campos sin duplicar JSX.
+- No hay página de creación (`/ordenes/nueva` no existe): "Nueva orden"
+  agrega una fila en blanco siempre desplegada arriba de la tabla
+  (`OrdenesTable.addDraftRow`, vía `orden-draft-row-editor.tsx`) — crear
+  y editar viven los dos dentro de la tabla, no en páginas separadas.
+  Solo queda una página de formulario completo, `/ordenes/[id]/editar`,
+  para edición vía link directo.
+- `ordenes-manager.tsx` es el Client Component que gobierna la pantalla
+  de listado completa (header, tabla) porque el botón "Guardar cambios"
+  necesita el estado de "hay ediciones o filas nuevas válidas
+  pendientes" que vive dentro de la tabla. `ordenes-table.tsx` expone
+  ese estado hacia arriba vía `ref` (`collectChanges`, `addDraftRow`,
+  `clearDrafts`) en vez de que el padre le imponga su forma de estado a
+  la tabla.
+- `guardarCambiosOrdenes`/`crearOrdenesNuevas`/`eliminarOrden` en
+  `app/ordenes/actions.ts` NO hacen `redirect()` (a diferencia de
+  `updateOrden`, que sí — la usa el formulario de página completa): son
+  mutaciones inline, el usuario debe quedarse en `/ordenes` viendo la
+  tabla actualizada. Solo `revalidatePath`.
 
 ## Al agregar una entidad nueva (ej. "clientes" como pantalla propia)
 
