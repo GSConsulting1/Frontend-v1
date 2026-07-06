@@ -9,7 +9,7 @@ export function AppSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="flex w-64 shrink-0 flex-col bg-neutral-900 text-neutral-100">
+    <aside className="flex w-64 shrink-0 flex-col overflow-y-auto bg-neutral-900 text-neutral-100">
       <div className="flex items-center gap-2.5 px-5 py-5">
         <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-emerald-400 text-xs font-bold text-white">
           GS
