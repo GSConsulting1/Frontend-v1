@@ -49,6 +49,7 @@ function normalizarInput(input: OrdenServicioFormValues) {
     observaciones_iniciales: orNull(input.observaciones_iniciales),
     tarifa_valor_transporte: input.tarifa_valor_transporte ?? null,
     responsable_sec_id: input.responsable_sec_id ?? null,
+    link: orNull(input.link),
   };
 }
 
@@ -86,7 +87,7 @@ export async function getOrdenes(
   let query = supabase
     .from("ordenes_servicio")
     .select(
-      "*, cliente:clientes(id, nombre_cliente, codigo_cliente), estado:estados_orden(id, nombre)",
+      "*, cliente:clientes(id, nombre_cliente), estado:estados_orden(id, nombre)",
     )
     .order("id", { ascending: false });
 
@@ -109,7 +110,7 @@ export async function getOrdenById(
   const { data, error } = await supabase
     .from("ordenes_servicio")
     .select(
-      "*, cliente:clientes(id, nombre_cliente, codigo_cliente), estado:estados_orden(id, nombre)",
+      "*, cliente:clientes(id, nombre_cliente), estado:estados_orden(id, nombre)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -239,6 +240,7 @@ function normalizarCampos(input: Partial<OrdenServicioFormValues>) {
   if ("fecha_sipab" in input) normalizado.fecha_sipab = orNull(input.fecha_sipab);
   if ("observaciones_iniciales" in input)
     normalizado.observaciones_iniciales = orNull(input.observaciones_iniciales);
+  if ("link" in input) normalizado.link = orNull(input.link);
   return normalizado;
 }
 

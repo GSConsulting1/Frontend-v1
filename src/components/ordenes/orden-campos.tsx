@@ -4,7 +4,12 @@
 
 "use client";
 
-import { Controller, type Control, type FieldErrors, type UseFormRegister } from "react-hook-form";
+import {
+  Controller,
+  type Control,
+  type FieldErrors,
+  type UseFormRegister,
+} from "react-hook-form";
 import { FormField } from "@/components/forms/form-field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -50,8 +55,13 @@ export function OrdenCampos({
           render={({ field }) => (
             <Select
               value={field.value != null ? String(field.value) : null}
-              onValueChange={(v: string | null) => field.onChange(v ? Number(v) : undefined)}
-              items={clientes.map((c) => ({ label: c.label, value: String(c.id) }))}
+              onValueChange={(v: string | null) =>
+                field.onChange(v ? Number(v) : undefined)
+              }
+              items={clientes.map((c) => ({
+                label: c.label,
+                value: String(c.id),
+              }))}
             >
               <SelectTrigger id="cliente_id" className="w-full">
                 <SelectValue placeholder="Selecciona un cliente" />
@@ -68,15 +78,24 @@ export function OrdenCampos({
         />
       </FormField>
 
-      <FormField label="Estado" htmlFor="estado_id" error={errors.estado_id?.message}>
+      <FormField
+        label="Estado"
+        htmlFor="estado_id"
+        error={errors.estado_id?.message}
+      >
         <Controller
           name="estado_id"
           control={control}
           render={({ field }) => (
             <Select
               value={field.value != null ? String(field.value) : null}
-              onValueChange={(v: string | null) => field.onChange(v ? Number(v) : undefined)}
-              items={estados.map((e) => ({ label: e.label, value: String(e.id) }))}
+              onValueChange={(v: string | null) =>
+                field.onChange(v ? Number(v) : undefined)
+              }
+              items={estados.map((e) => ({
+                label: e.label,
+                value: String(e.id),
+              }))}
             >
               <SelectTrigger id="estado_id" className="w-full">
                 <SelectValue placeholder="Selecciona un estado" />
@@ -121,13 +140,18 @@ export function OrdenCampos({
           step="0.5"
           min="0"
           {...register("horas_cargadas", {
-            setValueAs: (v) => (v === "" || v === undefined ? undefined : Number(v)),
+            setValueAs: (v) =>
+              v === "" || v === undefined ? undefined : Number(v),
           })}
         />
       </FormField>
 
       <FormField label="Fecha recepción OS" htmlFor="fecha_recepcion_os">
-        <Input id="fecha_recepcion_os" type="date" {...register("fecha_recepcion_os")} />
+        <Input
+          id="fecha_recepcion_os"
+          type="date"
+          {...register("fecha_recepcion_os")}
+        />
       </FormField>
 
       <FormField label="Fecha SIPAB" htmlFor="fecha_sipab">
@@ -143,7 +167,10 @@ export function OrdenCampos({
       </FormField>
 
       <FormField label="Empresa usuaria" htmlFor="nombre_empresa_usuaria">
-        <Input id="nombre_empresa_usuaria" {...register("nombre_empresa_usuaria")} />
+        <Input
+          id="nombre_empresa_usuaria"
+          {...register("nombre_empresa_usuaria")}
+        />
       </FormField>
 
       <FormField label="NIT empresa usuaria" htmlFor="nit_empresa_usuaria">
@@ -161,20 +188,29 @@ export function OrdenCampos({
           step="0.01"
           min="0"
           {...register("tarifa_valor_transporte", {
-            setValueAs: (v) => (v === "" || v === undefined ? undefined : Number(v)),
+            setValueAs: (v) =>
+              v === "" || v === undefined ? undefined : Number(v),
           })}
         />
       </FormField>
 
-      <FormField label="Asesor gestión de riesgos" htmlFor="asesor_gestion_riesgos_id">
+      <FormField
+        label="Asesor gestión de riesgos"
+        htmlFor="asesor_gestion_riesgos_id"
+      >
         <Controller
           name="asesor_gestion_riesgos_id"
           control={control}
           render={({ field }) => (
             <Select
               value={field.value != null ? String(field.value) : null}
-              onValueChange={(v: string | null) => field.onChange(v ? Number(v) : undefined)}
-              items={profesionales.map((p) => ({ label: p.label, value: String(p.id) }))}
+              onValueChange={(v: string | null) =>
+                field.onChange(v ? Number(v) : undefined)
+              }
+              items={profesionales.map((p) => ({
+                label: p.label,
+                value: String(p.id),
+              }))}
             >
               <SelectTrigger id="asesor_gestion_riesgos_id" className="w-full">
                 <SelectValue placeholder="Selecciona un profesional" />
@@ -191,15 +227,20 @@ export function OrdenCampos({
         />
       </FormField>
 
-      <FormField label="Responsable SEC" htmlFor="responsable_sec_id">
+      <FormField label="Responsable OS/SEC" htmlFor="responsable_sec_id">
         <Controller
           name="responsable_sec_id"
           control={control}
           render={({ field }) => (
             <Select
               value={field.value != null ? String(field.value) : null}
-              onValueChange={(v: string | null) => field.onChange(v ? Number(v) : undefined)}
-              items={profesionales.map((p) => ({ label: p.label, value: String(p.id) }))}
+              onValueChange={(v: string | null) =>
+                field.onChange(v ? Number(v) : undefined)
+              }
+              items={profesionales.map((p) => ({
+                label: p.label,
+                value: String(p.id),
+              }))}
             >
               <SelectTrigger id="responsable_sec_id" className="w-full">
                 <SelectValue placeholder="Selecciona un profesional" />
@@ -217,8 +258,29 @@ export function OrdenCampos({
       </FormField>
 
       <div className="sm:col-span-2">
-        <FormField label="Observaciones iniciales" htmlFor="observaciones_iniciales">
-          <Textarea id="observaciones_iniciales" {...register("observaciones_iniciales")} />
+        <FormField
+          label="Link del archivo de la orden"
+          htmlFor="link"
+          error={errors.link?.message}
+        >
+          <Input
+            id="link"
+            type="url"
+            placeholder="https://drive.google.com/..."
+            {...register("link")}
+          />
+        </FormField>
+      </div>
+
+      <div className="sm:col-span-2">
+        <FormField
+          label="Observaciones iniciales"
+          htmlFor="observaciones_iniciales"
+        >
+          <Textarea
+            id="observaciones_iniciales"
+            {...register("observaciones_iniciales")}
+          />
         </FormField>
       </div>
     </div>

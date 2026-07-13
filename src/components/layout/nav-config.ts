@@ -8,5 +8,9 @@ export interface NavItem {
 
 export const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Inicio", icon: Home },
-  { href: "/ordenes", label: "Órdenes de servicio", icon: ClipboardList },
+  {
+    href: "/ordenes",
+    label: "Orden de servicio recibida",
+    icon: ClipboardList,
+  },
 ];

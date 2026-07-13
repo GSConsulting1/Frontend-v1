@@ -18,6 +18,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { OrdenCampos } from "@/components/ordenes/orden-campos";
+import { OrdenCamposInfo } from "@/components/ordenes/orden-campos-info";
 import {
   ordenServicioSchema,
   type OrdenServicioFormValues,
@@ -81,6 +82,8 @@ export function OrdenForm({
           {serverError}
         </p>
       )}
+
+      <OrdenCamposInfo />
 
       <OrdenCampos
         register={register}

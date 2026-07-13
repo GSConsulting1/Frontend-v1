@@ -20,7 +20,6 @@ export interface Database {
       clientes: {
         Row: {
           id: number;
-          codigo_cliente: string;
           nombre_cliente: string;
           nit: string | null;
           activo: boolean;
@@ -28,7 +27,6 @@ export interface Database {
         };
         Insert: {
           id?: number;
-          codigo_cliente: string;
           nombre_cliente: string;
           nit?: string | null;
           activo?: boolean;
@@ -99,6 +97,7 @@ export interface Database {
           observaciones_iniciales: string | null;
           tarifa_valor_transporte: number | null;
           responsable_sec_id: number | null;
+          link: string | null;
           fecha_creacion: string;
           fecha_actualizacion: string;
         };
@@ -121,6 +120,7 @@ export interface Database {
           observaciones_iniciales?: string | null;
           tarifa_valor_transporte?: number | null;
           responsable_sec_id?: number | null;
+          link?: string | null;
           fecha_creacion?: string;
           fecha_actualizacion?: string;
         };

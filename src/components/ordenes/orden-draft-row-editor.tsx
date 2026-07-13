@@ -10,6 +10,7 @@ import { forwardRef, useEffect, useImperativeHandle } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { OrdenCampos } from "@/components/ordenes/orden-campos";
+import { OrdenCamposInfo } from "@/components/ordenes/orden-campos-info";
 import {
   ordenServicioSchema,
   type OrdenServicioFormValues,
@@ -43,6 +44,7 @@ const VALORES_VACIOS: Partial<OrdenServicioFormValues> = {
   tipo_servicio: "",
   fecha_sipab: "",
   observaciones_iniciales: "",
+  link: "",
 };
 
 export const OrdenDraftRowEditor = forwardRef<OrdenDraftRowEditorHandle, OrdenDraftRowEditorProps>(
@@ -72,6 +74,7 @@ export const OrdenDraftRowEditor = forwardRef<OrdenDraftRowEditorHandle, OrdenDr
 
     return (
       <div className="space-y-4 p-4">
+        <OrdenCamposInfo />
         <OrdenCampos
           register={register}
           control={control}

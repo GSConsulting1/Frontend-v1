@@ -8,7 +8,6 @@ import type { Cliente, EstadoOrden, Profesional, OrdenServicio } from "@/types";
 export const mockClientes: Cliente[] = [
   {
     id: 1,
-    codigo_cliente: "CLI-001",
     nombre_cliente: "Bolívar Seguros S.A.",
     nit: "860.002.964-1",
     activo: true,
@@ -16,7 +15,6 @@ export const mockClientes: Cliente[] = [
   },
   {
     id: 2,
-    codigo_cliente: "CLI-002",
     nombre_cliente: "Constructora Andina Ltda.",
     nit: "900.123.456-7",
     activo: true,
@@ -24,7 +22,6 @@ export const mockClientes: Cliente[] = [
   },
   {
     id: 3,
-    codigo_cliente: "CLI-003",
     nombre_cliente: "Textiles del Norte S.A.S.",
     nit: "800.987.654-3",
     activo: true,
@@ -99,6 +96,7 @@ export const mockOrdenes: OrdenServicio[] = [
     observaciones_iniciales: "Urgente, cliente pidió prioridad.",
     tarifa_valor_transporte: 25000,
     responsable_sec_id: 2,
+    link: "https://drive.google.com/file/d/mock-os-0001",
     fecha_creacion: "2026-06-15T09:00:00Z",
     fecha_actualizacion: "2026-06-15T09:00:00Z",
   },
@@ -121,6 +119,7 @@ export const mockOrdenes: OrdenServicio[] = [
     observaciones_iniciales: null,
     tarifa_valor_transporte: 40000,
     responsable_sec_id: 3,
+    link: null,
     fecha_creacion: "2026-05-20T09:00:00Z",
     fecha_actualizacion: "2026-06-02T09:00:00Z",
   },
@@ -143,6 +142,7 @@ export const mockOrdenes: OrdenServicio[] = [
     observaciones_iniciales: "Pendiente confirmar sede.",
     tarifa_valor_transporte: null,
     responsable_sec_id: 2,
+    link: null,
     fecha_creacion: "2026-06-28T09:00:00Z",
     fecha_actualizacion: "2026-06-28T09:00:00Z",
   },
@@ -165,6 +165,7 @@ export const mockOrdenes: OrdenServicio[] = [
     observaciones_iniciales: null,
     tarifa_valor_transporte: 30000,
     responsable_sec_id: 2,
+    link: "https://drive.google.com/file/d/mock-os-0004",
     fecha_creacion: "2026-06-20T09:00:00Z",
     fecha_actualizacion: "2026-06-25T09:00:00Z",
   },

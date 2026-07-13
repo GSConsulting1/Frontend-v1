@@ -63,6 +63,7 @@ function toFormValues(orden: OrdenServicioConRelaciones): OrdenServicioFormValue
     tarifa_valor_transporte:
       orden.tarifa_valor_transporte != null ? Number(orden.tarifa_valor_transporte) : undefined,
     responsable_sec_id: orden.responsable_sec_id ?? undefined,
+    link: orden.link ?? "",
   };
 }
 

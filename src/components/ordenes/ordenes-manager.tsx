@@ -17,7 +17,10 @@ import {
   OrdenesTable,
   type OrdenesTableHandle,
 } from "@/components/ordenes/ordenes-table";
-import { crearOrdenesNuevas, guardarCambiosOrdenes } from "@/app/ordenes/actions";
+import {
+  crearOrdenesNuevas,
+  guardarCambiosOrdenes,
+} from "@/app/ordenes/actions";
 import type { OrdenServicioConRelaciones } from "@/types";
 
 type SelectOption = { id: number; label: string };
@@ -44,14 +47,18 @@ export function OrdenesManager({
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const clientesOptions = clientes.map((c) => ({ id: c.id, label: c.nombre_cliente }));
+  const clientesOptions = clientes.map((c) => ({
+    id: c.id,
+    label: c.nombre_cliente,
+  }));
 
   async function handleSave() {
     if (!tableRef.current) return;
     setIsSaving(true);
     setSaveError(null);
 
-    const { actualizaciones, creaciones } = await tableRef.current.collectChanges();
+    const { actualizaciones, creaciones } =
+      await tableRef.current.collectChanges();
     if (actualizaciones.length === 0 && creaciones.length === 0) {
       setIsSaving(false);
       return;
@@ -87,12 +94,19 @@ export function OrdenesManager({
   return (
     <>
       <PageHeader
-        title="Órdenes de servicio"
+        title="Orden de servicio recibida del cliente"
         description={description}
         actions={
           <>
-            <SaveButton pending={isSaving} disabled={!canSave} onClick={handleSave} />
-            <Button type="button" onClick={() => tableRef.current?.addDraftRow()}>
+            <SaveButton
+              pending={isSaving}
+              disabled={!canSave}
+              onClick={handleSave}
+            />
+            <Button
+              type="button"
+              onClick={() => tableRef.current?.addDraftRow()}
+            >
               Nueva orden
             </Button>
           </>

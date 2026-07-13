@@ -15,6 +15,6 @@ export type OrdenServicio =
 // Tipo "enriquecido" para el listado, con las relaciones ya resueltas
 // (join con clientes y estados_orden vía la query de Supabase).
 export type OrdenServicioConRelaciones = OrdenServicio & {
-  cliente: Pick<Cliente, "id" | "nombre_cliente" | "codigo_cliente"> | null;
+  cliente: Pick<Cliente, "id" | "nombre_cliente"> | null;
   estado: Pick<EstadoOrden, "id" | "nombre"> | null;
 };

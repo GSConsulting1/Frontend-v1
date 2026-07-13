@@ -22,7 +22,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { ChevronDown, X } from "lucide-react";
+import { ChevronDown, ExternalLink, X } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -205,13 +205,13 @@ export const OrdenesTable = forwardRef<OrdenesTableHandle, OrdenesTableProps>(
           <TableHeader>
             <TableRow>
               <TableHead className="w-10" />
-              <TableHead>Cód. cliente</TableHead>
               <TableHead>Cliente</TableHead>
               <TableHead>Número de OS</TableHead>
               <TableHead>Fecha recepción</TableHead>
               <TableHead>Tipo servicio</TableHead>
               <TableHead>Estado</TableHead>
               <TableHead>Horas</TableHead>
+              <TableHead>Archivo</TableHead>
               <TableHead className="text-right">Eliminar</TableHead>
             </TableRow>
           </TableHeader>
@@ -246,9 +246,8 @@ export const OrdenesTable = forwardRef<OrdenesTableHandle, OrdenesTableProps>(
                       </Button>
                     </TableCell>
                     <TableCell className="font-medium">
-                      {orden.cliente?.codigo_cliente ?? "—"}
+                      {orden.cliente?.nombre_cliente ?? "—"}
                     </TableCell>
-                    <TableCell>{orden.cliente?.nombre_cliente ?? "—"}</TableCell>
                     <TableCell>{orden.numero_os_cliente ?? "—"}</TableCell>
                     <TableCell>{orden.fecha_recepcion_os ?? "—"}</TableCell>
                     <TableCell>{orden.tipo_servicio ?? "—"}</TableCell>
@@ -256,6 +255,22 @@ export const OrdenesTable = forwardRef<OrdenesTableHandle, OrdenesTableProps>(
                       <EstadoBadge estado={orden.estado} />
                     </TableCell>
                     <TableCell>{orden.horas_cargadas ?? "—"}</TableCell>
+                    <TableCell>
+                      {orden.link ? (
+                        <a
+                          href={orden.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-primary hover:underline"
+                          aria-label="Abrir archivo de la orden"
+                        >
+                          <ExternalLink className="size-4" />
+                          Ver
+                        </a>
+                      ) : (
+                        "—"
+                      )}
+                    </TableCell>
                     <TableCell className="text-right">
                       <Button
                         type="button"
