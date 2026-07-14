@@ -1,15 +1,15 @@
-// Pantalla 1: listado de órdenes de servicio.
+// Pantalla 1: listado de órdenes de servicio, de solo lectura.
 // Server Component (async function) — hace el fetch inicial (con filtros vía
-// searchParams) y le pasa los datos ya resueltos a OrdenesManager, que es
-// quien gobierna la interacción (edición inline, guardado en lote, borrado).
+// searchParams) y renderiza la tabla directamente. "Nueva orden" y "Editar"
+// son links a /ordenes/nueva y /ordenes/{id}/editar (ver OrdenForm) — ya no
+// hay estado de "guardar cambios" que gobernar en un Client Component
+// intermedio, así que no hace falta OrdenesManager.
 
-import {
-  getClientesParaSelect,
-  getEstadosParaSelect,
-  getOrdenes,
-  getProfesionalesParaSelect,
-} from "@/lib/data/ordenes";
-import { OrdenesManager } from "@/components/ordenes/ordenes-manager";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/layout/page-header";
+import { OrdenesTable } from "@/components/ordenes/ordenes-table";
+import { getOrdenes } from "@/lib/data/ordenes";
 
 export default async function OrdenesPage({
   searchParams,
@@ -23,26 +23,19 @@ export default async function OrdenesPage({
     hasta: params.hasta || undefined,
   };
 
-  const [ordenes, clientes, estados, profesionales] = await Promise.all([
-    getOrdenes(filtros),
-    getClientesParaSelect(),
-    getEstadosParaSelect(),
-    getProfesionalesParaSelect(),
-  ]);
-
-  const hayFiltros = Boolean(params.clienteId || params.desde || params.hasta);
+  const ordenes = await getOrdenes(filtros);
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-10">
-      <OrdenesManager
-        ordenes={ordenes}
-        clientes={clientes}
-        estados={estados.map((e) => ({ id: e.id, label: e.nombre }))}
-        profesionales={profesionales.map((p) => ({ id: p.id, label: p.nombre_completo }))}
-        filtros={params}
-        hayFiltros={hayFiltros}
+      <PageHeader
+        title="Orden de servicio recibida del cliente"
         description="Registra y consulta las OS de cada cliente"
+        actions={
+          <Button nativeButton={false} render={<Link href="/ordenes/nueva">Nueva orden</Link>} />
+        }
       />
+
+      <OrdenesTable ordenes={ordenes} />
     </div>
   );
 }
