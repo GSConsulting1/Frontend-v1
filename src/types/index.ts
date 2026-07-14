@@ -34,9 +34,23 @@ export type DetalleEntregaProfesional =
   Database["public"]["Tables"]["detalle_entrega_profesional"]["Row"];
 export type ChecklistProceso =
   Database["public"]["Tables"]["checklist_proceso"]["Row"];
-// Rol interino hasta que el login del Día 2 del plan MVP conecte con
-// Supabase Auth — hoy `usuarios.rol` es un string sin enum en la BD.
-export type RolUsuario = "admin" | "gestion_gs" | "profesional" | "lectura";
+// Salió de detalle_entrega_profesional a su propia tabla en
+// supabase/002_usuarios_roles_rls.sql (RLS: solo administrador lee/escribe)
+// — no se puede proteger una columna suelta con RLS, solo filas completas.
+export type ValorHoraOrden = Database["public"]["Tables"]["valor_hora_orden"]["Row"];
+// `usuarios.rol` es un string sin enum en la BD (solo tiene un CHECK), así
+// que este union lo angosta a mano — valores tomados del CHECK real de
+// supabase/002_usuarios_roles_rls.sql. Si Persona A agrega/renombra un rol
+// ahí, hay que reflejarlo acá también.
+export type RolUsuario = "administrador" | "programadoras" | "profesional" | "lectura";
+
+// Perfil de src/components/auth/auth-provider.tsx (tabla `usuarios`, PK =
+// auth.users.id). No confundir con Profesional: un usuario con rol
+// "profesional" tiene profesional_id apuntando a su fila en esa tabla.
+export type Usuario = Omit<
+  Database["public"]["Tables"]["usuarios"]["Row"],
+  "rol"
+> & { rol: RolUsuario };
 
 export type InfoOrdenServicioConRelaciones = InfoOrdenServicio & {
   ciudad: Pick<Ciudad, "id" | "nombre"> | null;
@@ -59,4 +73,7 @@ export type OrdenInfoCompleta = {
   detalleEntrega: DetalleEntregaProfesionalConRelaciones | null;
   checklist: ChecklistProcesoConRelaciones | null;
   entregablesSeleccionados: number[];
+  // null tanto si la orden no tiene fila en valor_hora_orden como si el
+  // usuario actual no es administrador (RLS filtra la fila entera).
+  valorHora: number | null;
 };
