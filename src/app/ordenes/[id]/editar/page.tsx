@@ -87,9 +87,9 @@ export default async function EditarOrdenPage({
           envio_os_profesional: detalleEntrega.envio_os_profesional ?? undefined,
           recepcion_orden_servicio: detalleEntrega.recepcion_orden_servicio ?? undefined,
           participante_arl_id: detalleEntrega.participante_arl_id ?? undefined,
-          valor_hora_profesional: detalleEntrega.valor_hora_profesional ?? undefined,
         }
       : undefined,
+    valorHora: infoCompleta.valorHora != null ? { valor_hora_profesional: infoCompleta.valorHora } : undefined,
     checklist: {
       envio_at031: checklist?.envio_at031 ?? undefined,
       envio_at028: checklist?.envio_at028 ?? undefined,
@@ -128,7 +128,6 @@ export default async function EditarOrdenPage({
         ciudades={catalogos.ciudades.map((c) => ({ id: c.id, label: c.nombre }))}
         estadosEjecucion={catalogos.estadosEjecucion.map((e) => ({ id: e.id, label: e.nombre }))}
         entregablesEstandar={catalogos.entregablesEstandar.map((e) => ({ id: e.id, label: e.nombre }))}
-        rol="gestion_gs"
       />
     </div>
   );

@@ -52,12 +52,23 @@ export const detalleEntregaProfesionalSchema = z.object({
   envio_os_profesional: z.boolean().optional(),
   recepcion_orden_servicio: z.boolean().optional(),
   participante_arl_id: z.number().int().positive().optional(),
-  valor_hora_profesional: z.number().nonnegative("Debe ser un número positivo").optional(),
 });
 
 export type DetalleEntregaProfesionalFormValues = z.infer<
   typeof detalleEntregaProfesionalSchema
 >;
+
+// Tabla aparte (valor_hora_orden) desde supabase/002_usuarios_roles_rls.sql
+// — RLS ahí permite leer/escribir solo a administrador. orden-form.tsx omite
+// esta clave del payload para cualquier otro rol (ver su onSubmit), así que
+// guardarInfoOrdenCompleta ni intenta el upsert para quien no es admin — si
+// lo intentara, RLS lo rechazaría y tumbaría el guardado del resto de
+// secciones también.
+export const valorHoraOrdenSchema = z.object({
+  valor_hora_profesional: z.number().nonnegative("Debe ser un número positivo").optional(),
+});
+
+export type ValorHoraOrdenFormValues = z.infer<typeof valorHoraOrdenSchema>;
 
 export const INFORME_GUARDIAN_OPCIONES = [
   "No aplica",
@@ -96,6 +107,7 @@ export const ordenInfoExtendidaSchema = z.object({
   detalleEntrega: detalleEntregaProfesionalSchema.optional(),
   checklist: checklistProcesoSchema.optional(),
   entregablesIds: entregablesEstandarSchema.optional(),
+  valorHora: valorHoraOrdenSchema.optional(),
 });
 
 export type OrdenInfoExtendidaFormValues = z.infer<typeof ordenInfoExtendidaSchema>;

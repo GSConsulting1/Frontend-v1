@@ -3,7 +3,8 @@
 // ordenes_servicio. Mismo patrón mock/real que src/lib/data/ordenes.ts —
 // único lugar que le pega a estas tablas en Supabase.
 
-import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
+import { isSupabaseConfigured } from "@/lib/supabase/client";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { mockProfesionales } from "@/lib/mock-data/ordenes";
 import {
   mockChecklistProceso,
@@ -13,12 +14,14 @@ import {
   mockEstadosEjecucion,
   mockInfoOrdenServicio,
   mockOrdenEntregablesEstandar,
+  mockValorHoraOrden,
 } from "@/lib/mock-data/info-orden";
 import { orNull } from "@/lib/utils";
 import type {
   ChecklistProcesoFormValues,
   DetalleEntregaProfesionalFormValues,
   InfoOrdenServicioFormValues,
+  ValorHoraOrdenFormValues,
 } from "@/lib/validations/info-orden.schema";
 import type {
   ChecklistProcesoConRelaciones,
@@ -28,7 +31,7 @@ import type {
 } from "@/types";
 
 export async function getCatalogosInfoOrden() {
-  if (!isSupabaseConfigured || !supabase) {
+  if (!isSupabaseConfigured) {
     return {
       ciudades: [...mockCiudades].sort((a, b) => a.nombre.localeCompare(b.nombre)),
       estadosEjecucion: [...mockEstadosEjecucion].sort(
@@ -39,6 +42,7 @@ export async function getCatalogosInfoOrden() {
       ),
     };
   }
+  const supabase = await createSupabaseServerClient();
 
   const [ciudades, estadosEjecucion, entregablesEstandar] = await Promise.all([
     supabase.from("ciudades").select("id, nombre, departamento").order("nombre"),
@@ -95,7 +99,7 @@ function enriquecerChecklistMock(ordenId: number): ChecklistProcesoConRelaciones
 }
 
 export async function getInfoOrdenCompleta(ordenId: number): Promise<OrdenInfoCompleta> {
-  if (!isSupabaseConfigured || !supabase) {
+  if (!isSupabaseConfigured) {
     return {
       infoOrdenServicio: enriquecerInfoOrdenServicioMock(ordenId),
       detalleEntrega: enriquecerDetalleEntregaMock(ordenId),
@@ -103,10 +107,12 @@ export async function getInfoOrdenCompleta(ordenId: number): Promise<OrdenInfoCo
       entregablesSeleccionados: mockOrdenEntregablesEstandar
         .filter((e) => e.orden_id === ordenId)
         .map((e) => e.entregable_id),
+      valorHora: mockValorHoraOrden.find((v) => v.orden_id === ordenId)?.valor_hora_profesional ?? null,
     };
   }
+  const supabase = await createSupabaseServerClient();
 
-  const [infoOrdenServicio, detalleEntrega, checklist, entregables] = await Promise.all([
+  const [infoOrdenServicio, detalleEntrega, checklist, entregables, valorHora] = await Promise.all([
     supabase
       .from("info_orden_servicio")
       .select("*, ciudad:ciudades(id, nombre), profesional:profesionales(id, nombre_completo, cedula, telefono)")
@@ -125,6 +131,11 @@ export async function getInfoOrdenCompleta(ordenId: number): Promise<OrdenInfoCo
       .eq("orden_id", ordenId)
       .maybeSingle(),
     supabase.from("orden_entregables_estandar").select("entregable_id").eq("orden_id", ordenId),
+    // Si el usuario actual no es administrador, RLS hace que esto devuelva
+    // 0 filas (no un error) — maybeSingle() lo resuelve como null, que es
+    // exactamente el comportamiento que queremos (RoleGate ya oculta el
+    // campo, pero aunque no lo hiciera, acá nunca llega el valor real).
+    supabase.from("valor_hora_orden").select("valor_hora_profesional").eq("orden_id", ordenId).maybeSingle(),
   ]);
 
   if (infoOrdenServicio.error)
@@ -135,12 +146,15 @@ export async function getInfoOrdenCompleta(ordenId: number): Promise<OrdenInfoCo
     throw new Error(`No se pudo cargar el checklist: ${checklist.error.message}`);
   if (entregables.error)
     throw new Error(`No se pudieron cargar los entregables estándar: ${entregables.error.message}`);
+  if (valorHora.error)
+    throw new Error(`No se pudo cargar el valor hora: ${valorHora.error.message}`);
 
   return {
     infoOrdenServicio: infoOrdenServicio.data as unknown as InfoOrdenServicioConRelaciones | null,
     detalleEntrega: detalleEntrega.data as unknown as DetalleEntregaProfesionalConRelaciones | null,
     checklist: checklist.data as unknown as ChecklistProcesoConRelaciones | null,
     entregablesSeleccionados: (entregables.data ?? []).map((e) => e.entregable_id),
+    valorHora: valorHora.data?.valor_hora_profesional ?? null,
   };
 }
 
@@ -178,6 +192,12 @@ function normalizarDetalleEntrega(ordenId: number, input: DetalleEntregaProfesio
     envio_os_profesional: input.envio_os_profesional ?? null,
     recepcion_orden_servicio: input.recepcion_orden_servicio ?? null,
     participante_arl_id: input.participante_arl_id ?? null,
+  };
+}
+
+function normalizarValorHora(ordenId: number, input: ValorHoraOrdenFormValues) {
+  return {
+    orden_id: ordenId,
     valor_hora_profesional: input.valor_hora_profesional ?? null,
   };
 }
@@ -204,10 +224,13 @@ export type GuardarInfoOrdenInput = {
   detalleEntrega?: DetalleEntregaProfesionalFormValues;
   checklist?: ChecklistProcesoFormValues;
   entregablesIds?: number[];
+  // orden-form.tsx solo manda esta clave si el usuario es administrador
+  // (ver su onSubmit) — cualquier otro rol nunca intenta el upsert acá.
+  valorHora?: ValorHoraOrdenFormValues;
 };
 
 export async function guardarInfoOrdenCompleta(ordenId: number, datos: GuardarInfoOrdenInput) {
-  if (!isSupabaseConfigured || !supabase) {
+  if (!isSupabaseConfigured) {
     if (datos.infoOrdenServicio) {
       const normalizado = normalizarInfoOrdenServicio(ordenId, datos.infoOrdenServicio);
       const index = mockInfoOrdenServicio.findIndex((i) => i.orden_id === ordenId);
@@ -238,8 +261,15 @@ export async function guardarInfoOrdenCompleta(ordenId: number, datos: GuardarIn
       mockOrdenEntregablesEstandar.length = 0;
       mockOrdenEntregablesEstandar.push(...restantes);
     }
+    if (datos.valorHora) {
+      const normalizado = normalizarValorHora(ordenId, datos.valorHora);
+      const index = mockValorHoraOrden.findIndex((v) => v.orden_id === ordenId);
+      if (index >= 0) mockValorHoraOrden[index] = normalizado;
+      else mockValorHoraOrden.push(normalizado);
+    }
     return;
   }
+  const supabase = await createSupabaseServerClient();
 
   if (datos.infoOrdenServicio) {
     const { error } = await supabase
@@ -275,6 +305,12 @@ export async function guardarInfoOrdenCompleta(ordenId: number, datos: GuardarIn
         throw new Error(`No se pudieron actualizar los entregables estándar: ${insertError.message}`);
     }
   }
+  if (datos.valorHora) {
+    const { error } = await supabase
+      .from("valor_hora_orden")
+      .upsert(normalizarValorHora(ordenId, datos.valorHora), { onConflict: "orden_id" });
+    if (error) throw new Error(`No se pudo guardar el valor hora: ${error.message}`);
+  }
 }
 
 // Borra las 5 tablas extendidas de una orden. Necesario ANTES de borrar la
@@ -285,11 +321,12 @@ export async function guardarInfoOrdenCompleta(ordenId: number, datos: GuardarIn
 // cuanto la orden tiene alguna fila extendida. eliminarOrden
 // (app/ordenes/actions.ts) llama a esto antes de deleteOrdenRecord.
 export async function eliminarInfoOrdenCompleta(ordenId: number) {
-  if (!isSupabaseConfigured || !supabase) {
+  if (!isSupabaseConfigured) {
     for (const arr of [
       mockInfoOrdenServicio,
       mockDetalleEntregaProfesional,
       mockChecklistProceso,
+      mockValorHoraOrden,
     ] as { orden_id: number }[][]) {
       const index = arr.findIndex((f) => f.orden_id === ordenId);
       if (index >= 0) arr.splice(index, 1);
@@ -299,14 +336,20 @@ export async function eliminarInfoOrdenCompleta(ordenId: number) {
     mockOrdenEntregablesEstandar.push(...restantes);
     return;
   }
+  const supabase = await createSupabaseServerClient();
 
   for (const tabla of [
     "orden_entregables_estandar",
     "checklist_proceso",
     "detalle_entrega_profesional",
     "info_orden_servicio",
+    "valor_hora_orden",
   ] as const) {
     const { error } = await supabase.from(tabla).delete().eq("orden_id", ordenId);
+    // Si el usuario actual no es administrador, RLS bloquea el DELETE en
+    // valor_hora_orden — eso es correcto (no debería poder borrar ese dato),
+    // pero entonces eliminarOrden tampoco puede completarse: borrar una
+    // orden completa queda reservado a quien además pueda limpiar esa tabla.
     if (error) throw new Error(`No se pudo borrar "${tabla}" de la orden: ${error.message}`);
   }
 }

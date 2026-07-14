@@ -26,7 +26,8 @@ import {
 } from "@/components/ui/select";
 import { INFORME_GUARDIAN_OPCIONES } from "@/lib/validations/info-orden.schema";
 import { cn } from "@/lib/utils";
-import type { RolUsuario } from "@/types";
+import { useAuth } from "@/components/auth/auth-provider";
+import { RoleGate } from "@/components/auth/role-gate";
 import type { OrdenInfoFormValues } from "@/components/ordenes/orden-form";
 
 type SelectOption = { id: number; label: string };
@@ -40,7 +41,6 @@ export type OrdenInfoSeccionesProps = {
   estadosEjecucion: SelectOption[];
   profesionales: SelectOption[];
   entregablesEstandar: SelectOption[];
-  rol: RolUsuario;
   disabled: boolean;
 };
 
@@ -128,10 +128,10 @@ export function OrdenInfoSecciones({
   estadosEjecucion,
   profesionales,
   entregablesEstandar,
-  rol,
   disabled,
 }: OrdenInfoSeccionesProps) {
-  const puedeVerValorHora = rol === "admin";
+  const { perfil } = useAuth();
+  const puedeVerValorHora = perfil?.rol === "administrador";
 
   const datosActividad = watch([
     "infoOrdenServicio.nombre_actividad",
@@ -148,7 +148,7 @@ export function OrdenInfoSecciones({
     "detalleEntrega.profesional_vobo_id",
   ]);
   const entregablesIds = watch("entregablesIds") ?? [];
-  const valorHora = watch("detalleEntrega.valor_hora_profesional");
+  const valorHora = watch("valorHora.valor_hora_profesional");
   const checklist = watch([
     "checklist.estado_ejecucion_id",
     "checklist.informe_guardian",
@@ -424,44 +424,48 @@ export function OrdenInfoSecciones({
 
       <SeccionAcordeon
         titulo="Valor hora profesional"
-        resumen={puedeVerValorHora ? undefined : "Visible solo para el rol admin"}
+        resumen={puedeVerValorHora ? undefined : "Visible solo para el rol administrador"}
         completo={algunoLleno([valorHora])}
         locked={!puedeVerValorHora}
-        chipTexto={puedeVerValorHora ? undefined : "Solo admin"}
+        chipTexto={puedeVerValorHora ? undefined : "Solo administrador"}
       >
-        {puedeVerValorHora ? (
+        <RoleGate
+          allow={["administrador"]}
+          fallback={
+            <div className="flex items-center gap-3 py-2 text-sm text-muted-foreground">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted">
+                <Lock className="size-4" aria-hidden />
+              </span>
+              <div>
+                <p className="font-medium text-foreground">Bloqueado por tu rol</p>
+                <p className="text-xs">
+                  Este dato vive en su propia tabla (
+                  <code className="rounded bg-background px-1">valor_hora_orden</code>) con RLS en
+                  Supabase solo para administrador — ocultarlo acá es UX; la protección real ya
+                  está en la base de datos.
+                </p>
+              </div>
+            </div>
+          }
+        >
           <div className="grid gap-4 sm:grid-cols-2">
             <FormField
               label="Valor hora profesional"
               htmlFor="valor_hora_profesional"
-              error={errors.detalleEntrega?.valor_hora_profesional?.message}
+              error={errors.valorHora?.valor_hora_profesional?.message}
             >
               <Input
                 id="valor_hora_profesional"
                 type="number"
                 step="0.01"
                 min="0"
-                {...register("detalleEntrega.valor_hora_profesional", {
+                {...register("valorHora.valor_hora_profesional", {
                   setValueAs: (v) => (v === "" || v === undefined ? undefined : Number(v)),
                 })}
               />
             </FormField>
           </div>
-        ) : (
-          <div className="flex items-center gap-3 py-2 text-sm text-muted-foreground">
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted">
-              <Lock className="size-4" aria-hidden />
-            </span>
-            <div>
-              <p className="font-medium text-foreground">Bloqueado por tu rol</p>
-              <p className="text-xs">
-                Este campo vive junto al resto de &ldquo;Detalle de entrega&rdquo; en la base de
-                datos — la protección real todavía depende de que Persona A aísle la columna con
-                RLS o una vista aparte.
-              </p>
-            </div>
-          </div>
-        )}
+        </RoleGate>
       </SeccionAcordeon>
 
       <SeccionAcordeon

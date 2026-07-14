@@ -32,7 +32,7 @@ import { OrdenInfoSecciones } from "@/components/ordenes/orden-info-secciones";
 import { ordenServicioSchema, type OrdenServicioFormValues } from "@/lib/validations/orden.schema";
 import { ordenInfoExtendidaSchema, type OrdenInfoExtendidaFormValues } from "@/lib/validations/info-orden.schema";
 import { createOrden, guardarInformacionOrden } from "@/app/ordenes/actions";
-import type { RolUsuario } from "@/types";
+import { useAuth } from "@/components/auth/auth-provider";
 
 const ordenInfoFormSchema = ordenServicioSchema.extend(ordenInfoExtendidaSchema.shape);
 
@@ -50,9 +50,6 @@ type OrdenFormProps = {
   ciudades: SelectOption[];
   estadosEjecucion: SelectOption[];
   entregablesEstandar: SelectOption[];
-  // Stub temporal: el login/roles reales son el Día 2 del Plan MVP. Cuando
-  // esté wireado, esto viene de la sesión de Supabase Auth, no de un prop.
-  rol: RolUsuario;
 };
 
 export function OrdenForm({
@@ -65,8 +62,8 @@ export function OrdenForm({
   ciudades,
   estadosEjecucion,
   entregablesEstandar,
-  rol,
 }: OrdenFormProps) {
+  const { perfil } = useAuth();
   const [serverError, setServerError] = useState<string | null>(null);
   const [guardado, setGuardado] = useState(false);
   const {
@@ -102,7 +99,13 @@ export function OrdenForm({
       return;
     }
 
-    const result = await guardarInformacionOrden(ordenId!, values, values);
+    // Si no es administrador, valorHora nunca se manda: RLS en
+    // valor_hora_orden rechazaría el upsert igual, pero tumbaría todo el
+    // guardado (incluidas las demás secciones) en vez de solo esa parte.
+    const datosExtendidos: OrdenInfoFormValues =
+      perfil?.rol === "administrador" ? values : { ...values, valorHora: undefined };
+
+    const result = await guardarInformacionOrden(ordenId!, values, datosExtendidos);
     if (!result.ok) {
       setServerError(result.error);
       return;
@@ -152,7 +155,6 @@ export function OrdenForm({
         estadosEjecucion={estadosEjecucion}
         profesionales={profesionales}
         entregablesEstandar={entregablesEstandar}
-        rol={rol}
         disabled={mode === "nueva"}
       />
 

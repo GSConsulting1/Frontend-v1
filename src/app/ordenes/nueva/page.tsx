@@ -38,7 +38,6 @@ export default async function NuevaOrdenPage() {
         ciudades={catalogos.ciudades.map((c) => ({ id: c.id, label: c.nombre }))}
         estadosEjecucion={catalogos.estadosEjecucion.map((e) => ({ id: e.id, label: e.nombre }))}
         entregablesEstandar={catalogos.entregablesEstandar.map((e) => ({ id: e.id, label: e.nombre }))}
-        rol="gestion_gs"
       />
     </div>
   );

@@ -14,6 +14,7 @@ import type {
   EntregableEstandar,
   EstadoEjecucion,
   InfoOrdenServicio,
+  ValorHoraOrden,
 } from "@/types";
 
 export const mockCiudades: Ciudad[] = [
@@ -97,7 +98,6 @@ export const mockDetalleEntregaProfesional: DetalleEntregaProfesional[] = [
     envio_os_profesional: true,
     recepcion_orden_servicio: true,
     participante_arl_id: null,
-    valor_hora_profesional: 65000,
   },
   {
     orden_id: 4,
@@ -108,8 +108,14 @@ export const mockDetalleEntregaProfesional: DetalleEntregaProfesional[] = [
     envio_os_profesional: true,
     recepcion_orden_servicio: false,
     participante_arl_id: 3,
-    valor_hora_profesional: 85000,
   },
+];
+
+// Tabla aparte desde supabase/002_usuarios_roles_rls.sql (ver
+// lib/validations/info-orden.schema.ts).
+export const mockValorHoraOrden: ValorHoraOrden[] = [
+  { orden_id: 1, valor_hora_profesional: 65000 },
+  { orden_id: 4, valor_hora_profesional: 85000 },
 ];
 
 export const mockChecklistProceso: ChecklistProceso[] = [
