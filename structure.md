@@ -9,14 +9,18 @@ tipo de cosa acá abajo.
 
 ```
 src/
+├── proxy.ts           # Next 16 (reemplaza middleware.ts): refresca la sesión de Supabase
 ├── types/            # Vocabulario del dominio (tipos)
 ├── lib/
-│   ├── supabase/      # Cliente de Supabase (conexión)
+│   ├── supabase/
+│   │   ├── client.ts         # Singleton anon-key, usado por lib/data/*.ts
+│   │   └── browser-client.ts # Cliente con sesión en cookies, solo para AuthProvider
 │   ├── mock-data/      # Datos falsos para desarrollar sin Supabase
 │   ├── data/          # Capa de acceso a datos (queries reales/mock)
 │   ├── validations/    # Schemas de Zod (forma válida de cada entidad)
 │   └── utils.ts        # Helpers genéricos, sin lógica de negocio
 ├── app/               # Rutas (file-based routing de Next.js App Router)
+│   ├── login/page.tsx  # Login, sin sidebar (ver AppSidebar)
 │   └── <entidad>/
 │       ├── page.tsx        # Server Component: lee datos, renderiza
 │       ├── actions.ts       # Server Actions ("use server"): mutaciones
@@ -26,6 +30,7 @@ src/
     ├── ui/            # Primitivos genéricos (shadcn/ui) — sin dominio
     ├── layout/        # Chrome de la app (sidebar, encabezado de página) — sin dominio
     ├── forms/         # Composición de formularios genérica — sin dominio
+    ├── auth/          # AuthProvider/useAuth, RoleGate, LoginForm — sesión y roles
     └── <entidad>/      # Componentes específicos del dominio
 ```
 
@@ -43,11 +48,39 @@ src/
   SIEMPRE desde acá, nunca desde `database.types.ts` directamente. Si
   cambia una columna en la DB, solo se ajusta este archivo.
 
-### `lib/supabase/client.ts`
-- Único lugar donde se crea el cliente de Supabase.
-- Expone `isSupabaseConfigured` para que `lib/data/*.ts` decida entre
-  mock y real. No se importa `supabase` desde ningún otro lugar que no
-  sea `lib/data/*.ts`.
+### `lib/supabase/`
+- `client.ts`: singleton con la anon key, sin sesión. Expone
+  `isSupabaseConfigured`. Lo sigue usando `lib/data/ordenes.ts` completo
+  y las funciones de `lib/data/info-orden.ts` que le pegan a tablas sin
+  RLS — mientras una tabla no tenga RLS, este cliente da el mismo
+  resultado con o sin usuario logueado.
+- `browser-client.ts`: cliente separado con sesión en **cookies** (no
+  localStorage), usado únicamente por `components/auth/auth-provider.tsx`.
+  Cookies en vez de localStorage porque `proxy.ts` y `server.ts` (abajo)
+  solo pueden leer la sesión ahí.
+- `server.ts`: `createSupabaseServerClient()` — cliente por-request con la
+  sesión de cookies (`createServerClient` + `next/headers` `cookies()`),
+  para Server Components y Server Actions. **Obligatorio para cualquier
+  tabla con RLS** (hoy: `usuarios`, `valor_hora_orden`) — el singleton de
+  `client.ts` pega siempre como anon, así que `auth.uid()` da `null` ahí
+  adentro y cualquier policy que dependa del usuario real falla en
+  silencio en lecturas (0 filas, sin error) y explota en escrituras
+  (`new row violates row-level security policy`). Las 4 funciones de
+  `lib/data/info-orden.ts` que tocan `valor_hora_orden` ya usan este
+  cliente para *todas* sus queries (no solo esa tabla), para no mezclar
+  dos clientes distintos dentro del mismo archivo. Si `lib/data/ordenes.ts`
+  gana RLS en el futuro, ese es el momento de migrarlo también — hasta
+  entonces se queda en `client.ts`.
+
+### `proxy.ts`
+- Next 16 renombró `middleware.ts` a `proxy.ts` (ver
+  `node_modules/next/dist/docs/.../file-conventions/proxy.md`) — no crear
+  un `middleware.ts`, Next ya no lo reconoce como convención de archivo.
+- Hoy solo refresca el token de sesión en cada request (`supabase.auth.getUser()`)
+  para que la cookie no expire mientras navegas. **No redirige nada
+  todavía** — `/ordenes/*` sigue abierto sin sesión a propósito (ver
+  `components/auth/`), porque hoy no hay usuarios reales creados en
+  Supabase Auth. Cuando los haya, agregar la lógica de redirect acá.
 
 ### `lib/mock-data/`
 - Un archivo por entidad (ej. `ordenes.ts` agrupa clientes, estados,
@@ -136,6 +169,28 @@ src/
   No se editan a mano salvo para theming; no conocen el dominio
   (ninguna referencia a "orden", "cliente", Supabase, etc.).
 
+### `components/auth/`
+- `auth-provider.tsx`: `AuthProvider` (montado una sola vez en
+  `app/layout.tsx`, envolviendo `AppSidebar` + `main`) y el hook
+  `useAuth()` (`session`, `perfil` de la tabla `usuarios`, `loading`,
+  `signIn`, `signOut`). Es el único consumidor de
+  `lib/supabase/browser-client.ts`.
+- `role-gate.tsx`: `<RoleGate allow={[...]}>` genérico — oculta
+  `children` (muestra `fallback`, `null` por defecto) si `perfil` no
+  tiene un rol permitido. Es UX, no seguridad: el dato solo queda
+  protegido de verdad si la tabla tiene RLS en Supabase.
+- `login-form.tsx`: Client Component con el formulario de `/login`
+  (llama a `useAuth().signIn`); `app/login/page.tsx` es el wrapper Server
+  Component delgado, mismo patrón que `app/ordenes/nueva/page.tsx`.
+- `AppSidebar` se oculta a sí mismo en `/login` (`usePathname() === "/login"`)
+  para que esa pantalla no tenga el chrome de la app — no hay un layout
+  de ruta aparte para eso todavía.
+- **Las rutas de `/ordenes/*` siguen sin protección** (no hay redirect a
+  `/login` si no hay sesión) — decisión a propósito mientras no existan
+  usuarios reales creados en Supabase Auth + su fila en `usuarios`. Para
+  activarla: agregar el chequeo de sesión en cada `page.tsx` (o
+  centralizarlo en `proxy.ts`, ver esa sección).
+
 ### `components/<entidad>/`
 - Componentes que sí conocen el dominio (`ordenes-table.tsx`,
   `orden-form.tsx`, `estado-badge.tsx`). Reciben datos ya resueltos por
@@ -170,11 +225,27 @@ src/
   tenga `id`. `app/ordenes/nueva/page.tsx` y
   `app/ordenes/[id]/editar/page.tsx` son ambos wrappers delgados sobre
   `OrdenForm`, no reimplementan nada.
-- El rol para gatear "Valor hora" (`OrdenForm` prop `rol`) es un stub
-  hardcodeado hasta que el login del Día 2 del Plan MVP conecte con
-  Supabase Auth — no hay `ordenes-manager.tsx` ni ningún Client Component
-  intermedio gobernando la pantalla de listado, porque ya no hay estado
-  de "guardar cambios en lote" que compartir entre header y tabla.
+- "Valor hora profesional" vive en su propia tabla (`valor_hora_orden`,
+  1-a-1 con `ordenes_servicio` vía `orden_id`), separada de
+  `detalle_entrega_profesional` desde
+  `supabase/002_usuarios_roles_rls.sql` — RLS ahí permite leer/escribir
+  solo a `administrador`. En el form es la clave `valorHora` (schema
+  `valorHoraOrdenSchema`, aparte de `detalleEntregaProfesionalSchema`).
+  `OrdenInfoSecciones` envuelve ese campo en `<RoleGate allow={["administrador"]}>`
+  (llama a `useAuth()` directo, es Client Component) — `OrdenForm` ya no
+  recibe ni reenvía `rol` como prop. En `onSubmit` de `OrdenForm`, si
+  `perfil.rol !== "administrador"` se manda `valorHora: undefined` al
+  Server Action — si se mandara igual, RLS lo rechazaría, pero tumbaría
+  el guardado de TODAS las secciones en vez de solo esa (`guardarInfoOrdenCompleta`
+  hace un `if (datos.valorHora)` por sección, todo en la misma llamada).
+  Por la misma razón, `eliminarInfoOrdenCompleta` puede fallarle a un
+  no-administrador si la orden ya tiene fila en `valor_hora_orden` (el
+  DELETE ahí también es solo-admin) — ver el comentario en
+  `lib/data/info-orden.ts`; no hay solución del lado del front, es una
+  decisión de política que le toca a Persona A. No hay
+  `ordenes-manager.tsx` ni ningún Client Component intermedio
+  gobernando la pantalla de listado, porque ya no hay estado de
+  "guardar cambios en lote" que compartir entre header y tabla.
 - `createOrden`/`guardarInformacionOrden`/`eliminarOrden` en
   `app/ordenes/actions.ts`: `createOrden` es la única que hace
   `redirect()` (a `/ordenes/{id}/editar`, al crear la orden desde
