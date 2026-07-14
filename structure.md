@@ -63,11 +63,19 @@ src/
   acá.
 - Cada función pública maneja el `if (!isSupabaseConfigured) { mock } else {
   supabase real }` — así toda la UI funciona igual sin credenciales.
-- Helpers privados de normalización (ej. `normalizarInput`,
-  `orNull` en `ordenes.ts`) viven en el mismo archivo mientras solo un
-  archivo de datos los necesite. **Se promueven a `lib/utils.ts` recién
-  cuando un segundo archivo de `lib/data/` necesite el mismo helper** —
-  no antes, para evitar abstraer prematuramente algo con un solo uso.
+- Helpers privados de normalización (ej. `normalizarInput` en
+  `ordenes.ts`) viven en el mismo archivo mientras solo un archivo de
+  datos los necesite. **Se promueven a `lib/utils.ts` recién cuando un
+  segundo archivo de `lib/data/` necesite el mismo helper** — no antes,
+  para evitar abstraer prematuramente algo con un solo uso. Ejemplo real:
+  `orNull` empezó en `ordenes.ts` y se movió a `lib/utils.ts` cuando
+  `info-orden.ts` lo necesitó también.
+- Una entidad puede necesitar más de un archivo de mock-data/validations
+  si agrupa varias tablas 1-a-1 relacionadas: `info-orden.ts` (mock,
+  validations y data) cubre las 5 tablas extendidas de "Información
+  orden del servicio" + sus 3 catálogos, separado de `ordenes.ts`
+  porque son un conjunto de pantalla propio, aunque casi siempre se
+  consultan junto con una orden.
 
 ### `lib/validations/`
 - Un schema de Zod por entidad (`orden.schema.ts`). Es la única fuente
@@ -134,29 +142,49 @@ src/
   vía de props desde `page.tsx` — no hacen fetch propio salvo que sean
   Client Components que llaman a un Server Action (ej. `orden-form.tsx`
   → `actions.ts`).
-- `orden-campos.tsx` agrupa TODOS los campos editables de una orden,
-  cliente incluido, para que `orden-form.tsx` (página completa de
-  edición), `orden-row-editor.tsx` (editar una fila existente inline) y
-  `orden-draft-row-editor.tsx` (crear una fila nueva inline) rendericen
-  exactamente los mismos campos sin duplicar JSX.
-- No hay página de creación (`/ordenes/nueva` no existe): "Nueva orden"
-  agrega una fila en blanco siempre desplegada arriba de la tabla
-  (`OrdenesTable.addDraftRow`, vía `orden-draft-row-editor.tsx`) — crear
-  y editar viven los dos dentro de la tabla, no en páginas separadas.
-  Solo queda una página de formulario completo, `/ordenes/[id]/editar`,
-  para edición vía link directo.
-- `ordenes-manager.tsx` es el Client Component que gobierna la pantalla
-  de listado completa (header, tabla) porque el botón "Guardar cambios"
-  necesita el estado de "hay ediciones o filas nuevas válidas
-  pendientes" que vive dentro de la tabla. `ordenes-table.tsx` expone
-  ese estado hacia arriba vía `ref` (`collectChanges`, `addDraftRow`,
-  `clearDrafts`) en vez de que el padre le imponga su forma de estado a
+- `ordenes-table.tsx` es de **solo lectura**: sin filas desplegables, sin
+  edición inline. Cada fila tiene un ícono "editar" que navega a
+  `/ordenes/{id}/editar` y el único estado de cliente que le queda es el
+  de "eliminando" mientras corre `eliminarOrden`. Crear y editar viven
+  los dos en páginas completas — `/ordenes/nueva` y
+  `/ordenes/[id]/editar` — no en la tabla. Se decidió así porque una
+  fila desplegable ya alcanzaba su límite con los ~17 campos de
+  `ordenes_servicio`; no tenía sentido meter ahí además las 6 secciones
+  de "Información orden del servicio" (habría sido un acordeón dentro
+  de una fila que ya se despliega).
+- `orden-campos.tsx` sigue agrupando TODOS los campos de
+  `ordenes_servicio` ("Datos generales"). `orden-info-secciones.tsx`
+  agrupa las 6 secciones extendidas (Datos de la actividad / Profesional
+  y contacto / Detalle de entrega / Entregables estándar / Valor hora /
+  Checklist) como un acordeón (`<details>`) con estado por sección
+  (completo/incompleto/bloqueado) — mismo criterio que `orden-campos.tsx`:
+  un componente por grupo de campos, reusado donde haga falta.
+- `orden-form.tsx` es la única pieza que arma el formulario completo:
+  un solo `useForm` (schema `ordenServicioSchema` + las 4 claves
+  anidadas de `ordenInfoExtendidaSchema`) cubre `OrdenCampos` +
+  `OrdenInfoSecciones`, con un solo botón "Guardar". Recibe
+  `mode: "nueva" | "existente"` — en `"nueva"` las secciones extendidas
+  se ven deshabilitadas (`OrdenInfoSecciones` prop `disabled`) porque
+  las 5 tablas extendidas usan `orden_id` como PK/FK hacia
+  `ordenes_servicio(id)`: no pueden tener fila hasta que la orden misma
+  tenga `id`. `app/ordenes/nueva/page.tsx` y
+  `app/ordenes/[id]/editar/page.tsx` son ambos wrappers delgados sobre
+  `OrdenForm`, no reimplementan nada.
+- El rol para gatear "Valor hora" (`OrdenForm` prop `rol`) es un stub
+  hardcodeado hasta que el login del Día 2 del Plan MVP conecte con
+  Supabase Auth — no hay `ordenes-manager.tsx` ni ningún Client Component
+  intermedio gobernando la pantalla de listado, porque ya no hay estado
+  de "guardar cambios en lote" que compartir entre header y tabla.
+- `createOrden`/`guardarInformacionOrden`/`eliminarOrden` en
+  `app/ordenes/actions.ts`: `createOrden` es la única que hace
+  `redirect()` (a `/ordenes/{id}/editar`, al crear la orden desde
+  `/ordenes/nueva`). `guardarInformacionOrden` guarda datos generales +
+  las 6 secciones extendidas en una sola llamada (llama a
+  `updateOrdenRecord` de `lib/data/ordenes.ts` y a
+  `guardarInfoOrdenCompleta` de `lib/data/info-orden.ts`) y no
+  redirige — el usuario se queda en la misma página de edición.
+  `eliminarOrden` tampoco redirige, solo `revalidatePath` — la dispara
   la tabla.
-- `guardarCambiosOrdenes`/`crearOrdenesNuevas`/`eliminarOrden` en
-  `app/ordenes/actions.ts` NO hacen `redirect()` (a diferencia de
-  `updateOrden`, que sí — la usa el formulario de página completa): son
-  mutaciones inline, el usuario debe quedarse en `/ordenes` viendo la
-  tabla actualizada. Solo `revalidatePath`.
 
 ## Al agregar una entidad nueva (ej. "clientes" como pantalla propia)
 
