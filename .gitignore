@@ -37,6 +37,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# supabase CLI (metadata local del `supabase gen types`, no del proyecto)
+/supabase/.temp
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
