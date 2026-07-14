@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 import type { OrdenServicioFormValues } from "@/lib/validations/orden.schema";
 
 type SelectOption = { id: number; label: string };
@@ -31,6 +32,10 @@ export type OrdenCamposProps = {
   clientes: SelectOption[];
   estados: SelectOption[];
   profesionales: SelectOption[];
+  // Solo administrador puede editar Datos generales (ver structure.md,
+  // supabase/004_ordenes_servicio_rls.sql) — cualquier otro rol la ve pero
+  // no puede tocarla.
+  disabled: boolean;
 };
 
 export function OrdenCampos({
@@ -40,9 +45,13 @@ export function OrdenCampos({
   clientes,
   estados,
   profesionales,
+  disabled,
 }: OrdenCamposProps) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
+    <fieldset
+      disabled={disabled}
+      className={cn("grid gap-4 sm:grid-cols-2", disabled && "pointer-events-none opacity-50")}
+    >
       <FormField
         label="Cliente"
         htmlFor="cliente_id"
@@ -283,6 +292,6 @@ export function OrdenCampos({
           />
         </FormField>
       </div>
-    </div>
+    </fieldset>
   );
 }

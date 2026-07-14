@@ -5,10 +5,9 @@
 // hay estado de "guardar cambios" que gobernar en un Client Component
 // intermedio, así que no hace falta OrdenesManager.
 
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/page-header";
 import { OrdenesTable } from "@/components/ordenes/ordenes-table";
+import { NuevaOrdenButton } from "@/components/ordenes/nueva-orden-button";
 import { getOrdenes } from "@/lib/data/ordenes";
 
 export default async function OrdenesPage({
@@ -30,9 +29,7 @@ export default async function OrdenesPage({
       <PageHeader
         title="Orden de servicio recibida del cliente"
         description="Registra y consulta las OS de cada cliente"
-        actions={
-          <Button nativeButton={false} render={<Link href="/ordenes/nueva">Nueva orden</Link>} />
-        }
+        actions={<NuevaOrdenButton />}
       />
 
       <OrdenesTable ordenes={ordenes} />

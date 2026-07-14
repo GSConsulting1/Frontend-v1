@@ -64,6 +64,7 @@ export function OrdenForm({
   entregablesEstandar,
 }: OrdenFormProps) {
   const { perfil } = useAuth();
+  const esAdmin = perfil?.rol === "administrador";
   const [serverError, setServerError] = useState<string | null>(null);
   const [guardado, setGuardado] = useState(false);
   const {
@@ -99,13 +100,15 @@ export function OrdenForm({
       return;
     }
 
-    // Si no es administrador, valorHora nunca se manda: RLS en
-    // valor_hora_orden rechazaría el upsert igual, pero tumbaría todo el
-    // guardado (incluidas las demás secciones) en vez de solo esa parte.
-    const datosExtendidos: OrdenInfoFormValues =
-      perfil?.rol === "administrador" ? values : { ...values, valorHora: undefined };
+    // Si no es administrador, ni valorHora ni los datos generales
+    // (ordenes_servicio) se mandan: RLS los rechazaría igual (ver
+    // supabase/004_ordenes_servicio_rls.sql), pero tumbaría el guardado de
+    // TODAS las secciones en vez de solo la parte restringida — OrdenCampos
+    // ya está deshabilitado en pantalla para estos roles, así que `values`
+    // trae los datos generales sin cambios de todas formas.
+    const datosExtendidos: OrdenInfoFormValues = esAdmin ? values : { ...values, valorHora: undefined };
 
-    const result = await guardarInformacionOrden(ordenId!, values, datosExtendidos);
+    const result = await guardarInformacionOrden(ordenId!, esAdmin ? values : null, datosExtendidos);
     if (!result.ok) {
       setServerError(result.error);
       return;
@@ -129,6 +132,14 @@ export function OrdenForm({
 
       <OrdenCamposInfo />
 
+      {!esAdmin && (
+        <p className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+          <Info className="size-4 shrink-0" aria-hidden />
+          Solo el rol administrador puede editar los datos generales — los ves, pero no se pueden
+          modificar desde tu cuenta.
+        </p>
+      )}
+
       <OrdenCampos
         register={register}
         control={control}
@@ -136,6 +147,7 @@ export function OrdenForm({
         clientes={clientes}
         estados={estados}
         profesionales={profesionales}
+        disabled={!esAdmin}
       />
 
       {mode === "nueva" && (

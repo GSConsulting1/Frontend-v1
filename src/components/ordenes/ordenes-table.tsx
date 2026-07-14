@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { EstadoBadge } from "@/components/ordenes/estado-badge";
+import { RoleGate } from "@/components/auth/role-gate";
 import { eliminarOrden } from "@/app/ordenes/actions";
 import { cn } from "@/lib/utils";
 import type { OrdenServicioConRelaciones } from "@/types";
@@ -38,8 +39,13 @@ export function OrdenesTable({ ordenes }: OrdenesTableProps) {
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   async function handleDelete(orden: OrdenServicioConRelaciones) {
-    const nombre = orden.cliente?.nombre_cliente ?? orden.id_unico ?? `#${orden.id}`;
-    if (!window.confirm(`¿Eliminar la orden de ${nombre}? Esta acción no se puede deshacer.`)) {
+    const nombre =
+      orden.cliente?.nombre_cliente ?? orden.id_unico ?? `#${orden.id}`;
+    if (
+      !window.confirm(
+        `¿Eliminar la orden de ${nombre}? Esta acción no se puede deshacer.`,
+      )
+    ) {
       return;
     }
     setDeleteError(null);
@@ -74,13 +80,19 @@ export function OrdenesTable({ ordenes }: OrdenesTableProps) {
             <TableHead>Horas</TableHead>
             <TableHead>Archivo</TableHead>
             <TableHead className="text-right">Editar</TableHead>
-            <TableHead className="text-right">Eliminar</TableHead>
+
+            <RoleGate allow={["administrador"]}>
+              <TableHead className="text-right">Eliminar</TableHead>
+            </RoleGate>
           </TableRow>
         </TableHeader>
         <TableBody>
           {ordenes.length === 0 && (
             <TableRow>
-              <TableCell colSpan={COLUMNAS} className="py-10 text-center text-sm text-muted-foreground">
+              <TableCell
+                colSpan={COLUMNAS}
+                className="py-10 text-center text-sm text-muted-foreground"
+              >
                 No hay órdenes que coincidan con los filtros.
               </TableCell>
             </TableRow>
@@ -90,7 +102,10 @@ export function OrdenesTable({ ordenes }: OrdenesTableProps) {
             const isDeleting = deletingIds.has(orden.id);
 
             return (
-              <TableRow key={orden.id} className={cn(isDeleting && "opacity-50")}>
+              <TableRow
+                key={orden.id}
+                className={cn(isDeleting && "opacity-50")}
+              >
                 <TableCell className="font-medium">
                   {orden.cliente?.nombre_cliente ?? "—"}
                 </TableCell>
@@ -131,16 +146,18 @@ export function OrdenesTable({ ordenes }: OrdenesTableProps) {
                   />
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    disabled={isDeleting}
-                    aria-label="Eliminar orden"
-                    onClick={() => handleDelete(orden)}
-                  >
-                    <X className="size-4" />
-                  </Button>
+                  <RoleGate allow={["administrador"]}>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      disabled={isDeleting}
+                      aria-label="Eliminar orden"
+                      onClick={() => handleDelete(orden)}
+                    >
+                      <X className="size-4" />
+                    </Button>
+                  </RoleGate>
                 </TableCell>
               </TableRow>
             );

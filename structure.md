@@ -50,10 +50,11 @@ src/
 
 ### `lib/supabase/`
 - `client.ts`: singleton con la anon key, sin sesión. Expone
-  `isSupabaseConfigured`. Lo sigue usando `lib/data/ordenes.ts` completo
-  y las funciones de `lib/data/info-orden.ts` que le pegan a tablas sin
-  RLS — mientras una tabla no tenga RLS, este cliente da el mismo
-  resultado con o sin usuario logueado.
+  `isSupabaseConfigured`. Ya no lo usa ningún archivo de `lib/data/` para
+  hablar con Supabase — solo lo importan para leer `isSupabaseConfigured`
+  y decidir mock vs. real. Se mantendría útil si algún día se agrega una
+  tabla de catálogo sin RLS y sin necesidad de sesión, pero hoy no hay
+  ninguna.
 - `browser-client.ts`: cliente separado con sesión en **cookies** (no
   localStorage), usado únicamente por `components/auth/auth-provider.tsx`.
   Cookies en vez de localStorage porque `proxy.ts` y `server.ts` (abajo)
@@ -61,16 +62,16 @@ src/
 - `server.ts`: `createSupabaseServerClient()` — cliente por-request con la
   sesión de cookies (`createServerClient` + `next/headers` `cookies()`),
   para Server Components y Server Actions. **Obligatorio para cualquier
-  tabla con RLS** (hoy: `usuarios`, `valor_hora_orden`) — el singleton de
-  `client.ts` pega siempre como anon, así que `auth.uid()` da `null` ahí
-  adentro y cualquier policy que dependa del usuario real falla en
-  silencio en lecturas (0 filas, sin error) y explota en escrituras
-  (`new row violates row-level security policy`). Las 4 funciones de
-  `lib/data/info-orden.ts` que tocan `valor_hora_orden` ya usan este
-  cliente para *todas* sus queries (no solo esa tabla), para no mezclar
-  dos clientes distintos dentro del mismo archivo. Si `lib/data/ordenes.ts`
-  gana RLS en el futuro, ese es el momento de migrarlo también — hasta
-  entonces se queda en `client.ts`.
+  tabla con RLS** (hoy: `usuarios`, `valor_hora_orden`, `ordenes_servicio`)
+  — el singleton de `client.ts` pega siempre como anon, así que
+  `auth.uid()` da `null` ahí adentro y cualquier policy que dependa del
+  usuario real falla en silencio en lecturas (0 filas, sin error) y
+  explota en escrituras (`new row violates row-level security policy`).
+  Tanto `lib/data/ordenes.ts` como `lib/data/info-orden.ts` usan este
+  cliente para *todas* sus queries, no solo las de tablas con RLS — para
+  no mezclar dos clientes distintos dentro del mismo archivo. Si se
+  agrega un `lib/data/<entidad>.ts` nuevo para una tabla sin RLS, ahí sí
+  puede quedarse con el singleton de `client.ts` hasta que la gane.
 
 ### `proxy.ts`
 - Next 16 renombró `middleware.ts` a `proxy.ts` (ver
@@ -199,21 +200,27 @@ src/
   → `actions.ts`).
 - `ordenes-table.tsx` es de **solo lectura**: sin filas desplegables, sin
   edición inline. Cada fila tiene un ícono "editar" que navega a
-  `/ordenes/{id}/editar` y el único estado de cliente que le queda es el
-  de "eliminando" mientras corre `eliminarOrden`. Crear y editar viven
-  los dos en páginas completas — `/ordenes/nueva` y
-  `/ordenes/[id]/editar` — no en la tabla. Se decidió así porque una
-  fila desplegable ya alcanzaba su límite con los ~17 campos de
-  `ordenes_servicio`; no tenía sentido meter ahí además las 6 secciones
-  de "Información orden del servicio" (habría sido un acordeón dentro
-  de una fila que ya se despliega).
-- `orden-campos.tsx` sigue agrupando TODOS los campos de
-  `ordenes_servicio` ("Datos generales"). `orden-info-secciones.tsx`
-  agrupa las 6 secciones extendidas (Datos de la actividad / Profesional
-  y contacto / Detalle de entrega / Entregables estándar / Valor hora /
-  Checklist) como un acordeón (`<details>`) con estado por sección
+  `/ordenes/{id}/editar` (visible a cualquier rol) y un ícono "eliminar"
+  envuelto en `<RoleGate allow={["administrador"]}>` (columna de header
+  incluida) — el único estado de cliente que le queda es el de
+  "eliminando" mientras corre `eliminarOrden`. Crear y editar viven los
+  dos en páginas completas — `/ordenes/nueva` y `/ordenes/[id]/editar` —
+  no en la tabla. `nueva-orden-button.tsx` es el botón "Nueva orden" de
+  `app/ordenes/page.tsx`, en su propio Client Component (el Server
+  Component de la página no puede llamar `useAuth()`) también gateado a
+  `administrador`.
+- `orden-campos.tsx` ("Datos generales", TODOS los campos de
+  `ordenes_servicio`) recibe `disabled` — `true` para cualquier rol que
+  no sea `administrador` (ver `supabase/004_ordenes_servicio_rls.sql`):
+  se ve pero no se puede tocar, mismo patrón `<fieldset disabled>` que ya
+  usaba `orden-info-secciones.tsx`. `orden-info-secciones.tsx` agrupa las
+  6 secciones extendidas (Datos de la actividad / Profesional y contacto
+  / Detalle de entrega / Entregables estándar / Valor hora / Checklist)
+  como un acordeón (`<details>`) con estado por sección
   (completo/incompleto/bloqueado) — mismo criterio que `orden-campos.tsx`:
-  un componente por grupo de campos, reusado donde haga falta.
+  un componente por grupo de campos, reusado donde haga falta. Esas 6
+  secciones (salvo Valor hora) siguen editables por cualquier rol — el
+  gate de `administrador` es solo para Datos generales y Valor hora.
 - `orden-form.tsx` es la única pieza que arma el formulario completo:
   un solo `useForm` (schema `ordenServicioSchema` + las 4 claves
   anidadas de `ordenInfoExtendidaSchema`) cubre `OrdenCampos` +
@@ -224,7 +231,11 @@ src/
   `ordenes_servicio(id)`: no pueden tener fila hasta que la orden misma
   tenga `id`. `app/ordenes/nueva/page.tsx` y
   `app/ordenes/[id]/editar/page.tsx` son ambos wrappers delgados sobre
-  `OrdenForm`, no reimplementan nada.
+  `OrdenForm`, no reimplementan nada. En `onSubmit`, si el usuario no es
+  administrador se manda `datosBase: null` a `guardarInformacionOrden`
+  (que entonces se salta `updateOrdenRecord` por completo) — mismo
+  motivo que `valorHora: undefined` más abajo: RLS igual lo rechazaría,
+  pero tumbaría el guardado de las secciones que ese rol sí puede editar.
 - "Valor hora profesional" vive en su propia tabla (`valor_hora_orden`,
   1-a-1 con `ordenes_servicio` vía `orden_id`), separada de
   `detalle_entrega_profesional` desde

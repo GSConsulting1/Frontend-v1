@@ -48,11 +48,16 @@ export type MutacionResult = { ok: true } | { ok: false; error: string };
 
 export async function guardarInformacionOrden(
   ordenId: number,
-  datosBase: unknown,
+  // null cuando el usuario no es administrador (ver OrdenForm.onSubmit):
+  // OrdenCampos ya está deshabilitado en pantalla para esos roles, así que
+  // ni se intenta el update — RLS lo rechazaría igual (ver
+  // supabase/004_ordenes_servicio_rls.sql), pero tumbaría el guardado de
+  // las demás secciones también.
+  datosBase: unknown | null,
   datosExtendidos: unknown,
 ): Promise<MutacionResult> {
-  const parsedBase = ordenServicioSchema.safeParse(datosBase);
-  if (!parsedBase.success) {
+  const parsedBase = datosBase === null ? null : ordenServicioSchema.safeParse(datosBase);
+  if (parsedBase && !parsedBase.success) {
     return { ok: false, error: "Revisa los datos generales de la orden — hay campos inválidos." };
   }
   const parsedExtendidos = ordenInfoExtendidaSchema.safeParse(datosExtendidos);
@@ -61,7 +66,7 @@ export async function guardarInformacionOrden(
   }
 
   try {
-    await updateOrdenRecord(ordenId, parsedBase.data);
+    if (parsedBase) await updateOrdenRecord(ordenId, parsedBase.data);
     await guardarInfoOrdenCompleta(ordenId, parsedExtendidos.data);
   } catch (err) {
     return {

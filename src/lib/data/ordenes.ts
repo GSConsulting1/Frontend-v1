@@ -9,7 +9,8 @@
 // Mientras isSupabaseConfigured es false (Día 1-2, sin credenciales todavía),
 // todo cae a los mocks para que Persona B no dependa de Persona A.
 
-import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
+import { isSupabaseConfigured } from "@/lib/supabase/client";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   mockClientes,
   mockEstados,
@@ -63,7 +64,7 @@ function enriquecerMock(): OrdenServicioConRelaciones[] {
 export async function getOrdenes(
   filtros: OrdenesFiltros = {},
 ): Promise<OrdenServicioConRelaciones[]> {
-  if (!isSupabaseConfigured || !supabase) {
+  if (!isSupabaseConfigured) {
     let ordenes = enriquecerMock();
     if (filtros.clienteId) {
       ordenes = ordenes.filter((o) => o.cliente_id === filtros.clienteId);
@@ -80,6 +81,7 @@ export async function getOrdenes(
     }
     return ordenes.sort((a, b) => b.id - a.id);
   }
+  const supabase = await createSupabaseServerClient();
 
   let query = supabase
     .from("ordenes_servicio")
@@ -100,9 +102,10 @@ export async function getOrdenes(
 export async function getOrdenById(
   id: number,
 ): Promise<OrdenServicioConRelaciones | null> {
-  if (!isSupabaseConfigured || !supabase) {
+  if (!isSupabaseConfigured) {
     return enriquecerMock().find((o) => o.id === id) ?? null;
   }
+  const supabase = await createSupabaseServerClient();
 
   const { data, error } = await supabase
     .from("ordenes_servicio")
@@ -117,11 +120,12 @@ export async function getOrdenById(
 }
 
 export async function getClientesParaSelect() {
-  if (!isSupabaseConfigured || !supabase) {
+  if (!isSupabaseConfigured) {
     return mockClientes
       .filter((c) => c.activo)
       .map((c) => ({ id: c.id, nombre_cliente: c.nombre_cliente }));
   }
+  const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("clientes")
     .select("id, nombre_cliente")
@@ -132,12 +136,13 @@ export async function getClientesParaSelect() {
 }
 
 export async function getEstadosParaSelect() {
-  if (!isSupabaseConfigured || !supabase) {
+  if (!isSupabaseConfigured) {
     return mockEstados
       .filter((e) => e.activo)
       .sort((a, b) => (a.orden_visual ?? 0) - (b.orden_visual ?? 0))
       .map((e) => ({ id: e.id, nombre: e.nombre }));
   }
+  const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("estados_orden")
     .select("id, nombre")
@@ -148,11 +153,12 @@ export async function getEstadosParaSelect() {
 }
 
 export async function getProfesionalesParaSelect() {
-  if (!isSupabaseConfigured || !supabase) {
+  if (!isSupabaseConfigured) {
     return mockProfesionales
       .filter((p) => p.activo)
       .map((p) => ({ id: p.id, nombre_completo: p.nombre_completo }));
   }
+  const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("profesionales")
     .select("id, nombre_completo")
@@ -165,7 +171,7 @@ export async function getProfesionalesParaSelect() {
 export async function createOrdenRecord(input: OrdenServicioFormValues) {
   const normalizado = normalizarInput(input);
 
-  if (!isSupabaseConfigured || !supabase) {
+  if (!isSupabaseConfigured) {
     const nextId = Math.max(0, ...mockOrdenes.map((o) => o.id)) + 1;
     const now = new Date().toISOString();
     mockOrdenes.push({
@@ -181,6 +187,7 @@ export async function createOrdenRecord(input: OrdenServicioFormValues) {
     });
     return nextId;
   }
+  const supabase = await createSupabaseServerClient();
 
   const { data, error } = await supabase
     .from("ordenes_servicio")
@@ -197,7 +204,7 @@ export async function updateOrdenRecord(
 ) {
   const normalizado = normalizarInput(input);
 
-  if (!isSupabaseConfigured || !supabase) {
+  if (!isSupabaseConfigured) {
     const index = mockOrdenes.findIndex((o) => o.id === id);
     if (index === -1) throw new Error("Orden no encontrada");
     mockOrdenes[index] = {
@@ -207,6 +214,7 @@ export async function updateOrdenRecord(
     };
     return;
   }
+  const supabase = await createSupabaseServerClient();
 
   const { error } = await supabase
     .from("ordenes_servicio")
@@ -216,12 +224,13 @@ export async function updateOrdenRecord(
 }
 
 export async function deleteOrdenRecord(id: number) {
-  if (!isSupabaseConfigured || !supabase) {
+  if (!isSupabaseConfigured) {
     const index = mockOrdenes.findIndex((o) => o.id === id);
     if (index === -1) throw new Error("Orden no encontrada");
     mockOrdenes.splice(index, 1);
     return;
   }
+  const supabase = await createSupabaseServerClient();
 
   const { error } = await supabase.from("ordenes_servicio").delete().eq("id", id);
   if (error) throw new Error(`No se pudo eliminar la orden: ${error.message}`);

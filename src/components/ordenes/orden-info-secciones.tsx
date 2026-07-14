@@ -12,7 +12,13 @@
 "use client";
 
 import type { InputHTMLAttributes, ReactNode } from "react";
-import { Controller, type Control, type FieldErrors, type UseFormRegister, type UseFormWatch } from "react-hook-form";
+import {
+  Controller,
+  type Control,
+  type FieldErrors,
+  type UseFormRegister,
+  type UseFormWatch,
+} from "react-hook-form";
 import { Check, ChevronRight, Lock } from "lucide-react";
 import { FormField } from "@/components/forms/form-field";
 import { Input } from "@/components/ui/input";
@@ -170,7 +176,11 @@ export function OrdenInfoSecciones({
       >
         <div className="grid gap-4 sm:grid-cols-2">
           <FormField label="Fecha de emisión OS" htmlFor="fecha_emision_os">
-            <Input id="fecha_emision_os" type="date" {...register("infoOrdenServicio.fecha_emision_os")} />
+            <Input
+              id="fecha_emision_os"
+              type="date"
+              {...register("infoOrdenServicio.fecha_emision_os")}
+            />
           </FormField>
           <FormField label="Ciudad" htmlFor="ciudad_id">
             <Controller
@@ -179,8 +189,13 @@ export function OrdenInfoSecciones({
               render={({ field }) => (
                 <Select
                   value={field.value != null ? String(field.value) : null}
-                  onValueChange={(v: string | null) => field.onChange(v ? Number(v) : undefined)}
-                  items={ciudades.map((c) => ({ label: c.label, value: String(c.id) }))}
+                  onValueChange={(v: string | null) =>
+                    field.onChange(v ? Number(v) : undefined)
+                  }
+                  items={ciudades.map((c) => ({
+                    label: c.label,
+                    value: String(c.id),
+                  }))}
                 >
                   <SelectTrigger id="ciudad_id" className="w-full">
                     <SelectValue placeholder="Selecciona una ciudad" />
@@ -197,16 +212,40 @@ export function OrdenInfoSecciones({
             />
           </FormField>
           <div className="sm:col-span-2">
-            <Checkbox label="Actividad reprogramada" {...register("infoOrdenServicio.actividad_reprogramada")} />
+            <Checkbox
+              label="Actividad reprogramada"
+              {...register("infoOrdenServicio.actividad_reprogramada")}
+            />
           </div>
-          <FormField label="Empresa a visitar" htmlFor="empresa_a_visitar" className="sm:col-span-2">
-            <Input id="empresa_a_visitar" {...register("infoOrdenServicio.empresa_a_visitar")} />
+          <FormField
+            label="Empresa a visitar"
+            htmlFor="empresa_a_visitar"
+            className="sm:col-span-2"
+          >
+            <Input
+              id="empresa_a_visitar"
+              {...register("infoOrdenServicio.empresa_a_visitar")}
+            />
           </FormField>
-          <FormField label="Nombre de la actividad" htmlFor="nombre_actividad" className="sm:col-span-2">
-            <Input id="nombre_actividad" {...register("infoOrdenServicio.nombre_actividad")} />
+          <FormField
+            label="Nombre de la actividad"
+            htmlFor="nombre_actividad"
+            className="sm:col-span-2"
+          >
+            <Input
+              id="nombre_actividad"
+              {...register("infoOrdenServicio.nombre_actividad")}
+            />
           </FormField>
-          <FormField label="Descripción de la actividad" htmlFor="descripcion_actividad" className="sm:col-span-2">
-            <Textarea id="descripcion_actividad" {...register("infoOrdenServicio.descripcion_actividad")} />
+          <FormField
+            label="Descripción de la actividad"
+            htmlFor="descripcion_actividad"
+            className="sm:col-span-2"
+          >
+            <Textarea
+              id="descripcion_actividad"
+              {...register("infoOrdenServicio.descripcion_actividad")}
+            />
           </FormField>
           <FormField
             label="Horas asignadas"
@@ -219,34 +258,65 @@ export function OrdenInfoSecciones({
               step="0.5"
               min="0"
               {...register("infoOrdenServicio.horas_asignadas", {
-                setValueAs: (v) => (v === "" || v === undefined ? undefined : Number(v)),
+                setValueAs: (v) =>
+                  v === "" || v === undefined ? undefined : Number(v),
               })}
             />
           </FormField>
-          <FormField label="Fecha inicio ejecución" htmlFor="fecha_inicio_ejecucion">
-            <Input id="fecha_inicio_ejecucion" type="date" {...register("infoOrdenServicio.fecha_inicio_ejecucion")} />
+          <FormField
+            label="Fecha inicio ejecución"
+            htmlFor="fecha_inicio_ejecucion"
+          >
+            <Input
+              id="fecha_inicio_ejecucion"
+              type="date"
+              {...register("infoOrdenServicio.fecha_inicio_ejecucion")}
+            />
           </FormField>
           <FormField
             label="Fecha fin ejecución"
             htmlFor="fecha_fin_ejecucion"
             error={errors.infoOrdenServicio?.fecha_fin_ejecucion?.message}
           >
-            <Input id="fecha_fin_ejecucion" type="date" {...register("infoOrdenServicio.fecha_fin_ejecucion")} />
+            <Input
+              id="fecha_fin_ejecucion"
+              type="date"
+              {...register("infoOrdenServicio.fecha_fin_ejecucion")}
+            />
           </FormField>
           <FormField label="Hora inicio" htmlFor="hora_inicio">
-            <Input id="hora_inicio" type="time" {...register("infoOrdenServicio.hora_inicio")} />
+            <Input
+              id="hora_inicio"
+              type="time"
+              {...register("infoOrdenServicio.hora_inicio")}
+            />
           </FormField>
           <FormField
             label="Hora fin"
             htmlFor="hora_fin"
             error={errors.infoOrdenServicio?.hora_fin?.message}
           >
-            <Input id="hora_fin" type="time" {...register("infoOrdenServicio.hora_fin")} />
+            <Input
+              id="hora_fin"
+              type="time"
+              {...register("infoOrdenServicio.hora_fin")}
+            />
           </FormField>
-          <FormField label="Dirección de la empresa" htmlFor="direccion_empresa" className="sm:col-span-2">
-            <Input id="direccion_empresa" {...register("infoOrdenServicio.direccion_empresa")} />
+          <FormField
+            label="Dirección de la empresa"
+            htmlFor="direccion_empresa"
+            className="sm:col-span-2"
+          >
+            <Input
+              id="direccion_empresa"
+              {...register("infoOrdenServicio.direccion_empresa")}
+            />
           </FormField>
-          <FormField label="Ubicación (Google Maps)" htmlFor="ubicacion_google_maps" className="sm:col-span-2">
+          <FormField
+            label="Ubicación (Google Maps)"
+            htmlFor="ubicacion_google_maps"
+            className="sm:col-span-2"
+          >
             <Input
               id="ubicacion_google_maps"
               type="url"
@@ -263,15 +333,24 @@ export function OrdenInfoSecciones({
         completo={algunoLleno(profesionalContacto)}
       >
         <div className="grid gap-4 sm:grid-cols-2">
-          <FormField label="Profesional asignado" htmlFor="profesional_id" className="sm:col-span-2">
+          <FormField
+            label="Profesional asignado"
+            htmlFor="profesional_id"
+            className="sm:col-span-2"
+          >
             <Controller
               name="infoOrdenServicio.profesional_id"
               control={control}
               render={({ field }) => (
                 <Select
                   value={field.value != null ? String(field.value) : null}
-                  onValueChange={(v: string | null) => field.onChange(v ? Number(v) : undefined)}
-                  items={profesionales.map((p) => ({ label: p.label, value: String(p.id) }))}
+                  onValueChange={(v: string | null) =>
+                    field.onChange(v ? Number(v) : undefined)
+                  }
+                  items={profesionales.map((p) => ({
+                    label: p.label,
+                    value: String(p.id),
+                  }))}
                 >
                   <SelectTrigger id="profesional_id" className="w-full">
                     <SelectValue placeholder="Selecciona un profesional" />
@@ -287,25 +366,34 @@ export function OrdenInfoSecciones({
               )}
             />
           </FormField>
-          <p className="flex gap-2 rounded-lg border border-border bg-muted/50 px-3 py-2 text-xs text-muted-foreground sm:col-span-2">
-            Cédula y celular del profesional se muestran por JOIN desde{" "}
-            <code className="rounded bg-background px-1">profesionales</code> — no se duplican acá.
-          </p>
           <FormField label="Nombre del contacto" htmlFor="contacto_nombre">
-            <Input id="contacto_nombre" {...register("infoOrdenServicio.contacto_nombre")} />
+            <Input
+              id="contacto_nombre"
+              {...register("infoOrdenServicio.contacto_nombre")}
+            />
           </FormField>
           <FormField label="Cargo" htmlFor="contacto_cargo">
-            <Input id="contacto_cargo" {...register("infoOrdenServicio.contacto_cargo")} />
+            <Input
+              id="contacto_cargo"
+              {...register("infoOrdenServicio.contacto_cargo")}
+            />
           </FormField>
           <FormField label="Celular" htmlFor="contacto_celular">
-            <Input id="contacto_celular" {...register("infoOrdenServicio.contacto_celular")} />
+            <Input
+              id="contacto_celular"
+              {...register("infoOrdenServicio.contacto_celular")}
+            />
           </FormField>
           <FormField
             label="Email"
             htmlFor="contacto_email"
             error={errors.infoOrdenServicio?.contacto_email?.message}
           >
-            <Input id="contacto_email" type="email" {...register("infoOrdenServicio.contacto_email")} />
+            <Input
+              id="contacto_email"
+              type="email"
+              {...register("infoOrdenServicio.contacto_email")}
+            />
           </FormField>
         </div>
       </SeccionAcordeon>
@@ -316,21 +404,43 @@ export function OrdenInfoSecciones({
         completo={algunoLleno(detalleEntrega)}
       >
         <div className="grid gap-4 sm:grid-cols-2">
-          <FormField label="Entregables específicos" htmlFor="entregables_especificos" className="sm:col-span-2">
-            <Textarea id="entregables_especificos" {...register("detalleEntrega.entregables_especificos")} />
+          <FormField
+            label="Entregables específicos"
+            htmlFor="entregables_especificos"
+            className="sm:col-span-2"
+          >
+            <Textarea
+              id="entregables_especificos"
+              {...register("detalleEntrega.entregables_especificos")}
+            />
           </FormField>
-          <FormField label="Fecha de cierre de la orden" htmlFor="fecha_cierre_orden">
-            <Input id="fecha_cierre_orden" type="date" {...register("detalleEntrega.fecha_cierre_orden")} />
+          <FormField
+            label="Fecha de cierre de la orden"
+            htmlFor="fecha_cierre_orden"
+          >
+            <Input
+              id="fecha_cierre_orden"
+              type="date"
+              {...register("detalleEntrega.fecha_cierre_orden")}
+            />
           </FormField>
-          <FormField label="Profesional que da VoBo" htmlFor="profesional_vobo_id">
+          <FormField
+            label="Profesional que da VoBo"
+            htmlFor="profesional_vobo_id"
+          >
             <Controller
               name="detalleEntrega.profesional_vobo_id"
               control={control}
               render={({ field }) => (
                 <Select
                   value={field.value != null ? String(field.value) : null}
-                  onValueChange={(v: string | null) => field.onChange(v ? Number(v) : undefined)}
-                  items={profesionales.map((p) => ({ label: p.label, value: String(p.id) }))}
+                  onValueChange={(v: string | null) =>
+                    field.onChange(v ? Number(v) : undefined)
+                  }
+                  items={profesionales.map((p) => ({
+                    label: p.label,
+                    value: String(p.id),
+                  }))}
                 >
                   <SelectTrigger id="profesional_vobo_id" className="w-full">
                     <SelectValue placeholder="Selecciona un profesional" />
@@ -346,20 +456,42 @@ export function OrdenInfoSecciones({
               )}
             />
           </FormField>
-          <FormField label="Comentarios sobre valor acordado" htmlFor="comentarios_valor_acordado" className="sm:col-span-2">
-            <Textarea id="comentarios_valor_acordado" {...register("detalleEntrega.comentarios_valor_acordado")} />
+          <FormField
+            label="Comentarios sobre valor acordado"
+            htmlFor="comentarios_valor_acordado"
+            className="sm:col-span-2"
+          >
+            <Textarea
+              id="comentarios_valor_acordado"
+              {...register("detalleEntrega.comentarios_valor_acordado")}
+            />
           </FormField>
-          <Checkbox label="Envío OS al profesional" {...register("detalleEntrega.envio_os_profesional")} />
-          <Checkbox label="Recepción de la orden de servicio" {...register("detalleEntrega.recepcion_orden_servicio")} />
-          <FormField label="Participante ARL" htmlFor="participante_arl_id" className="sm:col-span-2">
+          <Checkbox
+            label="Envío OS al profesional"
+            {...register("detalleEntrega.envio_os_profesional")}
+          />
+          <Checkbox
+            label="Recepción de la orden de servicio"
+            {...register("detalleEntrega.recepcion_orden_servicio")}
+          />
+          <FormField
+            label="Participante ARL"
+            htmlFor="participante_arl_id"
+            className="sm:col-span-2"
+          >
             <Controller
               name="detalleEntrega.participante_arl_id"
               control={control}
               render={({ field }) => (
                 <Select
                   value={field.value != null ? String(field.value) : null}
-                  onValueChange={(v: string | null) => field.onChange(v ? Number(v) : undefined)}
-                  items={profesionales.map((p) => ({ label: p.label, value: String(p.id) }))}
+                  onValueChange={(v: string | null) =>
+                    field.onChange(v ? Number(v) : undefined)
+                  }
+                  items={profesionales.map((p) => ({
+                    label: p.label,
+                    value: String(p.id),
+                  }))}
                 >
                   <SelectTrigger id="participante_arl_id" className="w-full">
                     <SelectValue placeholder="Selecciona un profesional" />
@@ -424,7 +556,11 @@ export function OrdenInfoSecciones({
 
       <SeccionAcordeon
         titulo="Valor hora profesional"
-        resumen={puedeVerValorHora ? undefined : "Visible solo para el rol administrador"}
+        resumen={
+          puedeVerValorHora
+            ? undefined
+            : "Visible solo para el rol administrador"
+        }
         completo={algunoLleno([valorHora])}
         locked={!puedeVerValorHora}
         chipTexto={puedeVerValorHora ? undefined : "Solo administrador"}
@@ -437,12 +573,12 @@ export function OrdenInfoSecciones({
                 <Lock className="size-4" aria-hidden />
               </span>
               <div>
-                <p className="font-medium text-foreground">Bloqueado por tu rol</p>
+                <p className="font-medium text-foreground">
+                  Bloqueado por tu rol
+                </p>
                 <p className="text-xs">
-                  Este dato vive en su propia tabla (
-                  <code className="rounded bg-background px-1">valor_hora_orden</code>) con RLS en
-                  Supabase solo para administrador — ocultarlo acá es UX; la protección real ya
-                  está en la base de datos.
+                  Solo los usuarios con rol de administrador pueden ver y editar
+                  el valor hora profesional.
                 </p>
               </div>
             </div>
@@ -460,7 +596,8 @@ export function OrdenInfoSecciones({
                 step="0.01"
                 min="0"
                 {...register("valorHora.valor_hora_profesional", {
-                  setValueAs: (v) => (v === "" || v === undefined ? undefined : Number(v)),
+                  setValueAs: (v) =>
+                    v === "" || v === undefined ? undefined : Number(v),
                 })}
               />
             </FormField>
@@ -474,8 +611,14 @@ export function OrdenInfoSecciones({
         completo={algunoLleno(checklist)}
       >
         <div className="grid gap-4 sm:grid-cols-2">
-          <Checkbox label="Envío AT031" {...register("checklist.envio_at031")} />
-          <Checkbox label="Envío AT028" {...register("checklist.envio_at028")} />
+          <Checkbox
+            label="Envío AT031"
+            {...register("checklist.envio_at031")}
+          />
+          <Checkbox
+            label="Envío AT028"
+            {...register("checklist.envio_at028")}
+          />
           <Checkbox label="Formatos" {...register("checklist.formatos")} />
           <FormField label="Estado de ejecución" htmlFor="estado_ejecucion_id">
             <Controller
@@ -484,8 +627,13 @@ export function OrdenInfoSecciones({
               render={({ field }) => (
                 <Select
                   value={field.value != null ? String(field.value) : null}
-                  onValueChange={(v: string | null) => field.onChange(v ? Number(v) : undefined)}
-                  items={estadosEjecucion.map((e) => ({ label: e.label, value: String(e.id) }))}
+                  onValueChange={(v: string | null) =>
+                    field.onChange(v ? Number(v) : undefined)
+                  }
+                  items={estadosEjecucion.map((e) => ({
+                    label: e.label,
+                    value: String(e.id),
+                  }))}
                 >
                   <SelectTrigger id="estado_ejecucion_id" className="w-full">
                     <SelectValue placeholder="Selecciona un estado" />
@@ -501,12 +649,28 @@ export function OrdenInfoSecciones({
               )}
             />
           </FormField>
-          <FormField label="Fecha máxima de ejecución" htmlFor="fecha_maxima_ejecucion">
-            <Input id="fecha_maxima_ejecucion" type="date" {...register("checklist.fecha_maxima_ejecucion")} />
+          <FormField
+            label="Fecha máxima de ejecución"
+            htmlFor="fecha_maxima_ejecucion"
+          >
+            <Input
+              id="fecha_maxima_ejecucion"
+              type="date"
+              {...register("checklist.fecha_maxima_ejecucion")}
+            />
           </FormField>
-          <Checkbox label="Entrega soportes profesional" {...register("checklist.entrega_soportes_profesional")} />
-          <Checkbox label="Entrega soportes cliente" {...register("checklist.entrega_soportes_cliente")} />
-          <FormField label="Fecha máxima entrega soportes" htmlFor="fecha_maxima_entrega_soportes">
+          <Checkbox
+            label="Entrega soportes profesional"
+            {...register("checklist.entrega_soportes_profesional")}
+          />
+          <Checkbox
+            label="Entrega soportes cliente"
+            {...register("checklist.entrega_soportes_cliente")}
+          />
+          <FormField
+            label="Fecha máxima entrega soportes"
+            htmlFor="fecha_maxima_entrega_soportes"
+          >
             <Input
               id="fecha_maxima_entrega_soportes"
               type="date"
@@ -519,10 +683,21 @@ export function OrdenInfoSecciones({
             required
             error={errors.checklist?.vobo_emitido?.message}
           >
-            <Checkbox label="Sí" id="vobo_emitido" {...register("checklist.vobo_emitido")} />
+            <Checkbox
+              label="Sí"
+              id="vobo_emitido"
+              {...register("checklist.vobo_emitido")}
+            />
           </FormField>
-          <Checkbox label="Cumplió entrega en fecha" {...register("checklist.cumplio_entrega_fecha")} />
-          <FormField label="Informe Guardián" htmlFor="informe_guardian" className="sm:col-span-2">
+          <Checkbox
+            label="Cumplió entrega en fecha"
+            {...register("checklist.cumplio_entrega_fecha")}
+          />
+          <FormField
+            label="Informe Guardián"
+            htmlFor="informe_guardian"
+            className="sm:col-span-2"
+          >
             <Controller
               name="checklist.informe_guardian"
               control={control}
@@ -530,9 +705,16 @@ export function OrdenInfoSecciones({
                 <Select
                   value={field.value ?? null}
                   onValueChange={(v: string | null) =>
-                    field.onChange(v as (typeof INFORME_GUARDIAN_OPCIONES)[number] | undefined)
+                    field.onChange(
+                      v as
+                        | (typeof INFORME_GUARDIAN_OPCIONES)[number]
+                        | undefined,
+                    )
                   }
-                  items={INFORME_GUARDIAN_OPCIONES.map((o) => ({ label: o, value: o }))}
+                  items={INFORME_GUARDIAN_OPCIONES.map((o) => ({
+                    label: o,
+                    value: o,
+                  }))}
                 >
                   <SelectTrigger id="informe_guardian" className="w-full">
                     <SelectValue placeholder="Selecciona un estado" />
