@@ -30,11 +30,9 @@ export const ordenServicioSchema = z.object({
   observaciones_iniciales: z.string().optional(),
   tarifa_valor_transporte: z.number().nonnegative("Debe ser un número positivo").optional(),
   responsable_sec_id: z.number().int().positive().optional(),
-  link: z.union([z.literal(""), z.string().trim().url("Debe ser un link válido (http/https)")]).optional(),
+  link_archivo_orden: z
+    .union([z.literal(""), z.string().trim().url("Debe ser un link válido (http/https)")])
+    .optional(),
 });
 
 export type OrdenServicioFormValues = z.infer<typeof ordenServicioSchema>;
-
-// Usado para validar parches parciales (edición inline fila por fila, donde
-// solo se envían los campos que el usuario realmente cambió).
-export const ordenServicioPartialSchema = ordenServicioSchema.partial();

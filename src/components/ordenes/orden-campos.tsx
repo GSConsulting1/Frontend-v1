@@ -260,14 +260,14 @@ export function OrdenCampos({
       <div className="sm:col-span-2">
         <FormField
           label="Link del archivo de la orden"
-          htmlFor="link"
-          error={errors.link?.message}
+          htmlFor="link_archivo_orden"
+          error={errors.link_archivo_orden?.message}
         >
           <Input
-            id="link"
+            id="link_archivo_orden"
             type="url"
             placeholder="https://drive.google.com/..."
-            {...register("link")}
+            {...register("link_archivo_orden")}
           />
         </FormField>
       </div>

@@ -1,0 +1,45 @@
+// Pantalla 2a: crear una orden nueva — mismo formulario que
+// /ordenes/[id]/editar (vía OrdenForm), pero sin datos precargados y con las
+// secciones extendidas deshabilitadas (ver la nota en OrdenForm sobre
+// orden_id como PK/FK). Al guardar los datos generales, createOrden
+// redirige a /ordenes/{id}/editar.
+
+import Link from "next/link";
+import { OrdenForm } from "@/components/ordenes/orden-form";
+import {
+  getClientesParaSelect,
+  getEstadosParaSelect,
+  getProfesionalesParaSelect,
+} from "@/lib/data/ordenes";
+import { getCatalogosInfoOrden } from "@/lib/data/info-orden";
+
+export default async function NuevaOrdenPage() {
+  const [clientes, estados, profesionales, catalogos] = await Promise.all([
+    getClientesParaSelect(),
+    getEstadosParaSelect(),
+    getProfesionalesParaSelect(),
+    getCatalogosInfoOrden(),
+  ]);
+
+  return (
+    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-6 py-10">
+      <div>
+        <Link href="/ordenes" className="text-sm text-muted-foreground hover:underline">
+          ← Volver al listado
+        </Link>
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight">Nueva orden</h1>
+      </div>
+
+      <OrdenForm
+        mode="nueva"
+        clientes={clientes.map((c) => ({ id: c.id, label: c.nombre_cliente }))}
+        estados={estados.map((e) => ({ id: e.id, label: e.nombre }))}
+        profesionales={profesionales.map((p) => ({ id: p.id, label: p.nombre_completo }))}
+        ciudades={catalogos.ciudades.map((c) => ({ id: c.id, label: c.nombre }))}
+        estadosEjecucion={catalogos.estadosEjecucion.map((e) => ({ id: e.id, label: e.nombre }))}
+        entregablesEstandar={catalogos.entregablesEstandar.map((e) => ({ id: e.id, label: e.nombre }))}
+        rol="gestion_gs"
+      />
+    </div>
+  );
+}
