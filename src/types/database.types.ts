@@ -126,7 +126,6 @@ export type Database = {
           participante_arl_id: number | null
           profesional_vobo_id: number | null
           recepcion_orden_servicio: boolean | null
-          valor_hora_profesional: number | null
         }
         Insert: {
           comentarios_valor_acordado?: string | null
@@ -137,7 +136,6 @@ export type Database = {
           participante_arl_id?: number | null
           profesional_vobo_id?: number | null
           recepcion_orden_servicio?: boolean | null
-          valor_hora_profesional?: number | null
         }
         Update: {
           comentarios_valor_acordado?: string | null
@@ -148,7 +146,6 @@ export type Database = {
           participante_arl_id?: number | null
           profesional_vobo_id?: number | null
           recepcion_orden_servicio?: boolean | null
-          valor_hora_profesional?: number | null
         }
         Relationships: [
           {
@@ -520,6 +517,29 @@ export type Database = {
             columns: ["profesional_id"]
             isOneToOne: false
             referencedRelation: "profesionales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      valor_hora_orden: {
+        Row: {
+          orden_id: number
+          valor_hora_profesional: number | null
+        }
+        Insert: {
+          orden_id: number
+          valor_hora_profesional?: number | null
+        }
+        Update: {
+          orden_id?: number
+          valor_hora_profesional?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "valor_hora_orden_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: true
+            referencedRelation: "ordenes_servicio"
             referencedColumns: ["id"]
           },
         ]
