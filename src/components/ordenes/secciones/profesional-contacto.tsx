@@ -28,6 +28,8 @@ export type SeccionProfesionalContactoProps = {
   errors: FieldErrors<OrdenInfoFormValues>;
   watch: UseFormWatch<OrdenInfoFormValues>;
   profesionales: SelectOption[];
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 };
 
 export function SeccionProfesionalContacto({
@@ -36,6 +38,8 @@ export function SeccionProfesionalContacto({
   errors,
   watch,
   profesionales,
+  open,
+  onOpenChange,
 }: SeccionProfesionalContactoProps) {
   const profesionalContacto = watch([
     "infoOrdenServicio.profesional_id",
@@ -47,6 +51,8 @@ export function SeccionProfesionalContacto({
       titulo="Profesional y contacto en sitio"
       resumen="Quién ejecuta la actividad y a quién contactar en la empresa"
       completo={algunoLleno(profesionalContacto)}
+      open={open}
+      onOpenChange={onOpenChange}
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField

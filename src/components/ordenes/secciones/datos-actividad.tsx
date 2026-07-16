@@ -30,6 +30,8 @@ export type SeccionDatosActividadProps = {
   errors: FieldErrors<OrdenInfoFormValues>;
   watch: UseFormWatch<OrdenInfoFormValues>;
   ciudades: SelectOption[];
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 };
 
 export function SeccionDatosActividad({
@@ -38,6 +40,8 @@ export function SeccionDatosActividad({
   errors,
   watch,
   ciudades,
+  open,
+  onOpenChange,
 }: SeccionDatosActividadProps) {
   const datosActividad = watch([
     "infoOrdenServicio.nombre_actividad",
@@ -50,7 +54,8 @@ export function SeccionDatosActividad({
       titulo="Datos de la actividad"
       resumen="Ciudad, horario y lugar donde se ejecuta"
       completo={algunoLleno(datosActividad)}
-      defaultOpen
+      open={open}
+      onOpenChange={onOpenChange}
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField label="Fecha de emisión OS" htmlFor="fecha_emision_os">

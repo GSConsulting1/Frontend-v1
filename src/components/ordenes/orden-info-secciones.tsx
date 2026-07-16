@@ -1,13 +1,16 @@
 // Orquesta las 6 secciones extendidas de "Información orden del servicio"
 // (Plan MVP semana 2), cada una en su propio archivo bajo
 // components/ordenes/secciones/. Vive dentro de OrdenForm, después de
-// OrdenCampos ("Datos generales") — comparten un único useForm (ver
-// OrdenInfoFormValues en orden-form.tsx) para que un solo botón "Guardar"
-// mande todo junto.
+// SeccionDatosGenerales — comparten un único useForm (ver OrdenInfoFormValues
+// en orden-form.tsx) para que un solo botón "Guardar" mande todo junto.
 //
 // `disabled` se usa en modo "nueva orden sin guardar": las 5 tablas
 // extendidas tienen orden_id como PK/FK a ordenes_servicio(id), así que no
 // pueden tener fila hasta que la orden exista — ver la nota en OrdenForm.
+//
+// `seccionAbierta`/`onToggleSeccion` vienen de OrdenForm: es el mismo
+// acordeón único que incluye a SeccionDatosGenerales, así que el estado de
+// "cuál está abierta" no puede vivir acá (ver SeccionId en orden-form.tsx).
 
 "use client";
 
@@ -19,7 +22,7 @@ import type {
 } from "react-hook-form";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth/auth-provider";
-import type { OrdenInfoFormValues } from "@/components/ordenes/orden-form";
+import type { OrdenInfoFormValues, SeccionId } from "@/components/ordenes/orden-form";
 import { SeccionDatosActividad } from "@/components/ordenes/secciones/datos-actividad";
 import { SeccionProfesionalContacto } from "@/components/ordenes/secciones/profesional-contacto";
 import { SeccionDetalleEntrega } from "@/components/ordenes/secciones/detalle-entrega";
@@ -39,6 +42,8 @@ export type OrdenInfoSeccionesProps = {
   profesionales: SelectOption[];
   entregablesEstandar: SelectOption[];
   disabled: boolean;
+  seccionAbierta: SeccionId | null;
+  onToggleSeccion: (id: SeccionId, open: boolean) => void;
 };
 
 export function OrdenInfoSecciones({
@@ -51,6 +56,8 @@ export function OrdenInfoSecciones({
   profesionales,
   entregablesEstandar,
   disabled,
+  seccionAbierta,
+  onToggleSeccion,
 }: OrdenInfoSeccionesProps) {
   const { perfil } = useAuth();
   const puedeVerValorHora = perfil?.rol === "administrador";
@@ -66,6 +73,8 @@ export function OrdenInfoSecciones({
         errors={errors}
         watch={watch}
         ciudades={ciudades}
+        open={seccionAbierta === "datos-actividad"}
+        onOpenChange={(open) => onToggleSeccion("datos-actividad", open)}
       />
 
       <SeccionProfesionalContacto
@@ -74,6 +83,8 @@ export function OrdenInfoSecciones({
         errors={errors}
         watch={watch}
         profesionales={profesionales}
+        open={seccionAbierta === "profesional-contacto"}
+        onOpenChange={(open) => onToggleSeccion("profesional-contacto", open)}
       />
 
       <SeccionDetalleEntrega
@@ -81,12 +92,16 @@ export function OrdenInfoSecciones({
         control={control}
         watch={watch}
         profesionales={profesionales}
+        open={seccionAbierta === "detalle-entrega"}
+        onOpenChange={(open) => onToggleSeccion("detalle-entrega", open)}
       />
 
       <SeccionEntregablesEstandar
         control={control}
         watch={watch}
         entregablesEstandar={entregablesEstandar}
+        open={seccionAbierta === "entregables-estandar"}
+        onOpenChange={(open) => onToggleSeccion("entregables-estandar", open)}
       />
 
       <SeccionValorHora
@@ -95,6 +110,8 @@ export function OrdenInfoSecciones({
         errors={errors}
         watch={watch}
         puedeVerValorHora={puedeVerValorHora}
+        open={seccionAbierta === "valor-hora"}
+        onOpenChange={(open) => onToggleSeccion("valor-hora", open)}
       />
 
       <SeccionChecklist
@@ -103,6 +120,8 @@ export function OrdenInfoSecciones({
         errors={errors}
         watch={watch}
         estadosEjecucion={estadosEjecucion}
+        open={seccionAbierta === "checklist"}
+        onOpenChange={(open) => onToggleSeccion("checklist", open)}
       />
     </fieldset>
   );

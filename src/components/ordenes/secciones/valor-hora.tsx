@@ -20,6 +20,8 @@ export type SeccionValorHoraProps = {
   errors: FieldErrors<OrdenInfoFormValues>;
   watch: UseFormWatch<OrdenInfoFormValues>;
   puedeVerValorHora: boolean;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 };
 
 // "Valor hora profesional" vive en su propia tabla (valor_hora_orden),
@@ -29,6 +31,8 @@ export function SeccionValorHora({
   errors,
   watch,
   puedeVerValorHora,
+  open,
+  onOpenChange,
 }: SeccionValorHoraProps) {
   const valorHora = watch("valorHora.valor_hora_profesional");
 
@@ -41,6 +45,8 @@ export function SeccionValorHora({
       completo={algunoLleno([valorHora])}
       locked={!puedeVerValorHora}
       chipTexto={puedeVerValorHora ? undefined : "Solo administrador"}
+      open={open}
+      onOpenChange={onOpenChange}
     >
       <RoleGate
         allow={["administrador"]}

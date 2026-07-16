@@ -6,11 +6,11 @@
 // flujos pasan por acá.
 //
 // Client Component: un único useForm cubre los datos generales de la orden
-// (OrdenCampos) MÁS las 6 secciones extendidas de "Información orden del
-// servicio" (OrdenInfoSecciones), con un solo botón "Guardar". El schema
-// combinado (`ordenInfoFormSchema`) es ordenServicioSchema + las 4 claves
-// anidadas de ordenInfoExtendidaSchema — al enviar el mismo `values` a los
-// dos Server Actions, cada schema de Zod ignora las claves que no le
+// (SeccionDatosGenerales) MÁS las 6 secciones extendidas de "Información
+// orden del servicio" (OrdenInfoSecciones), con un solo botón "Guardar". El
+// schema combinado (`ordenInfoFormSchema`) es ordenServicioSchema + las 4
+// claves anidadas de ordenInfoExtendidaSchema — al enviar el mismo `values`
+// a los dos Server Actions, cada schema de Zod ignora las claves que no le
 // corresponden (comportamiento default de z.object()), así que no hace
 // falta separar el payload a mano.
 //
@@ -27,6 +27,13 @@
 // guardar (isDirty) y, tras guardar, su label hace un "flash" temporal
 // (✓ Guardado / ⚠ Error) que vuelve solo al estado normal — ver
 // SAVE_STATUS_TIMEOUT_MS.
+//
+// Las 7 secciones (Datos generales + las 6 de OrdenInfoSecciones) son un
+// único acordeón: `seccionAbierta` guarda el id de la que está
+// descolapsada (o null) y se lo pasa a cada una — al abrir una se cierran
+// las demás. Arranca en la primera sección habilitada (para admin: "Datos
+// generales"; si no, la primera de las 6 salvo que mode === "nueva", donde
+// esas 6 están deshabilitadas hasta guardar).
 
 "use client";
 
@@ -36,8 +43,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Info } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { SaveButton } from "@/components/forms/save-button";
-import { OrdenCampos } from "@/components/ordenes/orden-campos";
-import { OrdenCamposInfo } from "@/components/ordenes/orden-campos-info";
+import { SeccionDatosGenerales } from "@/components/ordenes/secciones/datos-generales";
 import { OrdenInfoSecciones } from "@/components/ordenes/orden-info-secciones";
 import {
   ordenServicioSchema,
@@ -65,6 +71,17 @@ const SAVE_STATUS_TIMEOUT_MS: Record<Exclude<SaveStatus, "idle">, number> = {
   success: 2500,
   error: 4000,
 };
+
+// Las 7 secciones del acordeón único de OrdenForm (Datos generales + las 6
+// de OrdenInfoSecciones) — un solo id abierto a la vez, ver arriba.
+export type SeccionId =
+  | "datos-generales"
+  | "datos-actividad"
+  | "profesional-contacto"
+  | "detalle-entrega"
+  | "entregables-estandar"
+  | "valor-hora"
+  | "checklist";
 
 type OrdenFormProps = {
   mode: "nueva" | "existente";
@@ -95,6 +112,9 @@ export function OrdenForm({
   const esAdmin = perfil?.rol === "administrador";
   const [serverError, setServerError] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const [seccionAbierta, setSeccionAbierta] = useState<SeccionId | null>(
+    esAdmin ? "datos-generales" : mode !== "nueva" ? "datos-actividad" : null,
+  );
   const {
     register,
     control,
@@ -107,6 +127,19 @@ export function OrdenForm({
     resolver: zodResolver(ordenInfoFormSchema),
     defaultValues: { entregablesIds: [], ...defaultValues },
   });
+
+  // El evento nativo `toggle` de <details> se dispara tanto cuando el
+  // usuario hace click en el summary como cuando React cierra una sección
+  // por código (al abrir otra) — hay que respetar el `open` real del
+  // evento en vez de invertir el estado a ciegas, si no, el cierre
+  // programático de la sección anterior dispara su propio toggle y la
+  // vuelve a abrir (parpadeo infinito entre las dos).
+  function toggleSeccion(id: SeccionId, open: boolean) {
+    setSeccionAbierta((actual) => {
+      if (open) return id;
+      return actual === id ? null : actual;
+    });
+  }
 
   useEffect(() => {
     if (saveStatus === "idle") return;
@@ -196,46 +229,44 @@ export function OrdenForm({
           (serverError ?? "Ocurrió un error al guardar.")}
       </span>
 
-      <OrdenCamposInfo />
+      <div className="space-y-3">
+        <SeccionDatosGenerales
+          register={register}
+          control={control}
+          errors={errors}
+          watch={watch}
+          clientes={clientes}
+          estados={estados}
+          profesionales={profesionales}
+          disabled={!esAdmin}
+          open={seccionAbierta === "datos-generales"}
+          onOpenChange={(open) => toggleSeccion("datos-generales", open)}
+        />
 
-      {!esAdmin && (
-        <p className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
-          <Info className="size-4 shrink-0" aria-hidden />
-          Solo el rol administrador puede editar los datos generales — los ves,
-          pero no se pueden modificar desde tu cuenta.
-        </p>
-      )}
+        {mode === "nueva" && (
+          <p className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+            <Info className="size-4 shrink-0" aria-hidden />
+            Orden sin guardar: las secciones de información extendida se
+            habilitan después de guardar los datos generales, porque cada una
+            depende del <code className="rounded bg-background px-1">id</code>{" "}
+            de la orden.
+          </p>
+        )}
 
-      <OrdenCampos
-        register={register}
-        control={control}
-        errors={errors}
-        clientes={clientes}
-        estados={estados}
-        profesionales={profesionales}
-        disabled={!esAdmin}
-      />
-
-      {mode === "nueva" && (
-        <p className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
-          <Info className="size-4 shrink-0" aria-hidden />
-          Orden sin guardar: las secciones de información extendida se habilitan
-          después de guardar los datos generales, porque cada una depende del{" "}
-          <code className="rounded bg-background px-1">id</code> de la orden.
-        </p>
-      )}
-
-      <OrdenInfoSecciones
-        register={register}
-        control={control}
-        errors={errors}
-        watch={watch}
-        ciudades={ciudades}
-        estadosEjecucion={estadosEjecucion}
-        profesionales={profesionales}
-        entregablesEstandar={entregablesEstandar}
-        disabled={mode === "nueva"}
-      />
+        <OrdenInfoSecciones
+          register={register}
+          control={control}
+          errors={errors}
+          watch={watch}
+          ciudades={ciudades}
+          estadosEjecucion={estadosEjecucion}
+          profesionales={profesionales}
+          entregablesEstandar={entregablesEstandar}
+          disabled={mode === "nueva"}
+          seccionAbierta={seccionAbierta}
+          onToggleSeccion={toggleSeccion}
+        />
+      </div>
     </form>
   );
 }

@@ -11,12 +11,16 @@ export type SeccionEntregablesEstandarProps = {
   control: Control<OrdenInfoFormValues>;
   watch: UseFormWatch<OrdenInfoFormValues>;
   entregablesEstandar: SelectOption[];
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 };
 
 export function SeccionEntregablesEstandar({
   control,
   watch,
   entregablesEstandar,
+  open,
+  onOpenChange,
 }: SeccionEntregablesEstandarProps) {
   const entregablesIds = watch("entregablesIds") ?? [];
 
@@ -26,6 +30,8 @@ export function SeccionEntregablesEstandar({
       resumen={`${entregablesIds.length} de ${entregablesEstandar.length} seleccionados`}
       completo={entregablesIds.length > 0}
       chipTexto={`${entregablesIds.length} de ${entregablesEstandar.length}`}
+      open={open}
+      onOpenChange={onOpenChange}
     >
       <Controller
         name="entregablesIds"

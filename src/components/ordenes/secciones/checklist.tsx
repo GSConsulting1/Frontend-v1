@@ -30,6 +30,8 @@ export type SeccionChecklistProps = {
   errors: FieldErrors<OrdenInfoFormValues>;
   watch: UseFormWatch<OrdenInfoFormValues>;
   estadosEjecucion: SelectOption[];
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 };
 
 export function SeccionChecklist({
@@ -38,6 +40,8 @@ export function SeccionChecklist({
   errors,
   watch,
   estadosEjecucion,
+  open,
+  onOpenChange,
 }: SeccionChecklistProps) {
   const checklist = watch([
     "checklist.estado_ejecucion_id",
@@ -49,6 +53,8 @@ export function SeccionChecklist({
       titulo="Checklist del proceso"
       resumen="Seguimiento de entregas y visto bueno final"
       completo={algunoLleno(checklist)}
+      open={open}
+      onOpenChange={onOpenChange}
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <Checkbox label="Envío AT031" {...register("checklist.envio_at031")} />

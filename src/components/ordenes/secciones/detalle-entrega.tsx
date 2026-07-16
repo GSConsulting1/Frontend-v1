@@ -28,6 +28,8 @@ export type SeccionDetalleEntregaProps = {
   control: Control<OrdenInfoFormValues>;
   watch: UseFormWatch<OrdenInfoFormValues>;
   profesionales: SelectOption[];
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 };
 
 export function SeccionDetalleEntrega({
@@ -35,6 +37,8 @@ export function SeccionDetalleEntrega({
   control,
   watch,
   profesionales,
+  open,
+  onOpenChange,
 }: SeccionDetalleEntregaProps) {
   const detalleEntrega = watch([
     "detalleEntrega.entregables_especificos",
@@ -47,6 +51,8 @@ export function SeccionDetalleEntrega({
       titulo="Detalle de entrega"
       resumen="Cierre de la orden y visto bueno del profesional"
       completo={algunoLleno(detalleEntrega)}
+      open={open}
+      onOpenChange={onOpenChange}
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField
