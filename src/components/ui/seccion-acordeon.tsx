@@ -33,7 +33,7 @@ export function SeccionAcordeon({
       <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
         <span
           className={cn(
-            "w-[3px] self-stretch rounded-full",
+            "w-0.75 self-stretch rounded-full",
             completo ? "bg-foreground" : "bg-border",
           )}
         />

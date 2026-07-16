@@ -18,30 +18,57 @@
 // extendidas usan orden_id como PK/FK hacia ordenes_servicio(id) — no pueden
 // tener fila hasta que la orden exista. Al guardar los datos generales,
 // createOrden redirige a /ordenes/{id}/editar, donde ya se pueden llenar.
+//
+// El título + link "Volver" + botón "Guardar" viven en un solo PageHeader
+// pegajoso (ver components/layout/page-header.tsx), como primer hijo de
+// <form> — así el botón siempre está a la vista y comparte el mismo
+// useForm que el resto del formulario (isDirty/isSubmitting), sin
+// necesidad de Context. El botón se deshabilita salvo que haya cambios sin
+// guardar (isDirty) y, tras guardar, su label hace un "flash" temporal
+// (✓ Guardado / ⚠ Error) que vuelve solo al estado normal — ver
+// SAVE_STATUS_TIMEOUT_MS.
 
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Info } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/layout/page-header";
+import { SaveButton } from "@/components/forms/save-button";
 import { OrdenCampos } from "@/components/ordenes/orden-campos";
 import { OrdenCamposInfo } from "@/components/ordenes/orden-campos-info";
 import { OrdenInfoSecciones } from "@/components/ordenes/orden-info-secciones";
-import { ordenServicioSchema, type OrdenServicioFormValues } from "@/lib/validations/orden.schema";
-import { ordenInfoExtendidaSchema, type OrdenInfoExtendidaFormValues } from "@/lib/validations/info-orden.schema";
+import {
+  ordenServicioSchema,
+  type OrdenServicioFormValues,
+} from "@/lib/validations/orden.schema";
+import {
+  ordenInfoExtendidaSchema,
+  type OrdenInfoExtendidaFormValues,
+} from "@/lib/validations/info-orden.schema";
 import { createOrden, guardarInformacionOrden } from "@/app/ordenes/actions";
 import { useAuth } from "@/components/auth/auth-provider";
 
-const ordenInfoFormSchema = ordenServicioSchema.extend(ordenInfoExtendidaSchema.shape);
+const ordenInfoFormSchema = ordenServicioSchema.extend(
+  ordenInfoExtendidaSchema.shape,
+);
 
-export type OrdenInfoFormValues = OrdenServicioFormValues & OrdenInfoExtendidaFormValues;
+export type OrdenInfoFormValues = OrdenServicioFormValues &
+  OrdenInfoExtendidaFormValues;
 
 type SelectOption = { id: number; label: string };
 
+type SaveStatus = "idle" | "success" | "error";
+
+const SAVE_STATUS_TIMEOUT_MS: Record<Exclude<SaveStatus, "idle">, number> = {
+  success: 2500,
+  error: 4000,
+};
+
 type OrdenFormProps = {
   mode: "nueva" | "existente";
+  titulo: string;
   ordenId?: number;
   defaultValues?: Partial<OrdenInfoFormValues>;
   clientes: SelectOption[];
@@ -54,6 +81,7 @@ type OrdenFormProps = {
 
 export function OrdenForm({
   mode,
+  titulo,
   ordenId,
   defaultValues,
   clientes,
@@ -66,36 +94,49 @@ export function OrdenForm({
   const { perfil } = useAuth();
   const esAdmin = perfil?.rol === "administrador";
   const [serverError, setServerError] = useState<string | null>(null);
-  const [guardado, setGuardado] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const {
     register,
     control,
     watch,
     handleSubmit,
     setError,
-    formState: { errors, isSubmitting },
+    reset,
+    formState: { errors, isSubmitting, isDirty },
   } = useForm<OrdenInfoFormValues>({
     resolver: zodResolver(ordenInfoFormSchema),
     defaultValues: { entregablesIds: [], ...defaultValues },
   });
 
+  useEffect(() => {
+    if (saveStatus === "idle") return;
+    const timeout = setTimeout(
+      () => setSaveStatus("idle"),
+      SAVE_STATUS_TIMEOUT_MS[saveStatus],
+    );
+    return () => clearTimeout(timeout);
+  }, [saveStatus]);
+
   async function onSubmit(values: OrdenInfoFormValues) {
     setServerError(null);
-    setGuardado(false);
 
     if (mode === "nueva") {
       const result = await createOrden(values);
       if (!result) return; // éxito -> la action ya redirigió a /ordenes/{id}/editar
       if ("error" in result) {
         setServerError(result.error);
+        setSaveStatus("error");
         return;
       }
       if ("fieldErrors" in result) {
         for (const [field, messages] of Object.entries(result.fieldErrors)) {
           if (messages?.[0]) {
-            setError(field as keyof OrdenInfoFormValues, { message: messages[0] });
+            setError(field as keyof OrdenInfoFormValues, {
+              message: messages[0],
+            });
           }
         }
+        setSaveStatus("error");
       }
       return;
     }
@@ -106,37 +147,62 @@ export function OrdenForm({
     // TODAS las secciones en vez de solo la parte restringida — OrdenCampos
     // ya está deshabilitado en pantalla para estos roles, así que `values`
     // trae los datos generales sin cambios de todas formas.
-    const datosExtendidos: OrdenInfoFormValues = esAdmin ? values : { ...values, valorHora: undefined };
+    const datosExtendidos: OrdenInfoFormValues = esAdmin
+      ? values
+      : { ...values, valorHora: undefined };
 
-    const result = await guardarInformacionOrden(ordenId!, esAdmin ? values : null, datosExtendidos);
+    const result = await guardarInformacionOrden(
+      ordenId!,
+      esAdmin ? values : null,
+      datosExtendidos,
+    );
     if (!result.ok) {
       setServerError(result.error);
+      setSaveStatus("error");
       return;
     }
-    setGuardado(true);
+    setSaveStatus("success");
+    reset(values); // marca estos valores como el nuevo baseline -> isDirty vuelve a false
   }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
-      {serverError && (
-        <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {serverError}
-        </p>
-      )}
-      {guardado && (
-        <p className="flex items-center gap-2 rounded-lg bg-secondary px-3 py-2 text-sm text-secondary-foreground">
-          <Info className="size-4 shrink-0" aria-hidden />
-          Cambios guardados.
-        </p>
-      )}
+      <PageHeader
+        title={titulo}
+        backHref="/ordenes"
+        backLabel="Volver al listado"
+        actions={
+          <SaveButton
+            type="submit"
+            pending={isSubmitting}
+            disabled={!isDirty}
+            variant={saveStatus === "error" ? "destructive" : "secondary"}
+            idleLabel={
+              saveStatus === "success"
+                ? "✓ Guardado"
+                : saveStatus === "error"
+                  ? "⚠ Error al guardar"
+                  : "Guardar cambios"
+            }
+            title={
+              saveStatus === "error" ? (serverError ?? undefined) : undefined
+            }
+          />
+        }
+      />
+      <span className="sr-only" role="status" aria-live="polite">
+        {saveStatus === "success" && "Cambios guardados."}
+        {saveStatus === "error" &&
+          (serverError ?? "Ocurrió un error al guardar.")}
+      </span>
 
       <OrdenCamposInfo />
 
       {!esAdmin && (
         <p className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
           <Info className="size-4 shrink-0" aria-hidden />
-          Solo el rol administrador puede editar los datos generales — los ves, pero no se pueden
-          modificar desde tu cuenta.
+          Solo el rol administrador puede editar los datos generales — los ves,
+          pero no se pueden modificar desde tu cuenta.
         </p>
       )}
 
@@ -153,8 +219,9 @@ export function OrdenForm({
       {mode === "nueva" && (
         <p className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
           <Info className="size-4 shrink-0" aria-hidden />
-          Orden sin guardar: las secciones de información extendida se habilitan después de
-          guardar los datos generales, porque cada una depende del <code className="rounded bg-background px-1">id</code> de la orden.
+          Orden sin guardar: las secciones de información extendida se habilitan
+          después de guardar los datos generales, porque cada una depende del{" "}
+          <code className="rounded bg-background px-1">id</code> de la orden.
         </p>
       )}
 
@@ -169,12 +236,6 @@ export function OrdenForm({
         entregablesEstandar={entregablesEstandar}
         disabled={mode === "nueva"}
       />
-
-      <div className="flex justify-end gap-2">
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Guardando…" : "Guardar"}
-        </Button>
-      </div>
     </form>
   );
 }
