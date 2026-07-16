@@ -18,9 +18,12 @@ src/
 │   ├── mock-data/      # Datos falsos para desarrollar sin Supabase
 │   ├── data/          # Capa de acceso a datos (queries reales/mock)
 │   ├── validations/    # Schemas de Zod (forma válida de cada entidad)
+│   ├── pdf/            # Componentes @react-pdf/renderer (documentos binarios)
+│   ├── supabaseAdmin.ts # Cliente service role — solo para app/api/*/pdf, ver abajo
 │   └── utils.ts        # Helpers genéricos, sin lógica de negocio
 ├── app/               # Rutas (file-based routing de Next.js App Router)
 │   ├── login/page.tsx  # Login, sin sidebar (ver AppSidebar)
+│   ├── api/<entidad>/[id]/pdf/route.tsx  # Excepción: genera PDF, ver abajo
 │   └── <entidad>/
 │       ├── page.tsx        # Server Component: lee datos, renderiza
 │       ├── actions.ts       # Server Actions ("use server"): mutaciones
@@ -131,6 +134,15 @@ src/
   mutaciones. Valida con el schema de Zod, llama a `lib/data`, hace
   `revalidatePath` + `redirect`. No se crean rutas `app/api/*/route.ts`
   para CRUD propio — los Server Actions las reemplazan.
+- Excepción a la regla anterior: `app/api/<entidad>/[id]/pdf/route.tsx`
+  (ver `app/api/ordenes/[id]/pdf/route.tsx`) sí es una ruta `route.ts`
+  legítima porque no es CRUD — genera un binario (`Content-Type:
+  application/pdf`) que un Server Action no puede devolver, y necesita
+  una URL directa para abrirse/descargarse desde el navegador. Usa
+  `lib/supabaseAdmin.ts` (service role, bypassa RLS) en vez de
+  `lib/supabase/server.ts`, a propósito: el documento debe incluir datos
+  con RLS restringido a `administrador` (`valor_hora_orden`) sin importar
+  el rol de quien dispara la descarga.
 - `layout.tsx` solo para lo que envuelve toda la app (fuentes, metadata
   global). No mete lógica de una entidad específica.
 - `globals.css` vive en `app/globals.css` (convención de Next.js App
