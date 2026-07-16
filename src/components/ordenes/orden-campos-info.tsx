@@ -1,8 +1,6 @@
 // Aviso informativo sobre los campos de OrdenCampos: qué es obligatorio y
-// qué formato espera cada uno. Se muestra en OrdenForm (edición de página
-// completa) y OrdenDraftRowEditor (fila nueva) — no en OrdenRowEditor
-// (edición inline de una fila existente), donde los valores ya están
-// puestos y la guía aporta menos.
+// qué formato espera cada uno. Se muestra en OrdenForm, único consumidor
+// de OrdenCampos (ver structure.md).
 
 import { Info } from "lucide-react";
 
