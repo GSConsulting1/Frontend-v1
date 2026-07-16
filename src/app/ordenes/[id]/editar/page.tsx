@@ -4,7 +4,6 @@
 // Mismo formulario que /ordenes/nueva, pero precargado y apuntando a
 // guardarInformacionOrden en vez de createOrden.
 
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { OrdenForm, type OrdenInfoFormValues } from "@/components/ordenes/orden-form";
 import {
@@ -109,17 +108,9 @@ export default async function EditarOrdenPage({
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-6 py-10">
-      <div>
-        <Link href="/ordenes" className="text-sm text-muted-foreground hover:underline">
-          ← Volver al listado
-        </Link>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-          Editar orden {orden.id_unico ?? `#${orden.id}`}
-        </h1>
-      </div>
-
       <OrdenForm
         mode="existente"
+        titulo={`Editar orden ${orden.id_unico ?? `#${orden.id}`}`}
         ordenId={orden.id}
         defaultValues={defaultValues}
         clientes={clientes.map((c) => ({ id: c.id, label: c.nombre_cliente }))}

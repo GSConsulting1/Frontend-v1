@@ -157,10 +157,11 @@ src/
 ### `components/forms/`
 - Piezas de composición de formularios reusables entre entidades, sin
   conocer ninguna: `form-field.tsx` (Label + control + mensaje de error,
-  envuelve cualquier input/select/textarea) y `save-button.tsx` (variante
+  envuelve cualquier input/select/textarea), `save-button.tsx` (variante
   de `Button` con un anillo animado en el borde mientras `pending` es
   true — pensado para guardados en lote donde no hay una navegación que
-  ya comunique "está cargando").
+  ya comunique "está cargando") y `checkbox.tsx` (checkbox con label
+  inline).
 - Si un componente de este folder empieza a necesitar props específicas
   de una entidad (ej. "orden"), es señal de que en realidad pertenece a
   `components/<entidad>/`, no acá.
@@ -169,6 +170,12 @@ src/
 - Primitivos de shadcn/ui, instalados con `npx shadcn add <componente>`.
   No se editan a mano salvo para theming; no conocen el dominio
   (ninguna referencia a "orden", "cliente", Supabase, etc.).
+- Excepción: `seccion-acordeon.tsx` (`<SeccionAcordeon>`) es un primitivo
+  hecho a mano (no viene de shadcn) para agrupar campos en un `<details>`
+  con chip de estado completo/incompleto/bloqueado — vive acá porque,
+  igual que los primitivos de shadcn, no conoce ningún dominio y se
+  reusa entre secciones. Lo consume cada archivo de
+  `components/ordenes/secciones/`.
 
 ### `components/auth/`
 - `auth-provider.tsx`: `AuthProvider` (montado una sola vez en
@@ -213,14 +220,28 @@ src/
   `ordenes_servicio`) recibe `disabled` — `true` para cualquier rol que
   no sea `administrador` (ver `supabase/004_ordenes_servicio_rls.sql`):
   se ve pero no se puede tocar, mismo patrón `<fieldset disabled>` que ya
-  usaba `orden-info-secciones.tsx`. `orden-info-secciones.tsx` agrupa las
-  6 secciones extendidas (Datos de la actividad / Profesional y contacto
-  / Detalle de entrega / Entregables estándar / Valor hora / Checklist)
-  como un acordeón (`<details>`) con estado por sección
-  (completo/incompleto/bloqueado) — mismo criterio que `orden-campos.tsx`:
-  un componente por grupo de campos, reusado donde haga falta. Esas 6
-  secciones (salvo Valor hora) siguen editables por cualquier rol — el
-  gate de `administrador` es solo para Datos generales y Valor hora.
+  usaba `orden-info-secciones.tsx`. `orden-info-secciones.tsx` es un
+  orquestador delgado: mete en un mismo `<fieldset disabled>` las 6
+  secciones extendidas, cada una en su propio archivo bajo
+  `components/ordenes/secciones/` (`datos-actividad.tsx`,
+  `profesional-contacto.tsx`, `detalle-entrega.tsx`,
+  `entregables-estandar.tsx`, `valor-hora.tsx`, `checklist.tsx`). Cada
+  archivo de `secciones/` es autocontenido: calcula su propio estado
+  completo/incompleto (con `algunoLleno` de `lib/utils.ts`) vía `watch` y
+  se envuelve en `<SeccionAcordeon>` (`components/ui/`) — mismo criterio
+  que `orden-campos.tsx`: un componente por grupo de campos, reusado
+  donde haga falta. Esas 6 secciones (salvo Valor hora) siguen editables
+  por cualquier rol — el gate de `administrador` es solo para Datos
+  generales y Valor hora.
+- `components/ordenes/secciones/`: todas tipan `register`/`control`/
+  `errors`/`watch` contra el mismo `OrdenInfoFormValues` de
+  `orden-form.tsx` (un solo `useForm` para todo el formulario, ver abajo)
+  — no tienen schema propio. "Datos generales" (`OrdenCampos`) todavía
+  NO vive acá: sigue siendo su propio componente en
+  `components/ordenes/`, con `orden-form.tsx` como único consumidor (el
+  comentario legado en `orden-campos.tsx` sobre editores inline en la
+  tabla quedó desactualizado — `ordenes-table.tsx` es de solo lectura,
+  ver arriba).
 - `orden-form.tsx` es la única pieza que arma el formulario completo:
   un solo `useForm` (schema `ordenServicioSchema` + las 4 claves
   anidadas de `ordenInfoExtendidaSchema`) cubre `OrdenCampos` +

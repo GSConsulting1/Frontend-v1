@@ -1,6 +1,5 @@
-// Campos compartidos entre el formulario de página completa (OrdenForm) y los
-// dos editores inline (OrdenRowEditor para filas existentes, OrdenDraftRowEditor
-// para una fila nueva) — todo lo editable de una orden, cliente incluido.
+// "Datos generales": todo lo editable de ordenes_servicio, cliente incluido.
+// Único consumidor: OrdenForm (formulario de página completa).
 
 "use client";
 
