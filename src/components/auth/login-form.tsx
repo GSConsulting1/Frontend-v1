@@ -44,8 +44,12 @@ export function LoginForm() {
       noValidate
     >
       <div className="text-center">
-        <h1 className="text-xl font-bold tracking-tight text-[#1F2023]">Iniciar sesión</h1>
-        <p className="mt-1 text-[13px] text-[#87858F]">Acceso al panel de gestión SST</p>
+        <h1 className="text-xl font-bold tracking-tight text-[#1F2023]">
+          Iniciar sesión
+        </h1>
+        <p className="mt-1 text-[13px] text-[#87858F]">
+          Acceso al panel de gestión SST
+        </p>
       </div>
 
       <div className="flex w-full flex-col gap-3">
@@ -81,7 +85,9 @@ export function LoginForm() {
         </div>
       </div>
 
-      {error && <p className="w-full text-left text-sm text-destructive">{error}</p>}
+      {error && (
+        <p className="w-full text-left text-sm text-destructive">{error}</p>
+      )}
 
       <Button
         type="submit"
@@ -91,10 +97,10 @@ export function LoginForm() {
         {pending ? "Ingresando…" : "Ingresar"}
       </Button>
 
-      <p className="text-xs text-[#ABA9A4]">
+      {/* TODO: agregar esta funcionalidad en un futuro <p className="text-xs text-[#ABA9A4]">
         ¿Olvidaste tu contraseña?{" "}
         <span className="font-semibold text-[#A23E8C]">Recupérala aquí</span>
-      </p>
+      </p> */}
     </form>
   );
 }
