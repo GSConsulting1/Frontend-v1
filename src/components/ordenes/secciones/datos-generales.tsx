@@ -1,0 +1,78 @@
+"use client";
+
+import {
+  type Control,
+  type FieldErrors,
+  type UseFormRegister,
+  type UseFormWatch,
+} from "react-hook-form";
+import { Info } from "lucide-react";
+import { OrdenCampos } from "@/components/ordenes/orden-campos";
+import { OrdenCamposInfo } from "@/components/ordenes/orden-campos-info";
+import { SeccionAcordeon } from "@/components/ui/seccion-acordeon";
+import { algunoLleno } from "@/lib/utils";
+import type { OrdenInfoFormValues } from "@/components/ordenes/orden-form";
+
+type SelectOption = { id: number; label: string };
+
+export type SeccionDatosGeneralesProps = {
+  register: UseFormRegister<OrdenInfoFormValues>;
+  control: Control<OrdenInfoFormValues>;
+  errors: FieldErrors<OrdenInfoFormValues>;
+  watch: UseFormWatch<OrdenInfoFormValues>;
+  clientes: SelectOption[];
+  estados: SelectOption[];
+  profesionales: SelectOption[];
+  disabled: boolean;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+};
+
+// "Datos generales" (ordenes_servicio) como una sección más del acordeón —
+// disabled = !esAdmin (ver orden-form.tsx), no mode === "nueva" como las
+// otras 6: esta sí es editable desde el arranque, es la única sección que
+// no depende de que la orden ya tenga id.
+export function SeccionDatosGenerales({
+  register,
+  control,
+  errors,
+  watch,
+  clientes,
+  estados,
+  profesionales,
+  disabled,
+  open,
+  onOpenChange,
+}: SeccionDatosGeneralesProps) {
+  const datosGenerales = watch(["cliente_id", "nombre_servicio"]);
+
+  return (
+    <SeccionAcordeon
+      titulo="Datos generales"
+      resumen={disabled ? "Solo el rol administrador puede editarla" : undefined}
+      completo={algunoLleno(datosGenerales)}
+      open={open}
+      onOpenChange={onOpenChange}
+    >
+      {disabled && (
+        <p className="mb-3 flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+          <Info className="size-4 shrink-0" aria-hidden />
+          Solo el rol administrador puede editar los datos generales — los ves, pero no se pueden
+          modificar desde tu cuenta.
+        </p>
+      )}
+      <OrdenCamposInfo />
+      <div className="mt-4">
+        <OrdenCampos
+          register={register}
+          control={control}
+          errors={errors}
+          clientes={clientes}
+          estados={estados}
+          profesionales={profesionales}
+          disabled={disabled}
+        />
+      </div>
+    </SeccionAcordeon>
+  );
+}

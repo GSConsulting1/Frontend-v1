@@ -12,7 +12,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ExternalLink, Pencil, X } from "lucide-react";
+import { Download, ExternalLink, Loader2, Pencil, X } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -28,7 +28,7 @@ import { eliminarOrden } from "@/app/ordenes/actions";
 import { cn } from "@/lib/utils";
 import type { OrdenServicioConRelaciones } from "@/types";
 
-const COLUMNAS = 8;
+const COLUMNAS = 9;
 
 type OrdenesTableProps = {
   ordenes: OrdenServicioConRelaciones[];
@@ -37,6 +37,41 @@ type OrdenesTableProps = {
 export function OrdenesTable({ ordenes }: OrdenesTableProps) {
   const [deletingIds, setDeletingIds] = useState<Set<number>>(new Set());
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [downloadingIds, setDownloadingIds] = useState<Set<number>>(new Set());
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+
+  async function handleDownload(orden: OrdenServicioConRelaciones) {
+    setDownloadError(null);
+    setDownloadingIds((prev) => new Set(prev).add(orden.id));
+    try {
+      const response = await fetch(`/api/ordenes/${orden.id}/pdf`);
+      if (!response.ok) {
+        throw new Error("No se pudo generar el PDF de la orden.");
+      }
+      const disposition = response.headers.get("content-disposition") ?? "";
+      const filename =
+        /filename="([^"]+)"/.exec(disposition)?.[1] ??
+        `orden-servicio-${orden.id}.pdf`;
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setDownloadError("No se pudo descargar el PDF de la orden.");
+    } finally {
+      setDownloadingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(orden.id);
+        return next;
+      });
+    }
+  }
 
   async function handleDelete(orden: OrdenServicioConRelaciones) {
     const nombre =
@@ -68,6 +103,11 @@ export function OrdenesTable({ ordenes }: OrdenesTableProps) {
           {deleteError}
         </p>
       )}
+      {downloadError && (
+        <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {downloadError}
+        </p>
+      )}
 
       <Table>
         <TableHeader>
@@ -80,6 +120,7 @@ export function OrdenesTable({ ordenes }: OrdenesTableProps) {
             <TableHead>Horas</TableHead>
             <TableHead>Archivo</TableHead>
             <TableHead className="text-right">Editar</TableHead>
+            <TableHead className="text-right">PDF</TableHead>
 
             <RoleGate allow={["administrador"]}>
               <TableHead className="text-right">Eliminar</TableHead>
@@ -100,6 +141,7 @@ export function OrdenesTable({ ordenes }: OrdenesTableProps) {
 
           {ordenes.map((orden) => {
             const isDeleting = deletingIds.has(orden.id);
+            const isDownloading = downloadingIds.has(orden.id);
 
             return (
               <TableRow
@@ -144,6 +186,22 @@ export function OrdenesTable({ ordenes }: OrdenesTableProps) {
                       </Link>
                     }
                   />
+                </TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    disabled={isDownloading}
+                    aria-label="Descargar PDF de la orden"
+                    onClick={() => handleDownload(orden)}
+                  >
+                    {isDownloading ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Download className="size-4" />
+                    )}
+                  </Button>
                 </TableCell>
                 <TableCell className="text-right">
                   <RoleGate allow={["administrador"]}>

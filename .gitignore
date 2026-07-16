@@ -10,6 +10,10 @@
 !.yarn/releases
 !.yarn/versions
 
+# el proyecto usa pnpm (ver pnpm-lock.yaml); no subir lockfiles de otros gestores
+package-lock.json
+yarn.lock
+
 # testing
 /coverage
 
