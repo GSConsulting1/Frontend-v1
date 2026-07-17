@@ -6,15 +6,15 @@
 // flujos pasan por acá.
 //
 // Client Component: un único useForm cubre los datos generales de la orden
-// (SeccionDatosGenerales) MÁS las 6 secciones extendidas de "Información
+// (SeccionDatosGenerales) MÁS las 11 secciones extendidas de "Información
 // orden del servicio" (OrdenInfoSecciones), con un solo botón "Guardar". El
-// schema combinado (`ordenInfoFormSchema`) es ordenServicioSchema + las 4
+// schema combinado (`ordenInfoFormSchema`) es ordenServicioSchema + las
 // claves anidadas de ordenInfoExtendidaSchema — al enviar el mismo `values`
 // a los dos Server Actions, cada schema de Zod ignora las claves que no le
 // corresponden (comportamiento default de z.object()), así que no hace
 // falta separar el payload a mano.
 //
-// En mode="nueva", OrdenInfoSecciones recibe disabled: las 5 tablas
+// En mode="nueva", OrdenInfoSecciones recibe disabled: las 10 tablas
 // extendidas usan orden_id como PK/FK hacia ordenes_servicio(id) — no pueden
 // tener fila hasta que la orden exista. Al guardar los datos generales,
 // createOrden redirige a /ordenes/{id}/editar, donde ya se pueden llenar.
@@ -72,7 +72,7 @@ const SAVE_STATUS_TIMEOUT_MS: Record<Exclude<SaveStatus, "idle">, number> = {
   error: 4000,
 };
 
-// Las 7 secciones del acordeón único de OrdenForm (Datos generales + las 6
+// Las 12 secciones del acordeón único de OrdenForm (Datos generales + las 11
 // de OrdenInfoSecciones) — un solo id abierto a la vez, ver arriba.
 export type SeccionId =
   | "datos-generales"
@@ -81,7 +81,12 @@ export type SeccionId =
   | "detalle-entrega"
   | "entregables-estandar"
   | "valor-hora"
-  | "checklist";
+  | "checklist"
+  | "cuenta-cobro"
+  | "acta-servicio"
+  | "radicacion-imagine"
+  | "facturacion"
+  | "liquidacion";
 
 type OrdenFormProps = {
   mode: "nueva" | "existente";
@@ -110,6 +115,10 @@ export function OrdenForm({
 }: OrdenFormProps) {
   const { perfil } = useAuth();
   const esAdmin = perfil?.rol === "administrador";
+  // "Valor hora profesional" + las 5 tablas de la sección financiera están
+  // gateadas a administrador y financiero (ver RLS "admin_fin_valor_hora" /
+  // "fin_all") — mismo criterio que datosBase de abajo, pero con un rol más.
+  const puedeVerFinanciera = esAdmin || perfil?.rol === "financiero";
   const [serverError, setServerError] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [seccionAbierta, setSeccionAbierta] = useState<SeccionId | null>(
@@ -174,15 +183,25 @@ export function OrdenForm({
       return;
     }
 
-    // Si no es administrador, ni valorHora ni los datos generales
-    // (ordenes_servicio) se mandan: RLS los rechazaría igual (ver
+    // Si no es administrador, los datos generales (ordenes_servicio) no se
+    // mandan: RLS los rechazaría igual (ver
     // supabase/004_ordenes_servicio_rls.sql), pero tumbaría el guardado de
     // TODAS las secciones en vez de solo la parte restringida — OrdenCampos
     // ya está deshabilitado en pantalla para estos roles, así que `values`
-    // trae los datos generales sin cambios de todas formas.
-    const datosExtendidos: OrdenInfoFormValues = esAdmin
+    // trae los datos generales sin cambios de todas formas. Mismo criterio
+    // para valorHora y la sección financiera, pero gateadas a
+    // administrador + financiero (puedeVerFinanciera).
+    const datosExtendidos: OrdenInfoFormValues = puedeVerFinanciera
       ? values
-      : { ...values, valorHora: undefined };
+      : {
+          ...values,
+          valorHora: undefined,
+          cuentaCobro: undefined,
+          actaServicio: undefined,
+          radicacionImagine: undefined,
+          facturacion: undefined,
+          liquidacion: undefined,
+        };
 
     const result = await guardarInformacionOrden(
       ordenId!,

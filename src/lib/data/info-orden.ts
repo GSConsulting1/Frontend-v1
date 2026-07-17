@@ -7,23 +7,34 @@ import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { mockProfesionales } from "@/lib/mock-data/ordenes";
 import {
+  mockActaServicio,
   mockChecklistProceso,
   mockCiudades,
+  mockCuentaCobro,
   mockDetalleEntregaProfesional,
   mockEntregablesEstandar,
   mockEstadosEjecucion,
+  mockFacturacion,
   mockInfoOrdenServicio,
+  mockLiquidacion,
   mockOrdenEntregablesEstandar,
+  mockRadicacionImagine,
   mockValorHoraOrden,
 } from "@/lib/mock-data/info-orden";
 import { orNull } from "@/lib/utils";
 import type {
+  ActaServicioFormValues,
   ChecklistProcesoFormValues,
+  CuentaCobroFormValues,
   DetalleEntregaProfesionalFormValues,
+  FacturacionFormValues,
   InfoOrdenServicioFormValues,
+  LiquidacionFormValues,
+  RadicacionImagineFormValues,
   ValorHoraOrdenFormValues,
 } from "@/lib/validations/info-orden.schema";
 import type {
+  ActaServicioConRelaciones,
   ChecklistProcesoConRelaciones,
   DetalleEntregaProfesionalConRelaciones,
   InfoOrdenServicioConRelaciones,
@@ -98,6 +109,16 @@ function enriquecerChecklistMock(ordenId: number): ChecklistProcesoConRelaciones
   };
 }
 
+function enriquecerActaServicioMock(ordenId: number): ActaServicioConRelaciones | null {
+  const fila = mockActaServicio.find((a) => a.orden_id === ordenId);
+  if (!fila) return null;
+  return {
+    ...fila,
+    profesional_acta:
+      mockProfesionales.find((p) => p.id === fila.profesional_acta_id) ?? null,
+  };
+}
+
 export async function getInfoOrdenCompleta(ordenId: number): Promise<OrdenInfoCompleta> {
   if (!isSupabaseConfigured) {
     return {
@@ -108,11 +129,27 @@ export async function getInfoOrdenCompleta(ordenId: number): Promise<OrdenInfoCo
         .filter((e) => e.orden_id === ordenId)
         .map((e) => e.entregable_id),
       valorHora: mockValorHoraOrden.find((v) => v.orden_id === ordenId)?.valor_hora_profesional ?? null,
+      cuentaCobro: mockCuentaCobro.find((c) => c.orden_id === ordenId) ?? null,
+      actaServicio: enriquecerActaServicioMock(ordenId),
+      radicacionImagine: mockRadicacionImagine.find((r) => r.orden_id === ordenId) ?? null,
+      facturacion: mockFacturacion.find((f) => f.orden_id === ordenId) ?? null,
+      liquidacion: mockLiquidacion.find((l) => l.orden_id === ordenId) ?? null,
     };
   }
   const supabase = await createSupabaseServerClient();
 
-  const [infoOrdenServicio, detalleEntrega, checklist, entregables, valorHora] = await Promise.all([
+  const [
+    infoOrdenServicio,
+    detalleEntrega,
+    checklist,
+    entregables,
+    valorHora,
+    cuentaCobro,
+    actaServicio,
+    radicacionImagine,
+    facturacion,
+    liquidacion,
+  ] = await Promise.all([
     supabase
       .from("info_orden_servicio")
       .select("*, ciudad:ciudades(id, nombre), profesional:profesionales(id, nombre_completo, cedula, telefono)")
@@ -131,11 +168,21 @@ export async function getInfoOrdenCompleta(ordenId: number): Promise<OrdenInfoCo
       .eq("orden_id", ordenId)
       .maybeSingle(),
     supabase.from("orden_entregables_estandar").select("entregable_id").eq("orden_id", ordenId),
-    // Si el usuario actual no es administrador, RLS hace que esto devuelva
-    // 0 filas (no un error) — maybeSingle() lo resuelve como null, que es
-    // exactamente el comportamiento que queremos (RoleGate ya oculta el
-    // campo, pero aunque no lo hiciera, acá nunca llega el valor real).
+    // Si el usuario actual no es administrador ni financiero, RLS hace que
+    // esto devuelva 0 filas (no un error) — maybeSingle() lo resuelve como
+    // null, que es exactamente el comportamiento que queremos (RoleGate ya
+    // oculta el campo, pero aunque no lo hiciera, acá nunca llega el valor
+    // real). Mismo criterio para las 5 queries financieras de abajo.
     supabase.from("valor_hora_orden").select("valor_hora_profesional").eq("orden_id", ordenId).maybeSingle(),
+    supabase.from("cuenta_cobro").select("*").eq("orden_id", ordenId).maybeSingle(),
+    supabase
+      .from("acta_servicio")
+      .select("*, profesional_acta:profesionales(id, nombre_completo)")
+      .eq("orden_id", ordenId)
+      .maybeSingle(),
+    supabase.from("radicacion_imagine").select("*").eq("orden_id", ordenId).maybeSingle(),
+    supabase.from("facturacion").select("*").eq("orden_id", ordenId).maybeSingle(),
+    supabase.from("liquidacion").select("*").eq("orden_id", ordenId).maybeSingle(),
   ]);
 
   if (infoOrdenServicio.error)
@@ -148,6 +195,16 @@ export async function getInfoOrdenCompleta(ordenId: number): Promise<OrdenInfoCo
     throw new Error(`No se pudieron cargar los entregables estándar: ${entregables.error.message}`);
   if (valorHora.error)
     throw new Error(`No se pudo cargar el valor hora: ${valorHora.error.message}`);
+  if (cuentaCobro.error)
+    throw new Error(`No se pudo cargar la cuenta de cobro: ${cuentaCobro.error.message}`);
+  if (actaServicio.error)
+    throw new Error(`No se pudo cargar el acta de servicio: ${actaServicio.error.message}`);
+  if (radicacionImagine.error)
+    throw new Error(`No se pudo cargar la radicación Imagine: ${radicacionImagine.error.message}`);
+  if (facturacion.error)
+    throw new Error(`No se pudo cargar la facturación: ${facturacion.error.message}`);
+  if (liquidacion.error)
+    throw new Error(`No se pudo cargar la liquidación: ${liquidacion.error.message}`);
 
   return {
     infoOrdenServicio: infoOrdenServicio.data as unknown as InfoOrdenServicioConRelaciones | null,
@@ -155,6 +212,11 @@ export async function getInfoOrdenCompleta(ordenId: number): Promise<OrdenInfoCo
     checklist: checklist.data as unknown as ChecklistProcesoConRelaciones | null,
     entregablesSeleccionados: (entregables.data ?? []).map((e) => e.entregable_id),
     valorHora: valorHora.data?.valor_hora_profesional ?? null,
+    cuentaCobro: cuentaCobro.data,
+    actaServicio: actaServicio.data as unknown as ActaServicioConRelaciones | null,
+    radicacionImagine: radicacionImagine.data,
+    facturacion: facturacion.data,
+    liquidacion: liquidacion.data,
   };
 }
 
@@ -219,14 +281,82 @@ function normalizarChecklist(ordenId: number, input: ChecklistProcesoFormValues)
   };
 }
 
+function normalizarCuentaCobro(ordenId: number, input: CuentaCobroFormValues) {
+  return {
+    orden_id: ordenId,
+    radicacion_cuenta: input.radicacion_cuenta ?? null,
+    fecha_radicacion: orNull(input.fecha_radicacion),
+    fecha_corte: orNull(input.fecha_corte),
+    corte_pago: orNull(input.corte_pago),
+    fecha_pago: orNull(input.fecha_pago),
+    documento_soporte: orNull(input.documento_soporte),
+    valor_cuenta_cobro: input.valor_cuenta_cobro ?? null,
+  };
+}
+
+function normalizarActaServicio(ordenId: number, input: ActaServicioFormValues) {
+  return {
+    orden_id: ordenId,
+    fecha_acta: orNull(input.fecha_acta),
+    hora_acta: orNull(input.hora_acta),
+    profesional_acta_id: input.profesional_acta_id ?? null,
+  };
+}
+
+function normalizarRadicacionImagine(ordenId: number, input: RadicacionImagineFormValues) {
+  return {
+    orden_id: ordenId,
+    numero_radicado_1: orNull(input.numero_radicado_1),
+    fecha_radicacion_1: orNull(input.fecha_radicacion_1),
+    novedades_1: orNull(input.novedades_1),
+    numero_radicado_2: orNull(input.numero_radicado_2),
+    fecha_radicacion_2: orNull(input.fecha_radicacion_2),
+    novedades_2: orNull(input.novedades_2),
+    estado_imagine: orNull(input.estado_imagine),
+    actualizacion_sipab: orNull(input.actualizacion_sipab),
+  };
+}
+
+function normalizarFacturacion(ordenId: number, input: FacturacionFormValues) {
+  return {
+    orden_id: ordenId,
+    numero_prefactura: orNull(input.numero_prefactura),
+    numero_factura: orNull(input.numero_factura),
+    estado_facturacion: orNull(input.estado_facturacion),
+    alerta_facturacion: orNull(input.alerta_facturacion),
+  };
+}
+
+function normalizarLiquidacion(ordenId: number, input: LiquidacionFormValues) {
+  return {
+    orden_id: ordenId,
+    valor_total_cotizado: input.valor_total_cotizado ?? null,
+    valor_desplazamiento: input.valor_desplazamiento ?? null,
+    gasto_servicio: input.gasto_servicio ?? null,
+    iva: input.iva ?? null,
+    valor_antes_iva: input.valor_antes_iva ?? null,
+    retencion_fuente: input.retencion_fuente ?? null,
+    retencion_ica: input.retencion_ica ?? null,
+    retencion_iva: input.retencion_iva ?? null,
+    total: input.total ?? null,
+    ganancia: input.ganancia ?? null,
+  };
+}
+
 export type GuardarInfoOrdenInput = {
   infoOrdenServicio?: InfoOrdenServicioFormValues;
   detalleEntrega?: DetalleEntregaProfesionalFormValues;
   checklist?: ChecklistProcesoFormValues;
   entregablesIds?: number[];
-  // orden-form.tsx solo manda esta clave si el usuario es administrador
-  // (ver su onSubmit) — cualquier otro rol nunca intenta el upsert acá.
+  // orden-form.tsx solo manda esta clave si el usuario es administrador o
+  // financiero (ver su onSubmit) — cualquier otro rol nunca intenta el
+  // upsert acá. Mismo criterio para las 5 claves financieras de abajo.
   valorHora?: ValorHoraOrdenFormValues;
+  cuentaCobro?: CuentaCobroFormValues;
+  actaServicio?: ActaServicioFormValues;
+  radicacionImagine?: RadicacionImagineFormValues;
+  facturacion?: FacturacionFormValues;
+  liquidacion?: LiquidacionFormValues;
 };
 
 export async function guardarInfoOrdenCompleta(ordenId: number, datos: GuardarInfoOrdenInput) {
@@ -266,6 +396,36 @@ export async function guardarInfoOrdenCompleta(ordenId: number, datos: GuardarIn
       const index = mockValorHoraOrden.findIndex((v) => v.orden_id === ordenId);
       if (index >= 0) mockValorHoraOrden[index] = normalizado;
       else mockValorHoraOrden.push(normalizado);
+    }
+    if (datos.cuentaCobro) {
+      const normalizado = normalizarCuentaCobro(ordenId, datos.cuentaCobro);
+      const index = mockCuentaCobro.findIndex((c) => c.orden_id === ordenId);
+      if (index >= 0) mockCuentaCobro[index] = normalizado;
+      else mockCuentaCobro.push(normalizado);
+    }
+    if (datos.actaServicio) {
+      const normalizado = normalizarActaServicio(ordenId, datos.actaServicio);
+      const index = mockActaServicio.findIndex((a) => a.orden_id === ordenId);
+      if (index >= 0) mockActaServicio[index] = normalizado;
+      else mockActaServicio.push(normalizado);
+    }
+    if (datos.radicacionImagine) {
+      const normalizado = normalizarRadicacionImagine(ordenId, datos.radicacionImagine);
+      const index = mockRadicacionImagine.findIndex((r) => r.orden_id === ordenId);
+      if (index >= 0) mockRadicacionImagine[index] = normalizado;
+      else mockRadicacionImagine.push(normalizado);
+    }
+    if (datos.facturacion) {
+      const normalizado = normalizarFacturacion(ordenId, datos.facturacion);
+      const index = mockFacturacion.findIndex((f) => f.orden_id === ordenId);
+      if (index >= 0) mockFacturacion[index] = normalizado;
+      else mockFacturacion.push(normalizado);
+    }
+    if (datos.liquidacion) {
+      const normalizado = normalizarLiquidacion(ordenId, datos.liquidacion);
+      const index = mockLiquidacion.findIndex((l) => l.orden_id === ordenId);
+      if (index >= 0) mockLiquidacion[index] = normalizado;
+      else mockLiquidacion.push(normalizado);
     }
     return;
   }
@@ -311,14 +471,44 @@ export async function guardarInfoOrdenCompleta(ordenId: number, datos: GuardarIn
       .upsert(normalizarValorHora(ordenId, datos.valorHora), { onConflict: "orden_id" });
     if (error) throw new Error(`No se pudo guardar el valor hora: ${error.message}`);
   }
+  if (datos.cuentaCobro) {
+    const { error } = await supabase
+      .from("cuenta_cobro")
+      .upsert(normalizarCuentaCobro(ordenId, datos.cuentaCobro), { onConflict: "orden_id" });
+    if (error) throw new Error(`No se pudo guardar la cuenta de cobro: ${error.message}`);
+  }
+  if (datos.actaServicio) {
+    const { error } = await supabase
+      .from("acta_servicio")
+      .upsert(normalizarActaServicio(ordenId, datos.actaServicio), { onConflict: "orden_id" });
+    if (error) throw new Error(`No se pudo guardar el acta de servicio: ${error.message}`);
+  }
+  if (datos.radicacionImagine) {
+    const { error } = await supabase
+      .from("radicacion_imagine")
+      .upsert(normalizarRadicacionImagine(ordenId, datos.radicacionImagine), { onConflict: "orden_id" });
+    if (error) throw new Error(`No se pudo guardar la radicación Imagine: ${error.message}`);
+  }
+  if (datos.facturacion) {
+    const { error } = await supabase
+      .from("facturacion")
+      .upsert(normalizarFacturacion(ordenId, datos.facturacion), { onConflict: "orden_id" });
+    if (error) throw new Error(`No se pudo guardar la facturación: ${error.message}`);
+  }
+  if (datos.liquidacion) {
+    const { error } = await supabase
+      .from("liquidacion")
+      .upsert(normalizarLiquidacion(ordenId, datos.liquidacion), { onConflict: "orden_id" });
+    if (error) throw new Error(`No se pudo guardar la liquidación: ${error.message}`);
+  }
 }
 
-// Borra las 5 tablas extendidas de una orden. Necesario ANTES de borrar la
+// Borra las 10 tablas extendidas de una orden. Necesario ANTES de borrar la
 // orden misma: las FK de info_orden_servicio / detalle_entrega_profesional /
-// checklist_proceso / orden_entregables_estandar hacia ordenes_servicio no
-// tienen ON DELETE CASCADE en el esquema actual, así que un
-// DELETE FROM ordenes_servicio directo falla con foreign key violation en
-// cuanto la orden tiene alguna fila extendida. eliminarOrden
+// checklist_proceso / orden_entregables_estandar / la sección financiera
+// hacia ordenes_servicio no tienen ON DELETE CASCADE en el esquema actual,
+// así que un DELETE FROM ordenes_servicio directo falla con foreign key
+// violation en cuanto la orden tiene alguna fila extendida. eliminarOrden
 // (app/ordenes/actions.ts) llama a esto antes de deleteOrdenRecord.
 export async function eliminarInfoOrdenCompleta(ordenId: number) {
   if (!isSupabaseConfigured) {
@@ -327,6 +517,11 @@ export async function eliminarInfoOrdenCompleta(ordenId: number) {
       mockDetalleEntregaProfesional,
       mockChecklistProceso,
       mockValorHoraOrden,
+      mockCuentaCobro,
+      mockActaServicio,
+      mockRadicacionImagine,
+      mockFacturacion,
+      mockLiquidacion,
     ] as { orden_id: number }[][]) {
       const index = arr.findIndex((f) => f.orden_id === ordenId);
       if (index >= 0) arr.splice(index, 1);
@@ -344,12 +539,18 @@ export async function eliminarInfoOrdenCompleta(ordenId: number) {
     "detalle_entrega_profesional",
     "info_orden_servicio",
     "valor_hora_orden",
+    "cuenta_cobro",
+    "acta_servicio",
+    "radicacion_imagine",
+    "facturacion",
+    "liquidacion",
   ] as const) {
     const { error } = await supabase.from(tabla).delete().eq("orden_id", ordenId);
-    // Si el usuario actual no es administrador, RLS bloquea el DELETE en
-    // valor_hora_orden — eso es correcto (no debería poder borrar ese dato),
-    // pero entonces eliminarOrden tampoco puede completarse: borrar una
-    // orden completa queda reservado a quien además pueda limpiar esa tabla.
+    // Si el usuario actual no es administrador ni financiero, RLS bloquea el
+    // DELETE en valor_hora_orden y en las 5 tablas financieras — eso es
+    // correcto (no debería poder borrar ese dato), pero entonces
+    // eliminarOrden tampoco puede completarse: borrar una orden completa
+    // queda reservado a quien además pueda limpiar esas tablas.
     if (error) throw new Error(`No se pudo borrar "${tabla}" de la orden: ${error.message}`);
   }
 }

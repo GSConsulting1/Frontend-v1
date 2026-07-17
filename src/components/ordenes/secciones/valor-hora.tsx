@@ -19,18 +19,18 @@ export type SeccionValorHoraProps = {
   control: Control<OrdenInfoFormValues>;
   errors: FieldErrors<OrdenInfoFormValues>;
   watch: UseFormWatch<OrdenInfoFormValues>;
-  puedeVerValorHora: boolean;
+  puedeVerFinanciera: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
 
 // "Valor hora profesional" vive en su propia tabla (valor_hora_orden),
-// gateada por rol administrador — ver structure.md.
+// gateada por rol administrador o financiero — ver structure.md.
 export function SeccionValorHora({
   register,
   errors,
   watch,
-  puedeVerValorHora,
+  puedeVerFinanciera,
   open,
   onOpenChange,
 }: SeccionValorHoraProps) {
@@ -40,16 +40,18 @@ export function SeccionValorHora({
     <SeccionAcordeon
       titulo="Valor hora profesional"
       resumen={
-        puedeVerValorHora ? undefined : "Visible solo para el rol administrador"
+        puedeVerFinanciera
+          ? undefined
+          : "Visible solo para los roles administrador y financiero"
       }
       completo={algunoLleno([valorHora])}
-      locked={!puedeVerValorHora}
-      chipTexto={puedeVerValorHora ? undefined : "Solo administrador"}
+      locked={!puedeVerFinanciera}
+      chipTexto={puedeVerFinanciera ? undefined : "Solo administrador/financiero"}
       open={open}
       onOpenChange={onOpenChange}
     >
       <RoleGate
-        allow={["administrador"]}
+        allow={["administrador", "financiero"]}
         fallback={
           <div className="flex items-center gap-3 py-2 text-sm text-muted-foreground">
             <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted">
@@ -60,8 +62,8 @@ export function SeccionValorHora({
                 Bloqueado por tu rol
               </p>
               <p className="text-xs">
-                Solo los usuarios con rol de administrador pueden ver y editar
-                el valor hora profesional.
+                Solo los usuarios con rol de administrador o financiero pueden
+                ver y editar el valor hora profesional.
               </p>
             </div>
           </div>
