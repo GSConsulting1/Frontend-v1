@@ -41,8 +41,16 @@ export type ValorHoraOrden = Database["public"]["Tables"]["valor_hora_orden"]["R
 // `usuarios.rol` es un string sin enum en la BD (solo tiene un CHECK), así
 // que este union lo angosta a mano — valores tomados del CHECK real de
 // supabase/002_usuarios_roles_rls.sql. Si Persona A agrega/renombra un rol
-// ahí, hay que reflejarlo acá también.
-export type RolUsuario = "administrador" | "programadoras" | "profesional" | "lectura";
+// ahí, hay que reflejarlo acá también. "financiero" se agregó junto con la
+// sección financiera (ver policies "admin_fin_valor_hora" / "fin_all" del
+// SQL de esa migración): admin + financiero pueden leer/escribir
+// valor_hora_orden y las 5 tablas financieras.
+export type RolUsuario =
+  | "administrador"
+  | "financiero"
+  | "programadoras"
+  | "profesional"
+  | "lectura";
 
 // Perfil de src/components/auth/auth-provider.tsx (tabla `usuarios`, PK =
 // auth.users.id). No confundir con Profesional: un usuario con rol
@@ -66,6 +74,21 @@ export type ChecklistProcesoConRelaciones = ChecklistProceso & {
   estado_ejecucion: Pick<EstadoEjecucion, "id" | "nombre"> | null;
 };
 
+// Sección financiera: 5 tablas más 1-a-1 con ordenes_servicio (PK =
+// orden_id), agregadas por la migración que crea las policies
+// "admin_fin_valor_hora" / "fin_all" — RLS ahí permite leer/escribir solo a
+// administrador y financiero (ver RolUsuario arriba).
+export type CuentaCobro = Database["public"]["Tables"]["cuenta_cobro"]["Row"];
+export type ActaServicio = Database["public"]["Tables"]["acta_servicio"]["Row"];
+export type RadicacionImagine =
+  Database["public"]["Tables"]["radicacion_imagine"]["Row"];
+export type Facturacion = Database["public"]["Tables"]["facturacion"]["Row"];
+export type Liquidacion = Database["public"]["Tables"]["liquidacion"]["Row"];
+
+export type ActaServicioConRelaciones = ActaServicio & {
+  profesional_acta: Pick<Profesional, "id" | "nombre_completo"> | null;
+};
+
 // Lo que trae getInfoOrdenCompleta(ordenId): todas las tablas extendidas de
 // una orden, null si todavía no tienen fila (orden recién creada).
 export type OrdenInfoCompleta = {
@@ -74,6 +97,14 @@ export type OrdenInfoCompleta = {
   checklist: ChecklistProcesoConRelaciones | null;
   entregablesSeleccionados: number[];
   // null tanto si la orden no tiene fila en valor_hora_orden como si el
-  // usuario actual no es administrador (RLS filtra la fila entera).
+  // usuario actual no es administrador ni financiero (RLS filtra la fila
+  // entera).
   valorHora: number | null;
+  // Mismo criterio que valorHora: null si no hay fila o si el usuario
+  // actual no es administrador ni financiero.
+  cuentaCobro: CuentaCobro | null;
+  actaServicio: ActaServicioConRelaciones | null;
+  radicacionImagine: RadicacionImagine | null;
+  facturacion: Facturacion | null;
+  liquidacion: Liquidacion | null;
 };
