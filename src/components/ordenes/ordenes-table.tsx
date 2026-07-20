@@ -12,7 +12,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Download, ExternalLink, Loader2, Pencil, X } from "lucide-react";
+import { Download, Loader2, Pencil, X } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -23,22 +23,26 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { EstadoBadge } from "@/components/ordenes/estado-badge";
+import { EditableCell } from "@/components/ordenes/editable-cell";
 import { RoleGate } from "@/components/auth/role-gate";
-import { eliminarOrden } from "@/app/ordenes/actions";
+import { eliminarOrden, actualizarCampoOrden } from "@/app/ordenes/actions";
 import { cn } from "@/lib/utils";
-import type { OrdenServicioConRelaciones } from "@/types";
+import type { OrdenServicioConRelaciones, RolUsuario } from "@/types";
 
 const COLUMNAS = 9;
+const ROLES_EDITAN_INLINE: RolUsuario[] = ["administrador", "financiero"];
 
 type OrdenesTableProps = {
   ordenes: OrdenServicioConRelaciones[];
+  estados: { id: number; label: string }[];
 };
 
-export function OrdenesTable({ ordenes }: OrdenesTableProps) {
+export function OrdenesTable({ ordenes, estados }: OrdenesTableProps) {
   const [deletingIds, setDeletingIds] = useState<Set<number>>(new Set());
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [downloadingIds, setDownloadingIds] = useState<Set<number>>(new Set());
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [editError, setEditError] = useState<string | null>(null);
 
   async function handleDownload(orden: OrdenServicioConRelaciones) {
     setDownloadError(null);
@@ -108,6 +112,11 @@ export function OrdenesTable({ ordenes }: OrdenesTableProps) {
           {downloadError}
         </p>
       )}
+      {editError && (
+        <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {editError}
+        </p>
+      )}
 
       <Table>
         <TableHeader>
@@ -117,8 +126,8 @@ export function OrdenesTable({ ordenes }: OrdenesTableProps) {
             <TableHead>Fecha recepción</TableHead>
             <TableHead>Tipo servicio</TableHead>
             <TableHead>Estado</TableHead>
-            <TableHead>Horas</TableHead>
-            <TableHead>Archivo</TableHead>
+            <TableHead>Cronograma</TableHead>
+            <TableHead>Secuencia</TableHead>
             <TableHead className="text-right">Editar</TableHead>
             <TableHead className="text-right">PDF</TableHead>
 
@@ -155,24 +164,51 @@ export function OrdenesTable({ ordenes }: OrdenesTableProps) {
                 <TableCell>{orden.fecha_recepcion_os ?? "—"}</TableCell>
                 <TableCell>{orden.tipo_servicio ?? "—"}</TableCell>
                 <TableCell>
-                  <EstadoBadge estado={orden.estado} />
+                  <RoleGate
+                    allow={ROLES_EDITAN_INLINE}
+                    fallback={<EstadoBadge estado={orden.estado} />}
+                  >
+                    <EditableCell
+                      type="select"
+                      value={orden.estado_id}
+                      options={estados}
+                      renderValue={() => <EstadoBadge estado={orden.estado} />}
+                      onSave={(value) =>
+                        actualizarCampoOrden(orden.id, { estado_id: value })
+                      }
+                      onError={setEditError}
+                    />
+                  </RoleGate>
                 </TableCell>
-                <TableCell>{orden.horas_cargadas ?? "—"}</TableCell>
                 <TableCell>
-                  {orden.link_archivo_orden ? (
-                    <a
-                      href={orden.link_archivo_orden}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-primary hover:underline"
-                      aria-label="Abrir archivo de la orden"
-                    >
-                      <ExternalLink className="size-4" />
-                      Ver
-                    </a>
-                  ) : (
-                    "—"
-                  )}
+                  <RoleGate
+                    allow={ROLES_EDITAN_INLINE}
+                    fallback={<span>{orden.cronograma ?? "—"}</span>}
+                  >
+                    <EditableCell
+                      type="number"
+                      value={orden.cronograma}
+                      onSave={(value) =>
+                        actualizarCampoOrden(orden.id, { cronograma: value })
+                      }
+                      onError={setEditError}
+                    />
+                  </RoleGate>
+                </TableCell>
+                <TableCell>
+                  <RoleGate
+                    allow={ROLES_EDITAN_INLINE}
+                    fallback={<span>{orden.secuencia ?? "—"}</span>}
+                  >
+                    <EditableCell
+                      type="text"
+                      value={orden.secuencia}
+                      onSave={(value) =>
+                        actualizarCampoOrden(orden.id, { secuencia: value })
+                      }
+                      onError={setEditError}
+                    />
+                  </RoleGate>
                 </TableCell>
                 <TableCell className="text-right">
                   <Button
