@@ -18,7 +18,10 @@ import {
   mockProfesionales,
 } from "@/lib/mock-data/ordenes";
 import { orNull } from "@/lib/utils";
-import type { OrdenServicioFormValues } from "@/lib/validations/orden.schema";
+import type {
+  CampoOrdenInlinePatch,
+  OrdenServicioFormValues,
+} from "@/lib/validations/orden.schema";
 import type { OrdenServicioConRelaciones } from "@/types";
 
 export type OrdenesFiltros = {
@@ -219,6 +222,35 @@ export async function updateOrdenRecord(
   const { error } = await supabase
     .from("ordenes_servicio")
     .update({ ...normalizado, fecha_actualizacion: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw new Error(`No se pudo actualizar la orden: ${error.message}`);
+}
+
+// Patch de un solo campo desde la edición inline de la tabla de listado —
+// a diferencia de updateOrdenRecord, no pasa por normalizarInput (que exige
+// el formulario completo válido). Restringido en la práctica a
+// cronograma/estado_id/secuencia por campoOrdenInlineSchema (ver
+// actualizarCampoOrden en app/ordenes/actions.ts) y, del lado de Supabase,
+// por el trigger de supabase/005_ordenes_servicio_financiero_edicion.sql.
+export async function actualizarCampoOrdenRecord(
+  id: number,
+  patch: CampoOrdenInlinePatch,
+) {
+  if (!isSupabaseConfigured) {
+    const index = mockOrdenes.findIndex((o) => o.id === id);
+    if (index === -1) throw new Error("Orden no encontrada");
+    mockOrdenes[index] = {
+      ...mockOrdenes[index],
+      ...patch,
+      fecha_actualizacion: new Date().toISOString(),
+    };
+    return;
+  }
+  const supabase = await createSupabaseServerClient();
+
+  const { error } = await supabase
+    .from("ordenes_servicio")
+    .update({ ...patch, fecha_actualizacion: new Date().toISOString() })
     .eq("id", id);
   if (error) throw new Error(`No se pudo actualizar la orden: ${error.message}`);
 }

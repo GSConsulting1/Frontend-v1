@@ -36,3 +36,20 @@ export const ordenServicioSchema = z.object({
 });
 
 export type OrdenServicioFormValues = z.infer<typeof ordenServicioSchema>;
+
+// Subconjunto de columnas editables directamente desde la tabla de listado
+// (ver OrdenesTable / actualizarCampoOrden en app/ordenes/actions.ts) —
+// ninguna es obligatoria para guardar la orden (cliente_id y
+// nombre_servicio quedan fuera de este set a propósito, ver
+// ordenServicioSchema arriba). A diferencia del schema de arriba, acá sí se
+// permite null explícito: la edición inline puede "vaciar" el campo, no
+// solo dejarlo sin tocar.
+export const campoOrdenInlineSchema = z
+  .object({
+    cronograma: ordenServicioSchema.shape.cronograma.nullable(),
+    estado_id: ordenServicioSchema.shape.estado_id.nullable(),
+    secuencia: ordenServicioSchema.shape.secuencia.nullable(),
+  })
+  .partial();
+
+export type CampoOrdenInlinePatch = z.infer<typeof campoOrdenInlineSchema>;

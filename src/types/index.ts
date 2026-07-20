@@ -42,7 +42,7 @@ export type ValorHoraOrden = Database["public"]["Tables"]["valor_hora_orden"]["R
 // que este union lo angosta a mano — valores tomados del CHECK real de
 // supabase/002_usuarios_roles_rls.sql. Si Persona A agrega/renombra un rol
 // ahí, hay que reflejarlo acá también.
-export type RolUsuario = "administrador" | "programadoras" | "profesional" | "lectura";
+export type RolUsuario = "administrador" | "programadoras" | "profesional" | "lectura" | "financiero";
 
 // Perfil de src/components/auth/auth-provider.tsx (tabla `usuarios`, PK =
 // auth.users.id). No confundir con Profesional: un usuario con rol

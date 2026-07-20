@@ -20,24 +20,49 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { ordenServicioSchema } from "@/lib/validations/orden.schema";
+import {
+  ordenServicioSchema,
+  campoOrdenInlineSchema,
+  type CampoOrdenInlinePatch,
+} from "@/lib/validations/orden.schema";
 import { ordenInfoExtendidaSchema } from "@/lib/validations/info-orden.schema";
-import { createOrdenRecord, updateOrdenRecord, deleteOrdenRecord } from "@/lib/data/ordenes";
-import { eliminarInfoOrdenCompleta, guardarInfoOrdenCompleta } from "@/lib/data/info-orden";
+import {
+  createOrdenRecord,
+  updateOrdenRecord,
+  deleteOrdenRecord,
+  actualizarCampoOrdenRecord,
+} from "@/lib/data/ordenes";
+import {
+  eliminarInfoOrdenCompleta,
+  guardarInfoOrdenCompleta,
+} from "@/lib/data/info-orden";
 
-export type OrdenActionState = { error: string } | { fieldErrors: Record<string, string[]> } | void;
+export type OrdenActionState =
+  | { error: string }
+  | { fieldErrors: Record<string, string[]> }
+  | void;
 
 export async function createOrden(input: unknown): Promise<OrdenActionState> {
   const parsed = ordenServicioSchema.safeParse(input);
   if (!parsed.success) {
-    return { fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]> };
+    return {
+      fieldErrors: parsed.error.flatten().fieldErrors as Record<
+        string,
+        string[]
+      >,
+    };
   }
 
   let id: number;
   try {
     id = await createOrdenRecord(parsed.data);
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Error desconocido al crear la orden" };
+    return {
+      error:
+        err instanceof Error
+          ? err.message
+          : "Error desconocido al crear la orden",
+    };
   }
 
   revalidatePath("/ordenes");
@@ -56,13 +81,21 @@ export async function guardarInformacionOrden(
   datosBase: unknown | null,
   datosExtendidos: unknown,
 ): Promise<MutacionResult> {
-  const parsedBase = datosBase === null ? null : ordenServicioSchema.safeParse(datosBase);
+  const parsedBase =
+    datosBase === null ? null : ordenServicioSchema.safeParse(datosBase);
   if (parsedBase && !parsedBase.success) {
-    return { ok: false, error: "Revisa los datos generales de la orden — hay campos inválidos." };
+    return {
+      ok: false,
+      error: "Revisa los datos generales de la orden — hay campos inválidos.",
+    };
   }
   const parsedExtendidos = ordenInfoExtendidaSchema.safeParse(datosExtendidos);
   if (!parsedExtendidos.success) {
-    return { ok: false, error: "Revisa las secciones de información extendida — hay campos inválidos." };
+    return {
+      ok: false,
+      error:
+        "Revisa las secciones de información extendida — hay campos inválidos.",
+    };
   }
 
   try {
@@ -71,12 +104,40 @@ export async function guardarInformacionOrden(
   } catch (err) {
     return {
       ok: false,
-      error: err instanceof Error ? err.message : "Error desconocido al guardar la información de la orden",
+      error:
+        err instanceof Error
+          ? err.message
+          : "Error desconocido al guardar la información de la orden",
     };
   }
 
   revalidatePath("/ordenes");
   revalidatePath(`/ordenes/${ordenId}/editar`);
+  return { ok: true };
+}
+
+export async function actualizarCampoOrden(
+  id: number,
+  patch: CampoOrdenInlinePatch,
+): Promise<MutacionResult> {
+  const parsed = campoOrdenInlineSchema.safeParse(patch);
+  if (!parsed.success) {
+    return { ok: false, error: "Valor inválido." };
+  }
+
+  try {
+    await actualizarCampoOrdenRecord(id, parsed.data);
+  } catch (err) {
+    return {
+      ok: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Error desconocido al actualizar la orden",
+    };
+  }
+
+  revalidatePath("/ordenes");
   return { ok: true };
 }
 
@@ -89,7 +150,10 @@ export async function eliminarOrden(id: number): Promise<MutacionResult> {
   } catch (err) {
     return {
       ok: false,
-      error: err instanceof Error ? err.message : "Error desconocido al eliminar la orden",
+      error:
+        err instanceof Error
+          ? err.message
+          : "Error desconocido al eliminar la orden",
     };
   }
 
