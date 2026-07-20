@@ -20,7 +20,7 @@ export const ordenServicioSchema = z.object({
   fecha_recepcion_os: z.string().optional(),
   nombre_empresa_usuaria: z.string().optional(),
   nit_empresa_usuaria: z.string().optional(),
-  cronograma: z.string().optional(),
+  cronograma: z.number().nonnegative("Debe ser un número positivo").optional(),
   secuencia: z.string().optional(),
   nombre_servicio: z.string().trim().min(1, "Describe el servicio"),
   horas_cargadas: z.number().nonnegative("Debe ser un número positivo").optional(),
