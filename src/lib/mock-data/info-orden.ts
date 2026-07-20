@@ -8,12 +8,17 @@
 // probar el estado "sin definir" del acordeón contra datos mock.
 
 import type {
+  ActaServicio,
   ChecklistProceso,
   Ciudad,
+  CuentaCobro,
   DetalleEntregaProfesional,
   EntregableEstandar,
   EstadoEjecucion,
+  Facturacion,
   InfoOrdenServicio,
+  Liquidacion,
+  RadicacionImagine,
   ValorHoraOrden,
 } from "@/types";
 
@@ -153,4 +158,105 @@ export const mockOrdenEntregablesEstandar: { orden_id: number; entregable_id: nu
   { orden_id: 1, entregable_id: 1 },
   { orden_id: 1, entregable_id: 3 },
   { orden_id: 4, entregable_id: 3 },
+];
+
+// Sección financiera (5 tablas más, mismo criterio: orden 1 completa, orden
+// 4 parcial, órdenes 2 y 3 sin fila) — ver lib/validations/info-orden.schema.ts.
+export const mockCuentaCobro: CuentaCobro[] = [
+  {
+    orden_id: 1,
+    radicacion_cuenta: true,
+    fecha_radicacion: "2026-06-17",
+    fecha_corte: "2026-06-15",
+    corte_pago: "1ra Quincena mes actual",
+    fecha_pago: "2026-06-30",
+    documento_soporte: "CC-1001.pdf",
+    valor_cuenta_cobro: 130000,
+  },
+  {
+    orden_id: 4,
+    radicacion_cuenta: false,
+    fecha_radicacion: null,
+    fecha_corte: null,
+    corte_pago: null,
+    fecha_pago: null,
+    documento_soporte: null,
+    valor_cuenta_cobro: null,
+  },
+];
+
+export const mockActaServicio: ActaServicio[] = [
+  { orden_id: 1, fecha_acta: "2026-06-15", hora_acta: "10:00", profesional_acta_id: 1 },
+  { orden_id: 4, fecha_acta: null, hora_acta: null, profesional_acta_id: null },
+];
+
+export const mockRadicacionImagine: RadicacionImagine[] = [
+  {
+    orden_id: 1,
+    numero_radicado_1: "RAD-2026-0456",
+    fecha_radicacion_1: "2026-06-16",
+    novedades_1: null,
+    numero_radicado_2: null,
+    fecha_radicacion_2: null,
+    novedades_2: null,
+    estado_imagine: "Aprobado",
+    actualizacion_sipab: "2026-06-18",
+  },
+  {
+    orden_id: 4,
+    numero_radicado_1: null,
+    fecha_radicacion_1: null,
+    novedades_1: null,
+    numero_radicado_2: null,
+    fecha_radicacion_2: null,
+    novedades_2: null,
+    estado_imagine: null,
+    actualizacion_sipab: null,
+  },
+];
+
+export const mockFacturacion: Facturacion[] = [
+  {
+    orden_id: 1,
+    numero_prefactura: "PRE-1001",
+    numero_factura: "FAC-2026-0789",
+    estado_facturacion: "Facturada",
+    alerta_facturacion: null,
+  },
+  {
+    orden_id: 4,
+    numero_prefactura: null,
+    numero_factura: null,
+    estado_facturacion: "Pendiente prefactura",
+    alerta_facturacion: null,
+  },
+];
+
+export const mockLiquidacion: Liquidacion[] = [
+  {
+    orden_id: 1,
+    valor_total_cotizado: 130000,
+    valor_desplazamiento: 15000,
+    gasto_servicio: 0,
+    iva: 19000,
+    valor_antes_iva: 100000,
+    retencion_fuente: 4000,
+    retencion_ica: 1160,
+    retencion_iva: 0,
+    total: 130000,
+    ganancia: 35000,
+  },
+  {
+    orden_id: 4,
+    valor_total_cotizado: null,
+    valor_desplazamiento: null,
+    gasto_servicio: null,
+    iva: null,
+    valor_antes_iva: null,
+    retencion_fuente: null,
+    retencion_ica: null,
+    retencion_iva: null,
+    total: null,
+    ganancia: null,
+  },
 ];

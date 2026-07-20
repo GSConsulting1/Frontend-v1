@@ -14,7 +14,7 @@ import { RoleGate } from "@/components/auth/role-gate";
 import { algunoLleno } from "@/lib/utils";
 import type { OrdenInfoFormValues } from "@/components/ordenes/orden-form";
 
-export type SeccionValorHoraProps = {
+export type SeccionFacturacionProps = {
   register: UseFormRegister<OrdenInfoFormValues>;
   control: Control<OrdenInfoFormValues>;
   errors: FieldErrors<OrdenInfoFormValues>;
@@ -24,27 +24,29 @@ export type SeccionValorHoraProps = {
   onOpenChange: (open: boolean) => void;
 };
 
-// "Valor hora profesional" vive en su propia tabla (valor_hora_orden),
-// gateada por rol administrador o financiero — ver structure.md.
-export function SeccionValorHora({
+// "Facturación" vive en su propia tabla (facturacion), gateada por rol
+// administrador o financiero — mismo criterio que valor-hora.tsx.
+export function SeccionFacturacion({
   register,
-  errors,
   watch,
   puedeVerFinanciera,
   open,
   onOpenChange,
-}: SeccionValorHoraProps) {
-  const valorHora = watch("valorHora.valor_hora_profesional");
+}: SeccionFacturacionProps) {
+  const facturacion = watch([
+    "facturacion.numero_prefactura",
+    "facturacion.numero_factura",
+  ]);
 
   return (
     <SeccionAcordeon
-      titulo="Valor hora profesional"
+      titulo="Facturación"
       resumen={
         puedeVerFinanciera
-          ? undefined
+          ? "Prefactura, factura y alertas de facturación"
           : "Visible solo para los roles administrador y financiero"
       }
-      completo={algunoLleno([valorHora])}
+      completo={algunoLleno(facturacion)}
       locked={!puedeVerFinanciera}
       chipTexto={puedeVerFinanciera ? undefined : "Solo administrador/financiero"}
       open={open}
@@ -63,27 +65,35 @@ export function SeccionValorHora({
               </p>
               <p className="text-xs">
                 Solo los usuarios con rol de administrador o financiero pueden
-                ver y editar el valor hora profesional.
+                ver y editar la facturación.
               </p>
             </div>
           </div>
         }
       >
         <div className="grid gap-4 sm:grid-cols-2">
-          <FormField
-            label="Valor hora profesional"
-            htmlFor="valor_hora_profesional"
-            error={errors.valorHora?.valor_hora_profesional?.message}
-          >
+          <FormField label="Número de prefactura" htmlFor="numero_prefactura">
             <Input
-              id="valor_hora_profesional"
-              type="number"
-              step="0.01"
-              min="0"
-              {...register("valorHora.valor_hora_profesional", {
-                setValueAs: (v) =>
-                  v === "" || v === undefined ? undefined : Number(v),
-              })}
+              id="numero_prefactura"
+              {...register("facturacion.numero_prefactura")}
+            />
+          </FormField>
+          <FormField label="Número de factura" htmlFor="numero_factura">
+            <Input
+              id="numero_factura"
+              {...register("facturacion.numero_factura")}
+            />
+          </FormField>
+          <FormField label="Estado de facturación" htmlFor="estado_facturacion">
+            <Input
+              id="estado_facturacion"
+              {...register("facturacion.estado_facturacion")}
+            />
+          </FormField>
+          <FormField label="Alerta de facturación" htmlFor="alerta_facturacion">
+            <Input
+              id="alerta_facturacion"
+              {...register("facturacion.alerta_facturacion")}
             />
           </FormField>
         </div>

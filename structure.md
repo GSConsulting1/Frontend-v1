@@ -233,18 +233,23 @@ src/
   no sea `administrador` (ver `supabase/004_ordenes_servicio_rls.sql`):
   se ve pero no se puede tocar, mismo patrón `<fieldset disabled>` que ya
   usaba `orden-info-secciones.tsx`. `orden-info-secciones.tsx` es un
-  orquestador delgado: mete en un mismo `<fieldset disabled>` las 6
+  orquestador delgado: mete en un mismo `<fieldset disabled>` las 11
   secciones extendidas, cada una en su propio archivo bajo
   `components/ordenes/secciones/` (`datos-actividad.tsx`,
   `profesional-contacto.tsx`, `detalle-entrega.tsx`,
-  `entregables-estandar.tsx`, `valor-hora.tsx`, `checklist.tsx`). Cada
-  archivo de `secciones/` es autocontenido: calcula su propio estado
-  completo/incompleto (con `algunoLleno` de `lib/utils.ts`) vía `watch` y
-  se envuelve en `<SeccionAcordeon>` (`components/ui/`) — mismo criterio
-  que `orden-campos.tsx`: un componente por grupo de campos, reusado
-  donde haga falta. Esas 6 secciones (salvo Valor hora) siguen editables
-  por cualquier rol — el gate de `administrador` es solo para Datos
-  generales y Valor hora.
+  `entregables-estandar.tsx`, `valor-hora.tsx`, `checklist.tsx`,
+  `cuenta-cobro.tsx`, `acta-servicio.tsx`, `radicacion-imagine.tsx`,
+  `facturacion.tsx`, `liquidacion.tsx`). Cada archivo de `secciones/` es
+  autocontenido: calcula su propio estado completo/incompleto (con
+  `algunoLleno` de `lib/utils.ts`) vía `watch` y se envuelve en
+  `<SeccionAcordeon>` (`components/ui/`) — mismo criterio que
+  `orden-campos.tsx`: un componente por grupo de campos, reusado donde
+  haga falta. De esas 11 secciones, solo Valor hora y las 5 de la sección
+  financiera (Cuenta de cobro, Acta de servicio, Radicación Imagine,
+  Facturación, Liquidación) están gateadas por rol
+  (`administrador`/`financiero`, ver más abajo); el resto sigue editable
+  por cualquier rol — el gate de `administrador` solo es para Datos
+  generales.
 - `components/ordenes/secciones/`: todas tipan `register`/`control`/
   `errors`/`watch` contra el mismo `OrdenInfoFormValues` de
   `orden-form.tsx` (un solo `useForm` para todo el formulario, ver abajo)
@@ -255,38 +260,49 @@ src/
   tabla quedó desactualizado — `ordenes-table.tsx` es de solo lectura,
   ver arriba).
 - `orden-form.tsx` es la única pieza que arma el formulario completo:
-  un solo `useForm` (schema `ordenServicioSchema` + las 4 claves
-  anidadas de `ordenInfoExtendidaSchema`) cubre `OrdenCampos` +
-  `OrdenInfoSecciones`, con un solo botón "Guardar". Recibe
-  `mode: "nueva" | "existente"` — en `"nueva"` las secciones extendidas
-  se ven deshabilitadas (`OrdenInfoSecciones` prop `disabled`) porque
-  las 5 tablas extendidas usan `orden_id` como PK/FK hacia
-  `ordenes_servicio(id)`: no pueden tener fila hasta que la orden misma
-  tenga `id`. `app/ordenes/nueva/page.tsx` y
-  `app/ordenes/[id]/editar/page.tsx` son ambos wrappers delgados sobre
-  `OrdenForm`, no reimplementan nada. En `onSubmit`, si el usuario no es
-  administrador se manda `datosBase: null` a `guardarInformacionOrden`
-  (que entonces se salta `updateOrdenRecord` por completo) — mismo
-  motivo que `valorHora: undefined` más abajo: RLS igual lo rechazaría,
-  pero tumbaría el guardado de las secciones que ese rol sí puede editar.
+  un solo `useForm` (schema `ordenServicioSchema` + las claves anidadas
+  de `ordenInfoExtendidaSchema`) cubre `OrdenCampos` + `OrdenInfoSecciones`,
+  con un solo botón "Guardar". Recibe `mode: "nueva" | "existente"` — en
+  `"nueva"` las secciones extendidas se ven deshabilitadas
+  (`OrdenInfoSecciones` prop `disabled`) porque las 10 tablas extendidas
+  usan `orden_id` como PK/FK hacia `ordenes_servicio(id)`: no pueden
+  tener fila hasta que la orden misma tenga `id`.
+  `app/ordenes/nueva/page.tsx` y `app/ordenes/[id]/editar/page.tsx` son
+  ambos wrappers delgados sobre `OrdenForm`, no reimplementan nada. En
+  `onSubmit`, si el usuario no es administrador se manda `datosBase: null`
+  a `guardarInformacionOrden` (que entonces se salta `updateOrdenRecord`
+  por completo) — mismo motivo que `valorHora`/sección financiera
+  `undefined` más abajo: RLS igual lo rechazaría, pero tumbaría el
+  guardado de las secciones que ese rol sí puede editar.
 - "Valor hora profesional" vive en su propia tabla (`valor_hora_orden`,
   1-a-1 con `ordenes_servicio` vía `orden_id`), separada de
   `detalle_entrega_profesional` desde
-  `supabase/002_usuarios_roles_rls.sql` — RLS ahí permite leer/escribir
-  solo a `administrador`. En el form es la clave `valorHora` (schema
-  `valorHoraOrdenSchema`, aparte de `detalleEntregaProfesionalSchema`).
-  `OrdenInfoSecciones` envuelve ese campo en `<RoleGate allow={["administrador"]}>`
-  (llama a `useAuth()` directo, es Client Component) — `OrdenForm` ya no
-  recibe ni reenvía `rol` como prop. En `onSubmit` de `OrdenForm`, si
-  `perfil.rol !== "administrador"` se manda `valorHora: undefined` al
-  Server Action — si se mandara igual, RLS lo rechazaría, pero tumbaría
-  el guardado de TODAS las secciones en vez de solo esa (`guardarInfoOrdenCompleta`
-  hace un `if (datos.valorHora)` por sección, todo en la misma llamada).
-  Por la misma razón, `eliminarInfoOrdenCompleta` puede fallarle a un
-  no-administrador si la orden ya tiene fila en `valor_hora_orden` (el
-  DELETE ahí también es solo-admin) — ver el comentario en
-  `lib/data/info-orden.ts`; no hay solución del lado del front, es una
-  decisión de política que le toca a Persona A. No hay
+  `supabase/002_usuarios_roles_rls.sql`. La **sección financiera**
+  (`cuenta_cobro`, `acta_servicio`, `radicacion_imagine`, `facturacion`,
+  `liquidacion`, todas 1-a-1 con `ordenes_servicio` vía `orden_id`) se
+  agregó en una migración posterior junto con las policies
+  "admin_fin_valor_hora" / "fin_all" — RLS ahí permite leer/escribir
+  `valor_hora_orden` y las 5 tablas financieras solo a `administrador` y
+  al rol nuevo `financiero` (agregado a `RolUsuario` en `types/index.ts`
+  para esto). En el form son las claves `valorHora`, `cuentaCobro`,
+  `actaServicio`, `radicacionImagine`, `facturacion`, `liquidacion`
+  (schemas en `lib/validations/info-orden.schema.ts`).
+  `OrdenInfoSecciones` calcula `puedeVerFinanciera = rol === "administrador" || rol === "financiero"`
+  (llama a `useAuth()` directo, es Client Component) y envuelve esas 6
+  secciones en `<RoleGate allow={["administrador", "financiero"]}>` —
+  `OrdenForm` ya no recibe ni reenvía `rol` como prop, pero sí calcula su
+  propio `puedeVerFinanciera` para el `onSubmit` (ver abajo). En
+  `onSubmit` de `OrdenForm`, si el usuario no es administrador ni
+  financiero se manda `valorHora`/`cuentaCobro`/`actaServicio`/
+  `radicacionImagine`/`facturacion`/`liquidacion: undefined` al Server
+  Action — si se mandaran igual, RLS los rechazaría, pero tumbaría el
+  guardado de TODAS las secciones en vez de solo esas 6
+  (`guardarInfoOrdenCompleta` hace un `if (datos.X)` por sección, todo en
+  la misma llamada). Por la misma razón, `eliminarInfoOrdenCompleta`
+  puede fallarle a alguien sin esos roles si la orden ya tiene fila en
+  cualquiera de las 6 tablas (el DELETE ahí también está restringido) —
+  ver el comentario en `lib/data/info-orden.ts`; no hay solución del lado
+  del front, es una decisión de política que le toca a Persona A. No hay
   `ordenes-manager.tsx` ni ningún Client Component intermedio
   gobernando la pantalla de listado, porque ya no hay estado de
   "guardar cambios en lote" que compartir entre header y tabla.
@@ -294,7 +310,7 @@ src/
   `app/ordenes/actions.ts`: `createOrden` es la única que hace
   `redirect()` (a `/ordenes/{id}/editar`, al crear la orden desde
   `/ordenes/nueva`). `guardarInformacionOrden` guarda datos generales +
-  las 6 secciones extendidas en una sola llamada (llama a
+  las 11 secciones extendidas en una sola llamada (llama a
   `updateOrdenRecord` de `lib/data/ordenes.ts` y a
   `guardarInfoOrdenCompleta` de `lib/data/info-orden.ts`) y no
   redirige — el usuario se queda en la misma página de edición.

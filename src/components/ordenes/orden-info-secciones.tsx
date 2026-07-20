@@ -1,10 +1,10 @@
-// Orquesta las 6 secciones extendidas de "Información orden del servicio"
-// (Plan MVP semana 2), cada una en su propio archivo bajo
-// components/ordenes/secciones/. Vive dentro de OrdenForm, después de
+// Orquesta las 11 secciones extendidas de "Información orden del servicio"
+// (Plan MVP semana 2 + sección financiera), cada una en su propio archivo
+// bajo components/ordenes/secciones/. Vive dentro de OrdenForm, después de
 // SeccionDatosGenerales — comparten un único useForm (ver OrdenInfoFormValues
 // en orden-form.tsx) para que un solo botón "Guardar" mande todo junto.
 //
-// `disabled` se usa en modo "nueva orden sin guardar": las 5 tablas
+// `disabled` se usa en modo "nueva orden sin guardar": las 10 tablas
 // extendidas tienen orden_id como PK/FK a ordenes_servicio(id), así que no
 // pueden tener fila hasta que la orden exista — ver la nota en OrdenForm.
 //
@@ -29,6 +29,11 @@ import { SeccionDetalleEntrega } from "@/components/ordenes/secciones/detalle-en
 import { SeccionEntregablesEstandar } from "@/components/ordenes/secciones/entregables-estandar";
 import { SeccionValorHora } from "@/components/ordenes/secciones/valor-hora";
 import { SeccionChecklist } from "@/components/ordenes/secciones/checklist";
+import { SeccionCuentaCobro } from "@/components/ordenes/secciones/cuenta-cobro";
+import { SeccionActaServicio } from "@/components/ordenes/secciones/acta-servicio";
+import { SeccionRadicacionImagine } from "@/components/ordenes/secciones/radicacion-imagine";
+import { SeccionFacturacion } from "@/components/ordenes/secciones/facturacion";
+import { SeccionLiquidacion } from "@/components/ordenes/secciones/liquidacion";
 
 type SelectOption = { id: number; label: string };
 
@@ -60,7 +65,11 @@ export function OrdenInfoSecciones({
   onToggleSeccion,
 }: OrdenInfoSeccionesProps) {
   const { perfil } = useAuth();
-  const puedeVerValorHora = perfil?.rol === "administrador";
+  // Valor hora profesional + la sección financiera (cuenta de cobro, acta de
+  // servicio, radicación Imagine, facturación, liquidación) están gateadas a
+  // administrador y financiero — ver RLS "admin_fin_valor_hora" / "fin_all".
+  const puedeVerFinanciera =
+    perfil?.rol === "administrador" || perfil?.rol === "financiero";
 
   return (
     <fieldset
@@ -109,7 +118,7 @@ export function OrdenInfoSecciones({
         control={control}
         errors={errors}
         watch={watch}
-        puedeVerValorHora={puedeVerValorHora}
+        puedeVerFinanciera={puedeVerFinanciera}
         open={seccionAbierta === "valor-hora"}
         onOpenChange={(open) => onToggleSeccion("valor-hora", open)}
       />
@@ -122,6 +131,57 @@ export function OrdenInfoSecciones({
         estadosEjecucion={estadosEjecucion}
         open={seccionAbierta === "checklist"}
         onOpenChange={(open) => onToggleSeccion("checklist", open)}
+      />
+
+      <SeccionCuentaCobro
+        register={register}
+        control={control}
+        errors={errors}
+        watch={watch}
+        puedeVerFinanciera={puedeVerFinanciera}
+        open={seccionAbierta === "cuenta-cobro"}
+        onOpenChange={(open) => onToggleSeccion("cuenta-cobro", open)}
+      />
+
+      <SeccionActaServicio
+        register={register}
+        control={control}
+        errors={errors}
+        watch={watch}
+        profesionales={profesionales}
+        puedeVerFinanciera={puedeVerFinanciera}
+        open={seccionAbierta === "acta-servicio"}
+        onOpenChange={(open) => onToggleSeccion("acta-servicio", open)}
+      />
+
+      <SeccionRadicacionImagine
+        register={register}
+        control={control}
+        errors={errors}
+        watch={watch}
+        puedeVerFinanciera={puedeVerFinanciera}
+        open={seccionAbierta === "radicacion-imagine"}
+        onOpenChange={(open) => onToggleSeccion("radicacion-imagine", open)}
+      />
+
+      <SeccionFacturacion
+        register={register}
+        control={control}
+        errors={errors}
+        watch={watch}
+        puedeVerFinanciera={puedeVerFinanciera}
+        open={seccionAbierta === "facturacion"}
+        onOpenChange={(open) => onToggleSeccion("facturacion", open)}
+      />
+
+      <SeccionLiquidacion
+        register={register}
+        control={control}
+        errors={errors}
+        watch={watch}
+        puedeVerFinanciera={puedeVerFinanciera}
+        open={seccionAbierta === "liquidacion"}
+        onOpenChange={(open) => onToggleSeccion("liquidacion", open)}
       />
     </fieldset>
   );
