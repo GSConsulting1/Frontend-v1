@@ -166,8 +166,21 @@ export function OrdenCampos({
         <Input id="fecha_sipab" type="date" {...register("fecha_sipab")} />
       </FormField>
 
-      <FormField label="Cronograma" htmlFor="cronograma">
-        <Input id="cronograma" type="date" {...register("cronograma")} />
+      <FormField
+        label="Cronograma"
+        htmlFor="cronograma"
+        error={errors.cronograma?.message}
+      >
+        <Input
+          id="cronograma"
+          type="number"
+          step="1"
+          min="0"
+          {...register("cronograma", {
+            setValueAs: (v) =>
+              v === "" || v === undefined ? undefined : Number(v),
+          })}
+        />
       </FormField>
 
       <FormField label="Secuencia" htmlFor="secuencia">

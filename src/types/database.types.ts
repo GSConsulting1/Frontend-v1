@@ -509,7 +509,7 @@ export type Database = {
         Row: {
           asesor_gestion_riesgos_id: number | null
           cliente_id: number
-          cronograma: string | null
+          cronograma: number | null
           estado_id: number | null
           fecha_actualizacion: string | null
           fecha_creacion: string | null
@@ -534,7 +534,7 @@ export type Database = {
         Insert: {
           asesor_gestion_riesgos_id?: number | null
           cliente_id: number
-          cronograma?: string | null
+          cronograma?: number | null
           estado_id?: number | null
           fecha_actualizacion?: string | null
           fecha_creacion?: string | null
@@ -559,7 +559,7 @@ export type Database = {
         Update: {
           asesor_gestion_riesgos_id?: number | null
           cliente_id?: number
-          cronograma?: string | null
+          cronograma?: number | null
           estado_id?: number | null
           fecha_actualizacion?: string | null
           fecha_creacion?: string | null

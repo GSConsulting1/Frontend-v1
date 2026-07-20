@@ -37,20 +37,18 @@ export type ChecklistProceso =
 // Salió de detalle_entrega_profesional a su propia tabla en
 // supabase/002_usuarios_roles_rls.sql (RLS: solo administrador lee/escribe)
 // — no se puede proteger una columna suelta con RLS, solo filas completas.
-export type ValorHoraOrden = Database["public"]["Tables"]["valor_hora_orden"]["Row"];
+export type ValorHoraOrden =
+  Database["public"]["Tables"]["valor_hora_orden"]["Row"];
 // `usuarios.rol` es un string sin enum en la BD (solo tiene un CHECK), así
 // que este union lo angosta a mano — valores tomados del CHECK real de
 // supabase/002_usuarios_roles_rls.sql. Si Persona A agrega/renombra un rol
-// ahí, hay que reflejarlo acá también. "financiero" se agregó junto con la
-// sección financiera (ver policies "admin_fin_valor_hora" / "fin_all" del
-// SQL de esa migración): admin + financiero pueden leer/escribir
-// valor_hora_orden y las 5 tablas financieras.
+// ahí, hay que reflejarlo acá también.
 export type RolUsuario =
   | "administrador"
-  | "financiero"
   | "programadoras"
   | "profesional"
-  | "lectura";
+  | "lectura"
+  | "financiero";
 
 // Perfil de src/components/auth/auth-provider.tsx (tabla `usuarios`, PK =
 // auth.users.id). No confundir con Profesional: un usuario con rol
@@ -62,13 +60,17 @@ export type Usuario = Omit<
 
 export type InfoOrdenServicioConRelaciones = InfoOrdenServicio & {
   ciudad: Pick<Ciudad, "id" | "nombre"> | null;
-  profesional: Pick<Profesional, "id" | "nombre_completo" | "cedula" | "telefono"> | null;
+  profesional: Pick<
+    Profesional,
+    "id" | "nombre_completo" | "cedula" | "telefono"
+  > | null;
 };
 
-export type DetalleEntregaProfesionalConRelaciones = DetalleEntregaProfesional & {
-  profesional_vobo: Pick<Profesional, "id" | "nombre_completo"> | null;
-  participante_arl: Pick<Profesional, "id" | "nombre_completo"> | null;
-};
+export type DetalleEntregaProfesionalConRelaciones =
+  DetalleEntregaProfesional & {
+    profesional_vobo: Pick<Profesional, "id" | "nombre_completo"> | null;
+    participante_arl: Pick<Profesional, "id" | "nombre_completo"> | null;
+  };
 
 export type ChecklistProcesoConRelaciones = ChecklistProceso & {
   estado_ejecucion: Pick<EstadoEjecucion, "id" | "nombre"> | null;
