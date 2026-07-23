@@ -94,7 +94,6 @@ type OrdenFormProps = {
   ordenId?: number;
   defaultValues?: Partial<OrdenInfoFormValues>;
   clientes: SelectOption[];
-  estados: SelectOption[];
   profesionales: SelectOption[];
   ciudades: SelectOption[];
   estadosEjecucion: SelectOption[];
@@ -107,7 +106,6 @@ export function OrdenForm({
   ordenId,
   defaultValues,
   clientes,
-  estados,
   profesionales,
   ciudades,
   estadosEjecucion,
@@ -255,8 +253,6 @@ export function OrdenForm({
           errors={errors}
           watch={watch}
           clientes={clientes}
-          estados={estados}
-          profesionales={profesionales}
           disabled={!esAdmin}
           open={seccionAbierta === "datos-generales"}
           onOpenChange={(open) => toggleSeccion("datos-generales", open)}

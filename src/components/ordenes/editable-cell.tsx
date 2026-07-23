@@ -24,7 +24,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { MutacionResult } from "@/app/ordenes/actions";
 
-type SelectOption = { id: number; label: string };
+type SelectOption = { id: string; label: string };
 
 type EditableCellProps =
   | {
@@ -43,10 +43,10 @@ type EditableCellProps =
     }
   | {
       type: "select";
-      value: number | null;
+      value: string | null;
       options: SelectOption[];
-      renderValue: (value: number | null) => ReactNode;
-      onSave: (value: number | null) => Promise<MutacionResult>;
+      renderValue: (value: string | null) => ReactNode;
+      onSave: (value: string | null) => Promise<MutacionResult>;
       onError: (message: string) => void;
     };
 
@@ -57,16 +57,15 @@ export function EditableCell(props: EditableCellProps) {
     const { value, options, renderValue, onSave, onError } = props;
     return (
       <Select
-        value={value != null ? String(value) : null}
+        value={value}
         onValueChange={async (v: string | null) => {
-          const parsed = v ? Number(v) : null;
-          if (parsed === value) return;
+          if (v === value) return;
           setSaving(true);
-          const result = await onSave(parsed);
+          const result = await onSave(v);
           setSaving(false);
           if (!result.ok) onError(result.error);
         }}
-        items={options.map((o) => ({ label: o.label, value: String(o.id) }))}
+        items={options.map((o) => ({ label: o.label, value: o.id }))}
       >
         <SelectTrigger
           size="sm"
@@ -77,7 +76,7 @@ export function EditableCell(props: EditableCellProps) {
         </SelectTrigger>
         <SelectContent>
           {options.map((o) => (
-            <SelectItem key={o.id} value={String(o.id)}>
+            <SelectItem key={o.id} value={o.id}>
               {o.label}
             </SelectItem>
           ))}

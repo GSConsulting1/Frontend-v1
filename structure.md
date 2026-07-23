@@ -119,6 +119,18 @@ src/
   de verdad de validación, usada tanto en el Client Component del
   formulario (`zodResolver`) como en el Server Action (revalidación en
   servidor, nunca confiar solo en el cliente).
+- `ESTADOS_ORDEN` y `RESPONSABLES_OS` en `orden.schema.ts`: listas fijas
+  hardcodeadas (no vienen de una tabla catálogo — `estados_orden` se
+  eliminó de la DB, ver el `ALTER TABLE` que convirtió
+  `ordenes_servicio.estado_id`/`responsable_sec_id` a texto con un CHECK
+  constraint). Reflejan ese CHECK 1 a 1; si cambia en la DB, hay que
+  actualizar esta lista también. Los componentes (`orden-campos.tsx`,
+  `ordenes-table.tsx`) las importan directo — no se prop-drillean desde
+  `page.tsx` como los catálogos reales (`clientes`, `profesionales`,
+  `ciudades`, etc.), porque no son datos async de Supabase, son
+  constantes de compilación. `asesor_gestion_riesgos` en cambio quedó
+  como texto libre sin CHECK (input simple, sin lista fija) — a
+  propósito, para asesores externos que no están en `profesionales`.
 
 ### `lib/utils.ts`
 - Solo helpers **genéricos y sin dominio**, usados en 2+ lugares (ej.

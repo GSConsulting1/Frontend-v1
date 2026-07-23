@@ -3,7 +3,7 @@
 // Tienen la MISMA forma que las filas reales (ver database.types.ts) para que
 // el swap a Supabase en Día 3 no rompa nada en la UI.
 
-import type { Cliente, EstadoOrden, Profesional, OrdenServicio } from "@/types";
+import type { Cliente, Profesional, OrdenServicio } from "@/types";
 
 export const mockClientes: Cliente[] = [
   {
@@ -59,29 +59,12 @@ export const mockProfesionales: Profesional[] = [
   },
 ];
 
-// Mismo seed del SQL en el Plan MVP (13 estados, con su orden_visual).
-export const mockEstados: EstadoOrden[] = [
-  { id: 1, nombre: "Pendiente revisión Bolívar", orden_visual: 1, activo: true },
-  { id: 2, nombre: "Enviado a Dianita", orden_visual: 2, activo: true },
-  { id: 3, nombre: "Cancelada", orden_visual: 3, activo: true },
-  { id: 4, nombre: "1ra Quincena mes actual", orden_visual: 4, activo: true },
-  { id: 5, nombre: "2da Quincena mes actual", orden_visual: 5, activo: true },
-  { id: 6, nombre: "1ra Quincena mes siguiente", orden_visual: 6, activo: true },
-  { id: 7, nombre: "2da Quincena mes siguiente", orden_visual: 7, activo: true },
-  { id: 8, nombre: "URGENTE programar!!!!", orden_visual: 8, activo: true },
-  { id: 9, nombre: "Programar mes siguiente", orden_visual: 9, activo: true },
-  { id: 10, nombre: "FACTURAR Urgente", orden_visual: 10, activo: true },
-  { id: 11, nombre: "Pendiente cobrar hora fallida", orden_visual: 11, activo: true },
-  { id: 12, nombre: "FACTURADA", orden_visual: 12, activo: true },
-  { id: 13, nombre: "Pendiente por cancelar", orden_visual: 13, activo: true },
-];
-
 export const mockOrdenes: OrdenServicio[] = [
   {
     id: 1,
     cliente_id: 1,
     id_unico: "OS-2026-0001",
-    estado_id: 8,
+    estado: "Programar urgente",
     numero_os_cliente: "B-4521",
     fecha_recepcion_os: "2026-06-15",
     nombre_empresa_usuaria: "Bolívar Seguros S.A.",
@@ -94,10 +77,10 @@ export const mockOrdenes: OrdenServicio[] = [
     fecha_sipab: "2026-06-16",
     tipo_servicio_id: null,
     tipo_servicio_nuevo: null,
-    asesor_gestion_riesgos_id: 1,
+    asesor_gestion_riesgos: "Laura Sofía Gil Chaves",
     observaciones_iniciales: "Urgente, cliente pidió prioridad.",
-    tarifa_valor_transporte: 25000,
-    responsable_sec_id: 2,
+    tarifa_valor_transporte: "25000",
+    responsable_os: "Bibiana Sarmiento",
     link_archivo_orden: "https://drive.google.com/file/d/mock-os-0001",
     fecha_creacion: "2026-06-15T09:00:00Z",
     fecha_actualizacion: "2026-06-15T09:00:00Z",
@@ -106,7 +89,7 @@ export const mockOrdenes: OrdenServicio[] = [
     id: 2,
     cliente_id: 2,
     id_unico: "OS-2026-0002",
-    estado_id: 12,
+    estado: "Facturada",
     numero_os_cliente: "CA-990",
     fecha_recepcion_os: "2026-05-20",
     nombre_empresa_usuaria: "Constructora Andina Ltda.",
@@ -119,10 +102,10 @@ export const mockOrdenes: OrdenServicio[] = [
     fecha_sipab: "2026-05-22",
     tipo_servicio_id: null,
     tipo_servicio_nuevo: null,
-    asesor_gestion_riesgos_id: 2,
+    asesor_gestion_riesgos: "Mauricio Monroy",
     observaciones_iniciales: null,
-    tarifa_valor_transporte: 40000,
-    responsable_sec_id: 3,
+    tarifa_valor_transporte: "40000",
+    responsable_os: "Daniela Rosso",
     link_archivo_orden: null,
     fecha_creacion: "2026-05-20T09:00:00Z",
     fecha_actualizacion: "2026-06-02T09:00:00Z",
@@ -131,7 +114,7 @@ export const mockOrdenes: OrdenServicio[] = [
     id: 3,
     cliente_id: 3,
     id_unico: "OS-2026-0003",
-    estado_id: 1,
+    estado: "Pendiente revisión Bolívar",
     numero_os_cliente: "TN-112",
     fecha_recepcion_os: "2026-06-28",
     nombre_empresa_usuaria: "Textiles del Norte S.A.S.",
@@ -144,10 +127,10 @@ export const mockOrdenes: OrdenServicio[] = [
     fecha_sipab: null,
     tipo_servicio_id: null,
     tipo_servicio_nuevo: null,
-    asesor_gestion_riesgos_id: 1,
+    asesor_gestion_riesgos: "Laura Sofía Gil Chaves",
     observaciones_iniciales: "Pendiente confirmar sede.",
     tarifa_valor_transporte: null,
-    responsable_sec_id: 2,
+    responsable_os: "Bibiana Sarmiento",
     link_archivo_orden: null,
     fecha_creacion: "2026-06-28T09:00:00Z",
     fecha_actualizacion: "2026-06-28T09:00:00Z",
@@ -156,7 +139,7 @@ export const mockOrdenes: OrdenServicio[] = [
     id: 4,
     cliente_id: 1,
     id_unico: "OS-2026-0004",
-    estado_id: 4,
+    estado: "Enviado a facturación",
     numero_os_cliente: "B-4530",
     fecha_recepcion_os: "2026-06-20",
     nombre_empresa_usuaria: "Bolívar Seguros S.A.",
@@ -169,10 +152,10 @@ export const mockOrdenes: OrdenServicio[] = [
     fecha_sipab: "2026-06-21",
     tipo_servicio_id: null,
     tipo_servicio_nuevo: null,
-    asesor_gestion_riesgos_id: 3,
+    asesor_gestion_riesgos: "Camila Restrepo Vélez",
     observaciones_iniciales: null,
-    tarifa_valor_transporte: 30000,
-    responsable_sec_id: 2,
+    tarifa_valor_transporte: "30000",
+    responsable_os: "Lucia Bejarano",
     link_archivo_orden: "https://drive.google.com/file/d/mock-os-0004",
     fecha_creacion: "2026-06-20T09:00:00Z",
     fecha_actualizacion: "2026-06-25T09:00:00Z",

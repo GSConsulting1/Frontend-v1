@@ -8,15 +8,15 @@ import type { Database } from "./database.types";
 
 export type Cliente = Database["public"]["Tables"]["clientes"]["Row"];
 export type Profesional = Database["public"]["Tables"]["profesionales"]["Row"];
-export type EstadoOrden = Database["public"]["Tables"]["estados_orden"]["Row"];
 export type OrdenServicio =
   Database["public"]["Tables"]["ordenes_servicio"]["Row"];
 
-// Tipo "enriquecido" para el listado, con las relaciones ya resueltas
-// (join con clientes y estados_orden vía la query de Supabase).
+// Tipo "enriquecido" para el listado, con las relaciones ya resueltas (join
+// con clientes vía la query de Supabase). `estado` ya viene como columna de
+// texto plana en OrdenServicio — la tabla catálogo `estados_orden` se
+// eliminó, ver ESTADOS_ORDEN en lib/validations/orden.schema.ts.
 export type OrdenServicioConRelaciones = OrdenServicio & {
   cliente: Pick<Cliente, "id" | "nombre_cliente"> | null;
-  estado: Pick<EstadoOrden, "id" | "nombre"> | null;
 };
 
 // Sección "Información orden del servicio" (Plan MVP semana 2): catálogos +

@@ -27,17 +27,18 @@ import { EditableCell } from "@/components/ordenes/editable-cell";
 import { RoleGate } from "@/components/auth/role-gate";
 import { eliminarOrden, actualizarCampoOrden } from "@/app/ordenes/actions";
 import { cn } from "@/lib/utils";
+import { ESTADOS_ORDEN, type EstadoOrden } from "@/lib/validations/orden.schema";
 import type { OrdenServicioConRelaciones, RolUsuario } from "@/types";
 
 const COLUMNAS = 9;
 const ROLES_EDITAN_INLINE: RolUsuario[] = ["administrador", "financiero"];
+const OPCIONES_ESTADO = ESTADOS_ORDEN.map((e) => ({ id: e, label: e }));
 
 type OrdenesTableProps = {
   ordenes: OrdenServicioConRelaciones[];
-  estados: { id: number; label: string }[];
 };
 
-export function OrdenesTable({ ordenes, estados }: OrdenesTableProps) {
+export function OrdenesTable({ ordenes }: OrdenesTableProps) {
   const [deletingIds, setDeletingIds] = useState<Set<number>>(new Set());
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [downloadingIds, setDownloadingIds] = useState<Set<number>>(new Set());
@@ -170,11 +171,13 @@ export function OrdenesTable({ ordenes, estados }: OrdenesTableProps) {
                   >
                     <EditableCell
                       type="select"
-                      value={orden.estado_id}
-                      options={estados}
+                      value={orden.estado}
+                      options={OPCIONES_ESTADO}
                       renderValue={() => <EstadoBadge estado={orden.estado} />}
                       onSave={(value) =>
-                        actualizarCampoOrden(orden.id, { estado_id: value })
+                        actualizarCampoOrden(orden.id, {
+                          estado: value as EstadoOrden | null,
+                        })
                       }
                       onError={setEditError}
                     />

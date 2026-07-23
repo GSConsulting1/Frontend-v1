@@ -281,27 +281,6 @@ export type Database = {
         }
         Relationships: []
       }
-      estados_orden: {
-        Row: {
-          activo: boolean | null
-          id: number
-          nombre: string
-          orden_visual: number | null
-        }
-        Insert: {
-          activo?: boolean | null
-          id?: number
-          nombre: string
-          orden_visual?: number | null
-        }
-        Update: {
-          activo?: boolean | null
-          id?: number
-          nombre?: string
-          orden_visual?: number | null
-        }
-        Relationships: []
-      }
       facturacion: {
         Row: {
           alerta_facturacion: string | null
@@ -507,10 +486,10 @@ export type Database = {
       }
       ordenes_servicio: {
         Row: {
-          asesor_gestion_riesgos_id: number | null
+          asesor_gestion_riesgos: string | null
           cliente_id: number
           cronograma: number | null
-          estado_id: number | null
+          estado: string | null
           fecha_actualizacion: string | null
           fecha_creacion: string | null
           fecha_recepcion_os: string | null
@@ -524,18 +503,18 @@ export type Database = {
           nombre_servicio: string | null
           numero_os_cliente: string | null
           observaciones_iniciales: string | null
-          responsable_sec_id: number | null
+          responsable_os: string | null
           secuencia: string | null
-          tarifa_valor_transporte: number | null
+          tarifa_valor_transporte: string | null
           tipo_servicio: string | null
           tipo_servicio_id: number | null
           tipo_servicio_nuevo: string | null
         }
         Insert: {
-          asesor_gestion_riesgos_id?: number | null
+          asesor_gestion_riesgos?: string | null
           cliente_id: number
           cronograma?: number | null
-          estado_id?: number | null
+          estado?: string | null
           fecha_actualizacion?: string | null
           fecha_creacion?: string | null
           fecha_recepcion_os?: string | null
@@ -549,18 +528,18 @@ export type Database = {
           nombre_servicio?: string | null
           numero_os_cliente?: string | null
           observaciones_iniciales?: string | null
-          responsable_sec_id?: number | null
+          responsable_os?: string | null
           secuencia?: string | null
-          tarifa_valor_transporte?: number | null
+          tarifa_valor_transporte?: string | null
           tipo_servicio?: string | null
           tipo_servicio_id?: number | null
           tipo_servicio_nuevo?: string | null
         }
         Update: {
-          asesor_gestion_riesgos_id?: number | null
+          asesor_gestion_riesgos?: string | null
           cliente_id?: number
           cronograma?: number | null
-          estado_id?: number | null
+          estado?: string | null
           fecha_actualizacion?: string | null
           fecha_creacion?: string | null
           fecha_recepcion_os?: string | null
@@ -574,40 +553,19 @@ export type Database = {
           nombre_servicio?: string | null
           numero_os_cliente?: string | null
           observaciones_iniciales?: string | null
-          responsable_sec_id?: number | null
+          responsable_os?: string | null
           secuencia?: string | null
-          tarifa_valor_transporte?: number | null
+          tarifa_valor_transporte?: string | null
           tipo_servicio?: string | null
           tipo_servicio_id?: number | null
           tipo_servicio_nuevo?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "ordenes_servicio_asesor_gestion_riesgos_id_fkey"
-            columns: ["asesor_gestion_riesgos_id"]
-            isOneToOne: false
-            referencedRelation: "profesionales"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "ordenes_servicio_cliente_id_fkey"
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ordenes_servicio_estado_id_fkey"
-            columns: ["estado_id"]
-            isOneToOne: false
-            referencedRelation: "estados_orden"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ordenes_servicio_responsable_sec_id_fkey"
-            columns: ["responsable_sec_id"]
-            isOneToOne: false
-            referencedRelation: "profesionales"
             referencedColumns: ["id"]
           },
         ]
