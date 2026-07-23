@@ -20,7 +20,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import type { OrdenServicioFormValues } from "@/lib/validations/orden.schema";
+import {
+  ESTADOS_ORDEN,
+  RESPONSABLES_OS,
+  type OrdenServicioFormValues,
+} from "@/lib/validations/orden.schema";
 
 type SelectOption = { id: number; label: string };
 
@@ -29,8 +33,6 @@ export type OrdenCamposProps = {
   control: Control<OrdenServicioFormValues>;
   errors: FieldErrors<OrdenServicioFormValues>;
   clientes: SelectOption[];
-  estados: SelectOption[];
-  profesionales: SelectOption[];
   // Solo administrador puede editar Datos generales (ver structure.md,
   // supabase/004_ordenes_servicio_rls.sql) — cualquier otro rol la ve pero
   // no puede tocarla.
@@ -42,8 +44,6 @@ export function OrdenCampos({
   control,
   errors,
   clientes,
-  estados,
-  profesionales,
   disabled,
 }: OrdenCamposProps) {
   return (
@@ -88,30 +88,27 @@ export function OrdenCampos({
 
       <FormField
         label="Estado"
-        htmlFor="estado_id"
-        error={errors.estado_id?.message}
+        htmlFor="estado"
+        error={errors.estado?.message}
       >
         <Controller
-          name="estado_id"
+          name="estado"
           control={control}
           render={({ field }) => (
             <Select
-              value={field.value != null ? String(field.value) : null}
+              value={field.value ?? null}
               onValueChange={(v: string | null) =>
-                field.onChange(v ? Number(v) : undefined)
+                field.onChange(v ?? undefined)
               }
-              items={estados.map((e) => ({
-                label: e.label,
-                value: String(e.id),
-              }))}
+              items={ESTADOS_ORDEN.map((e) => ({ label: e, value: e }))}
             >
-              <SelectTrigger id="estado_id" className="w-full">
+              <SelectTrigger id="estado" className="w-full">
                 <SelectValue placeholder="Selecciona un estado" />
               </SelectTrigger>
               <SelectContent>
-                {estados.map((e) => (
-                  <SelectItem key={e.id} value={String(e.id)}>
-                    {e.label}
+                {ESTADOS_ORDEN.map((e) => (
+                  <SelectItem key={e} value={e}>
+                    {e}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -217,59 +214,33 @@ export function OrdenCampos({
 
       <FormField
         label="Asesor gestión de riesgos"
-        htmlFor="asesor_gestion_riesgos_id"
+        htmlFor="asesor_gestion_riesgos"
       >
-        <Controller
-          name="asesor_gestion_riesgos_id"
-          control={control}
-          render={({ field }) => (
-            <Select
-              value={field.value != null ? String(field.value) : null}
-              onValueChange={(v: string | null) =>
-                field.onChange(v ? Number(v) : undefined)
-              }
-              items={profesionales.map((p) => ({
-                label: p.label,
-                value: String(p.id),
-              }))}
-            >
-              <SelectTrigger id="asesor_gestion_riesgos_id" className="w-full">
-                <SelectValue placeholder="Selecciona un profesional" />
-              </SelectTrigger>
-              <SelectContent>
-                {profesionales.map((p) => (
-                  <SelectItem key={p.id} value={String(p.id)}>
-                    {p.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+        <Input
+          id="asesor_gestion_riesgos"
+          {...register("asesor_gestion_riesgos")}
         />
       </FormField>
 
-      <FormField label="Responsable OS/SEC" htmlFor="responsable_sec_id">
+      <FormField label="Responsable OS/SEC" htmlFor="responsable_os">
         <Controller
-          name="responsable_sec_id"
+          name="responsable_os"
           control={control}
           render={({ field }) => (
             <Select
-              value={field.value != null ? String(field.value) : null}
+              value={field.value ?? null}
               onValueChange={(v: string | null) =>
-                field.onChange(v ? Number(v) : undefined)
+                field.onChange(v ?? undefined)
               }
-              items={profesionales.map((p) => ({
-                label: p.label,
-                value: String(p.id),
-              }))}
+              items={RESPONSABLES_OS.map((r) => ({ label: r, value: r }))}
             >
-              <SelectTrigger id="responsable_sec_id" className="w-full">
-                <SelectValue placeholder="Selecciona un profesional" />
+              <SelectTrigger id="responsable_os" className="w-full">
+                <SelectValue placeholder="Selecciona un responsable" />
               </SelectTrigger>
               <SelectContent>
-                {profesionales.map((p) => (
-                  <SelectItem key={p.id} value={String(p.id)}>
-                    {p.label}
+                {RESPONSABLES_OS.map((r) => (
+                  <SelectItem key={r} value={r}>
+                    {r}
                   </SelectItem>
                 ))}
               </SelectContent>

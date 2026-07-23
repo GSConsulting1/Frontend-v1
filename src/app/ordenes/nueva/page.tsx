@@ -7,15 +7,13 @@
 import { OrdenForm } from "@/components/ordenes/orden-form";
 import {
   getClientesParaSelect,
-  getEstadosParaSelect,
   getProfesionalesParaSelect,
 } from "@/lib/data/ordenes";
 import { getCatalogosInfoOrden } from "@/lib/data/info-orden";
 
 export default async function NuevaOrdenPage() {
-  const [clientes, estados, profesionales, catalogos] = await Promise.all([
+  const [clientes, profesionales, catalogos] = await Promise.all([
     getClientesParaSelect(),
-    getEstadosParaSelect(),
     getProfesionalesParaSelect(),
     getCatalogosInfoOrden(),
   ]);
@@ -26,7 +24,6 @@ export default async function NuevaOrdenPage() {
         mode="nueva"
         titulo="Nueva orden"
         clientes={clientes.map((c) => ({ id: c.id, label: c.nombre_cliente }))}
-        estados={estados.map((e) => ({ id: e.id, label: e.nombre }))}
         profesionales={profesionales.map((p) => ({ id: p.id, label: p.nombre_completo }))}
         ciudades={catalogos.ciudades.map((c) => ({ id: c.id, label: c.nombre }))}
         estadosEjecucion={catalogos.estadosEjecucion.map((e) => ({ id: e.id, label: e.nombre }))}

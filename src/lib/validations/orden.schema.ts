@@ -13,9 +13,39 @@
 
 import { z } from "zod";
 
+// Reemplazan a la tabla catálogo `estados_orden` (eliminada) y al set fijo de
+// `responsable_sec_id` — la DB ya no tiene FK para estos dos campos, solo un
+// CHECK constraint con esta misma lista de valores (ver
+// supabase/005_ordenes_servicio_financiero_edicion.sql y el ALTER TABLE que
+// migró ordenes_servicio.estado_id/responsable_sec_id a texto). Si cambia el
+// CHECK en la DB, hay que reflejarlo acá también — es la única fuente de
+// verdad del lado del front.
+export const ESTADOS_ORDEN = [
+  "Pendiente revisión Bolívar",
+  "Enviado a facturación",
+  "Cancelada",
+  "Programar urgente",
+  "Facturar urgente",
+  "Pendiente cobro hora fallida",
+  "Pendiente por cancelar",
+  "Programar mes siguiente",
+  "Facturada",
+] as const;
+
+export const RESPONSABLES_OS = [
+  "Yulieth Amell",
+  "Bibiana Sarmiento",
+  "Daniela Rosso",
+  "Lucia Bejarano",
+  "Lina Amell",
+] as const;
+
+export type EstadoOrden = (typeof ESTADOS_ORDEN)[number];
+export type ResponsableOs = (typeof RESPONSABLES_OS)[number];
+
 export const ordenServicioSchema = z.object({
   cliente_id: z.number().int().positive(),
-  estado_id: z.number().int().positive().optional(),
+  estado: z.enum(ESTADOS_ORDEN).optional(),
   numero_os_cliente: z.string().optional(),
   fecha_recepcion_os: z.string().optional(),
   nombre_empresa_usuaria: z.string().optional(),
@@ -26,10 +56,12 @@ export const ordenServicioSchema = z.object({
   horas_cargadas: z.number().nonnegative("Debe ser un número positivo").optional(),
   tipo_servicio: z.string().optional(),
   fecha_sipab: z.string().optional(),
-  asesor_gestion_riesgos_id: z.number().int().positive().optional(),
+  // Sin CHECK en la DB (a diferencia de estado/responsable_os arriba): texto
+  // libre a propósito, para asesores externos que no están en `profesionales`.
+  asesor_gestion_riesgos: z.string().optional(),
   observaciones_iniciales: z.string().optional(),
   tarifa_valor_transporte: z.number().nonnegative("Debe ser un número positivo").optional(),
-  responsable_sec_id: z.number().int().positive().optional(),
+  responsable_os: z.enum(RESPONSABLES_OS).optional(),
   link_archivo_orden: z
     .union([z.literal(""), z.string().trim().url("Debe ser un link válido (http/https)")])
     .optional(),
@@ -47,7 +79,7 @@ export type OrdenServicioFormValues = z.infer<typeof ordenServicioSchema>;
 export const campoOrdenInlineSchema = z
   .object({
     cronograma: ordenServicioSchema.shape.cronograma.nullable(),
-    estado_id: ordenServicioSchema.shape.estado_id.nullable(),
+    estado: ordenServicioSchema.shape.estado.nullable(),
     secuencia: ordenServicioSchema.shape.secuencia.nullable(),
   })
   .partial();

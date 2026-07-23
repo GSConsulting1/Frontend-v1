@@ -8,7 +8,7 @@
 import { PageHeader } from "@/components/layout/page-header";
 import { OrdenesTable } from "@/components/ordenes/ordenes-table";
 import { NuevaOrdenButton } from "@/components/ordenes/nueva-orden-button";
-import { getOrdenes, getEstadosParaSelect } from "@/lib/data/ordenes";
+import { getOrdenes } from "@/lib/data/ordenes";
 
 export default async function OrdenesPage({
   searchParams,
@@ -22,10 +22,7 @@ export default async function OrdenesPage({
     hasta: params.hasta || undefined,
   };
 
-  const [ordenes, estados] = await Promise.all([
-    getOrdenes(filtros),
-    getEstadosParaSelect(),
-  ]);
+  const ordenes = await getOrdenes(filtros);
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-10">
@@ -35,10 +32,7 @@ export default async function OrdenesPage({
         actions={<NuevaOrdenButton />}
       />
 
-      <OrdenesTable
-        ordenes={ordenes}
-        estados={estados.map((e) => ({ id: e.id, label: e.nombre }))}
-      />
+      <OrdenesTable ordenes={ordenes} />
     </div>
   );
 }

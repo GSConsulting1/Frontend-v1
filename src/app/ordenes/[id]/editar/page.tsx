@@ -8,12 +8,12 @@ import { notFound } from "next/navigation";
 import { OrdenForm, type OrdenInfoFormValues } from "@/components/ordenes/orden-form";
 import {
   getClientesParaSelect,
-  getEstadosParaSelect,
   getOrdenById,
   getProfesionalesParaSelect,
 } from "@/lib/data/ordenes";
 import { getCatalogosInfoOrden, getInfoOrdenCompleta } from "@/lib/data/info-orden";
 import type { ChecklistProcesoFormValues } from "@/lib/validations/info-orden.schema";
+import type { EstadoOrden, ResponsableOs } from "@/lib/validations/orden.schema";
 
 export default async function EditarOrdenPage({
   params,
@@ -27,9 +27,8 @@ export default async function EditarOrdenPage({
   const orden = await getOrdenById(ordenId);
   if (!orden) notFound();
 
-  const [clientes, estados, profesionales, catalogos, infoCompleta] = await Promise.all([
+  const [clientes, profesionales, catalogos, infoCompleta] = await Promise.all([
     getClientesParaSelect(),
-    getEstadosParaSelect(),
     getProfesionalesParaSelect(),
     getCatalogosInfoOrden(),
     getInfoOrdenCompleta(ordenId),
@@ -39,7 +38,7 @@ export default async function EditarOrdenPage({
 
   const defaultValues: Partial<OrdenInfoFormValues> = {
     cliente_id: orden.cliente_id,
-    estado_id: orden.estado_id ?? undefined,
+    estado: (orden.estado as EstadoOrden) ?? undefined,
     numero_os_cliente: orden.numero_os_cliente ?? undefined,
     fecha_recepcion_os: orden.fecha_recepcion_os ?? undefined,
     nombre_empresa_usuaria: orden.nombre_empresa_usuaria ?? undefined,
@@ -50,10 +49,16 @@ export default async function EditarOrdenPage({
     horas_cargadas: orden.horas_cargadas ?? undefined,
     tipo_servicio: orden.tipo_servicio ?? undefined,
     fecha_sipab: orden.fecha_sipab ?? undefined,
-    asesor_gestion_riesgos_id: orden.asesor_gestion_riesgos_id ?? undefined,
+    asesor_gestion_riesgos: orden.asesor_gestion_riesgos ?? undefined,
     observaciones_iniciales: orden.observaciones_iniciales ?? undefined,
-    tarifa_valor_transporte: orden.tarifa_valor_transporte ?? undefined,
-    responsable_sec_id: orden.responsable_sec_id ?? undefined,
+    // Columna numeric en la DB (tipada como string por Supabase, ver
+    // src/lib/data/ordenes.ts#normalizarInput) — se convierte a number acá
+    // para el <input type="number"> del form.
+    tarifa_valor_transporte:
+      orden.tarifa_valor_transporte != null
+        ? Number(orden.tarifa_valor_transporte)
+        : undefined,
+    responsable_os: (orden.responsable_os as ResponsableOs) ?? undefined,
     link_archivo_orden: orden.link_archivo_orden ?? undefined,
     infoOrdenServicio: infoOrdenServicio
       ? {
@@ -114,7 +119,6 @@ export default async function EditarOrdenPage({
         ordenId={orden.id}
         defaultValues={defaultValues}
         clientes={clientes.map((c) => ({ id: c.id, label: c.nombre_cliente }))}
-        estados={estados.map((e) => ({ id: e.id, label: e.nombre }))}
         profesionales={profesionales.map((p) => ({ id: p.id, label: p.nombre_completo }))}
         ciudades={catalogos.ciudades.map((c) => ({ id: c.id, label: c.nombre }))}
         estadosEjecucion={catalogos.estadosEjecucion.map((e) => ({ id: e.id, label: e.nombre }))}

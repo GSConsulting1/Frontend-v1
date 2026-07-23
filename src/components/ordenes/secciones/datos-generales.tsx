@@ -21,8 +21,6 @@ export type SeccionDatosGeneralesProps = {
   errors: FieldErrors<OrdenInfoFormValues>;
   watch: UseFormWatch<OrdenInfoFormValues>;
   clientes: SelectOption[];
-  estados: SelectOption[];
-  profesionales: SelectOption[];
   disabled: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -38,8 +36,6 @@ export function SeccionDatosGenerales({
   errors,
   watch,
   clientes,
-  estados,
-  profesionales,
   disabled,
   open,
   onOpenChange,
@@ -68,8 +64,6 @@ export function SeccionDatosGenerales({
           control={control}
           errors={errors}
           clientes={clientes}
-          estados={estados}
-          profesionales={profesionales}
           disabled={disabled}
         />
       </div>
