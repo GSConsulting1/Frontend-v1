@@ -200,18 +200,17 @@ src/
   igual que los primitivos de shadcn, no conoce ningún dominio y se
   reusa entre secciones. Lo consume cada archivo de
   `components/ordenes/secciones/`.
-- Un componente de shadcn que exporta muchos sub-componentes (ej.
+- Un componente de shadcn que exporta más de un sub-componente (ej.
   `dropdown-menu`, con `DropdownMenu`, `DropdownMenuItem`,
-  `DropdownMenuContent`, etc.) se instala como carpeta
-  `<componente>/` en vez de archivo único: un archivo por
+  `DropdownMenuContent`, etc.; o `tooltip`, con `Tooltip`,
+  `TooltipTrigger`, `TooltipContent`, `TooltipProvider`) se instala
+  como carpeta `<componente>/` en vez de archivo único: un archivo por
   sub-componente exportado (`dropdown-menu-item.tsx`,
-  `dropdown-menu-content.tsx`...) más un `index.ts` que los reexporta
-  todos. El resto de la app sigue importando desde
-  `@/components/ui/<componente>` sin cambios, porque TypeScript
-  resuelve esa ruta al `index.ts` de la carpeta. Los primitivos con
-  pocos exports (`button.tsx`, `table.tsx`, etc.) se quedan como
-  archivo único — esta carpeta-por-componente es solo para los que
-  crecen demasiado en un solo archivo.
+  `tooltip-trigger.tsx`...) más un `index.ts` que los reexporta todos.
+  El resto de la app sigue importando desde `@/components/ui/<componente>`
+  sin cambios, porque TypeScript resuelve esa ruta al `index.ts` de la
+  carpeta. Los primitivos con un solo export (`button.tsx`, `table.tsx`,
+  etc.) se quedan como archivo único.
 
 ### `components/auth/`
 - `auth-provider.tsx`: `AuthProvider` (montado una sola vez en
