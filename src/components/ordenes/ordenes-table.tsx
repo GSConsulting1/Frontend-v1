@@ -40,15 +40,27 @@ import {
 } from "@/lib/validations/orden.schema";
 import type { OrdenServicioConRelaciones, RolUsuario } from "@/types";
 
-const COLUMNAS = 8;
+const COLUMNAS = 9;
 const ROLES_EDITAN_INLINE: RolUsuario[] = ["administrador", "financiero"];
 const OPCIONES_ESTADO = ESTADOS_ORDEN.map((e) => ({ id: e, label: e }));
 
 type OrdenesTableProps = {
   ordenes: OrdenServicioConRelaciones[];
+  // Selección de filas para exportar a Excel — la gobierna OrdenesListado
+  // (el estado se sube ahí porque el botón de exportar vive en el header).
+  selectedIds: Set<number>;
+  onToggle: (id: number) => void;
+  onToggleAll: () => void;
+  exportError?: string | null;
 };
 
-export function OrdenesTable({ ordenes }: OrdenesTableProps) {
+export function OrdenesTable({
+  ordenes,
+  selectedIds,
+  onToggle,
+  onToggleAll,
+  exportError,
+}: OrdenesTableProps) {
   const [deletingIds, setDeletingIds] = useState<Set<number>>(new Set());
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [downloadingIds, setDownloadingIds] = useState<Set<number>>(new Set());
@@ -111,6 +123,10 @@ export function OrdenesTable({ ordenes }: OrdenesTableProps) {
     }
   }
 
+  const todasSeleccionadas =
+    ordenes.length > 0 && ordenes.every((o) => selectedIds.has(o.id));
+  const algunaSeleccionada = ordenes.some((o) => selectedIds.has(o.id));
+
   return (
     <div className="space-y-3">
       {deleteError && (
@@ -128,10 +144,28 @@ export function OrdenesTable({ ordenes }: OrdenesTableProps) {
           {editError}
         </p>
       )}
+      {exportError && (
+        <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {exportError}
+        </p>
+      )}
 
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-8">
+              <input
+                type="checkbox"
+                className="size-4 rounded border-input accent-foreground"
+                aria-label="Seleccionar todas las órdenes"
+                checked={todasSeleccionadas}
+                ref={(el) => {
+                  if (el) el.indeterminate = algunaSeleccionada && !todasSeleccionadas;
+                }}
+                onChange={onToggleAll}
+                disabled={ordenes.length === 0}
+              />
+            </TableHead>
             <TableHead className="whitespace-normal">Cliente</TableHead>
             <TableHead>Número de OS</TableHead>
             <TableHead>Fecha recepción</TableHead>
@@ -163,6 +197,17 @@ export function OrdenesTable({ ordenes }: OrdenesTableProps) {
                 key={orden.id}
                 className={cn(isDeleting && "opacity-50")}
               >
+                <TableCell className="w-8">
+                  <input
+                    type="checkbox"
+                    className="size-4 rounded border-input accent-foreground"
+                    aria-label={`Seleccionar la orden ${
+                      orden.cliente?.nombre_cliente ?? orden.id_unico ?? orden.id
+                    }`}
+                    checked={selectedIds.has(orden.id)}
+                    onChange={() => onToggle(orden.id)}
+                  />
+                </TableCell>
                 <TableCell className="whitespace-normal font-medium">
                   {orden.cliente?.nombre_cliente ?? "—"}
                 </TableCell>

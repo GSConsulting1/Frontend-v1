@@ -1,13 +1,11 @@
 // Pantalla 1: listado de órdenes de servicio, de solo lectura.
 // Server Component (async function) — hace el fetch inicial (con filtros vía
-// searchParams) y renderiza la tabla directamente. "Nueva orden" y "Editar"
-// son links a /ordenes/nueva y /ordenes/{id}/editar (ver OrdenForm) — ya no
-// hay estado de "guardar cambios" que gobernar en un Client Component
-// intermedio, así que no hace falta OrdenesManager.
+// searchParams) y delega el render a OrdenesListado (Client Component), que
+// gobierna la selección de filas compartida entre el botón "Exportar Excel"
+// del encabezado y los checkbox de la tabla. "Nueva orden" y "Editar" siguen
+// siendo links a /ordenes/nueva y /ordenes/{id}/editar (ver OrdenForm).
 
-import { PageHeader } from "@/components/layout/page-header";
-import { OrdenesTable } from "@/components/ordenes/ordenes-table";
-import { NuevaOrdenButton } from "@/components/ordenes/nueva-orden-button";
+import { OrdenesListado } from "@/components/ordenes/ordenes-listado";
 import { getOrdenes } from "@/lib/data/ordenes";
 
 export default async function OrdenesPage({
@@ -26,13 +24,7 @@ export default async function OrdenesPage({
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-10">
-      <PageHeader
-        title="Orden de servicio recibida del cliente"
-        description="Registra y consulta las OS de cada cliente"
-        actions={<NuevaOrdenButton />}
-      />
-
-      <OrdenesTable ordenes={ordenes} />
+      <OrdenesListado ordenes={ordenes} />
     </div>
   );
 }
