@@ -38,6 +38,17 @@ export type ChecklistProceso =
 // supabase/002_usuarios_roles_rls.sql (RLS: solo administrador lee/escribe)
 // — no se puede proteger una columna suelta con RLS, solo filas completas.
 export type ValorHoraOrden = Database["public"]["Tables"]["valor_hora_orden"]["Row"];
+
+// Tablas de la sección "Financiera" de la matriz (1-a-1 con ordenes_servicio
+// vía orden_id). Hoy solo las consume la exportación a Excel de /ordenes (ver
+// src/lib/excel/matriz-ordenes.ts). Cuando tengan pantalla/formulario propio,
+// agregar acá también sus tipos "ConRelaciones" como los de arriba.
+export type ActaServicio = Database["public"]["Tables"]["acta_servicio"]["Row"];
+export type CuentaCobro = Database["public"]["Tables"]["cuenta_cobro"]["Row"];
+export type Facturacion = Database["public"]["Tables"]["facturacion"]["Row"];
+export type RadicacionImagine =
+  Database["public"]["Tables"]["radicacion_imagine"]["Row"];
+export type Liquidacion = Database["public"]["Tables"]["liquidacion"]["Row"];
 // `usuarios.rol` es un string sin enum en la BD (solo tiene un CHECK), así
 // que este union lo angosta a mano — valores tomados del CHECK real de
 // supabase/002_usuarios_roles_rls.sql. Si Persona A agrega/renombra un rol
