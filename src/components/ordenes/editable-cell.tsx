@@ -11,7 +11,7 @@
 
 "use client";
 
-import { useRef, useState, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -21,6 +21,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { MutacionResult } from "@/app/ordenes/actions";
 
@@ -74,10 +79,10 @@ export function EditableCell(props: EditableCellProps) {
         >
           <SelectValue>{renderValue(value)}</SelectValue>
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="w-56">
           {options.map((o) => (
             <SelectItem key={o.id} value={o.id}>
-              {o.label}
+              <OpcionEstadoLabel label={o.label} />
             </SelectItem>
           ))}
         </SelectContent>
@@ -86,6 +91,33 @@ export function EditableCell(props: EditableCellProps) {
   }
 
   return <ClickToEditCell {...props} saving={saving} setSaving={setSaving} />;
+}
+
+// Solo abre el tooltip si el label se corta con "..." — mide el ancho real
+// del texto contra el ancho disponible (fijado por `max-w-48 truncate`).
+function OpcionEstadoLabel({ label }: { label: string }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [truncado, setTruncado] = useState(false);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    setTruncado(el.scrollWidth > el.clientWidth);
+  }, [label]);
+
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        disabled={!truncado}
+        render={
+          <span ref={ref} className="block max-w-48 truncate text-left">
+            {label}
+          </span>
+        }
+      />
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  );
 }
 
 function ClickToEditCell({
