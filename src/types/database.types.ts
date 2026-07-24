@@ -1,3 +1,13 @@
+// La tabla `ordenes_servicio` (y la eliminación de `estados_orden`, que no
+// existe en la base real) se corrigió a mano el 2026-07-24 para que
+// coincida con el schema real de Supabase — el archivo generado
+// previamente asumía columnas (estado_id, asesor_gestion_riesgos_id,
+// responsable_sec_id, tipo_servicio_id, tipo_servicio_nuevo) y una tabla
+// (estados_orden) que nunca existieron en la base, lo que rompía
+// getOrdenes() con "Could not find a relationship...". Regenerar con
+// `supabase gen types typescript --project-id <id>` en cuanto el proyecto
+// esté linkeado localmente para volver a la fuente generada.
+
 export type Json =
   | string
   | number
@@ -204,27 +214,6 @@ export type Database = {
         }
         Relationships: []
       }
-      estados_orden: {
-        Row: {
-          activo: boolean | null
-          id: number
-          nombre: string
-          orden_visual: number | null
-        }
-        Insert: {
-          activo?: boolean | null
-          id?: number
-          nombre: string
-          orden_visual?: number | null
-        }
-        Update: {
-          activo?: boolean | null
-          id?: number
-          nombre?: string
-          orden_visual?: number | null
-        }
-        Relationships: []
-      }
       info_orden_servicio: {
         Row: {
           actividad_reprogramada: boolean | null
@@ -348,10 +337,10 @@ export type Database = {
       }
       ordenes_servicio: {
         Row: {
-          asesor_gestion_riesgos_id: number | null
+          asesor_gestion_riesgos: string | null
           cliente_id: number
-          cronograma: string | null
-          estado_id: number | null
+          cronograma: number | null
+          estado: string | null
           fecha_actualizacion: string | null
           fecha_creacion: string | null
           fecha_recepcion_os: string | null
@@ -365,18 +354,16 @@ export type Database = {
           nombre_servicio: string | null
           numero_os_cliente: string | null
           observaciones_iniciales: string | null
-          responsable_sec_id: number | null
+          responsable_os: string | null
           secuencia: string | null
-          tarifa_valor_transporte: number | null
+          tarifa_valor_transporte: string | null
           tipo_servicio: string | null
-          tipo_servicio_id: number | null
-          tipo_servicio_nuevo: string | null
         }
         Insert: {
-          asesor_gestion_riesgos_id?: number | null
+          asesor_gestion_riesgos?: string | null
           cliente_id: number
-          cronograma?: string | null
-          estado_id?: number | null
+          cronograma?: number | null
+          estado?: string | null
           fecha_actualizacion?: string | null
           fecha_creacion?: string | null
           fecha_recepcion_os?: string | null
@@ -390,18 +377,16 @@ export type Database = {
           nombre_servicio?: string | null
           numero_os_cliente?: string | null
           observaciones_iniciales?: string | null
-          responsable_sec_id?: number | null
+          responsable_os?: string | null
           secuencia?: string | null
-          tarifa_valor_transporte?: number | null
+          tarifa_valor_transporte?: string | null
           tipo_servicio?: string | null
-          tipo_servicio_id?: number | null
-          tipo_servicio_nuevo?: string | null
         }
         Update: {
-          asesor_gestion_riesgos_id?: number | null
+          asesor_gestion_riesgos?: string | null
           cliente_id?: number
-          cronograma?: string | null
-          estado_id?: number | null
+          cronograma?: number | null
+          estado?: string | null
           fecha_actualizacion?: string | null
           fecha_creacion?: string | null
           fecha_recepcion_os?: string | null
@@ -415,40 +400,17 @@ export type Database = {
           nombre_servicio?: string | null
           numero_os_cliente?: string | null
           observaciones_iniciales?: string | null
-          responsable_sec_id?: number | null
+          responsable_os?: string | null
           secuencia?: string | null
-          tarifa_valor_transporte?: number | null
+          tarifa_valor_transporte?: string | null
           tipo_servicio?: string | null
-          tipo_servicio_id?: number | null
-          tipo_servicio_nuevo?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "ordenes_servicio_asesor_gestion_riesgos_id_fkey"
-            columns: ["asesor_gestion_riesgos_id"]
-            isOneToOne: false
-            referencedRelation: "profesionales"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "ordenes_servicio_cliente_id_fkey"
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ordenes_servicio_estado_id_fkey"
-            columns: ["estado_id"]
-            isOneToOne: false
-            referencedRelation: "estados_orden"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ordenes_servicio_responsable_sec_id_fkey"
-            columns: ["responsable_sec_id"]
-            isOneToOne: false
-            referencedRelation: "profesionales"
             referencedColumns: ["id"]
           },
         ]

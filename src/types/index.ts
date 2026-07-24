@@ -8,15 +8,15 @@ import type { Database } from "./database.types";
 
 export type Cliente = Database["public"]["Tables"]["clientes"]["Row"];
 export type Profesional = Database["public"]["Tables"]["profesionales"]["Row"];
-export type EstadoOrden = Database["public"]["Tables"]["estados_orden"]["Row"];
 export type OrdenServicio =
   Database["public"]["Tables"]["ordenes_servicio"]["Row"];
 
-// Tipo "enriquecido" para el listado, con las relaciones ya resueltas
-// (join con clientes y estados_orden vía la query de Supabase).
+// `ordenes_servicio.estado` es un string con CHECK (no hay tabla
+// `estados_orden` — ver ESTADO_ORDEN_OPCIONES en
+// lib/validations/orden.schema.ts), así que ya viene resuelto en
+// OrdenServicio: acá solo se agrega el cliente, que sí es una FK real.
 export type OrdenServicioConRelaciones = OrdenServicio & {
   cliente: Pick<Cliente, "id" | "nombre_cliente"> | null;
-  estado: Pick<EstadoOrden, "id" | "nombre"> | null;
 };
 
 // Sección "Información orden del servicio" (Plan MVP semana 2): catálogos +
@@ -39,10 +39,15 @@ export type ChecklistProceso =
 // — no se puede proteger una columna suelta con RLS, solo filas completas.
 export type ValorHoraOrden = Database["public"]["Tables"]["valor_hora_orden"]["Row"];
 // `usuarios.rol` es un string sin enum en la BD (solo tiene un CHECK), así
-// que este union lo angosta a mano — valores tomados del CHECK real de
-// supabase/002_usuarios_roles_rls.sql. Si Persona A agrega/renombra un rol
-// ahí, hay que reflejarlo acá también.
-export type RolUsuario = "administrador" | "programadoras" | "profesional" | "lectura";
+// que este union lo angosta a mano — valores tomados del CHECK real de la
+// tabla `usuarios` en Supabase. Si se agrega/renombra un rol ahí, hay que
+// reflejarlo acá también.
+export type RolUsuario =
+  | "administrador"
+  | "programador"
+  | "profesional"
+  | "lectura"
+  | "financiero";
 
 // Perfil de src/components/auth/auth-provider.tsx (tabla `usuarios`, PK =
 // auth.users.id). No confundir con Profesional: un usuario con rol

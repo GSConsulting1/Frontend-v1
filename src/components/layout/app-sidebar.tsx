@@ -13,6 +13,10 @@ export function AppSidebar() {
 
   if (pathname === "/login") return null;
 
+  const items = NAV_ITEMS.filter(
+    (item) => !item.roles || (perfil && item.roles.includes(perfil.rol)),
+  );
+
   return (
     <aside className="flex w-64 shrink-0 flex-col overflow-y-auto bg-neutral-900 text-neutral-100">
       <div className="flex items-center gap-2.5 px-5 py-5">
@@ -28,7 +32,7 @@ export function AppSidebar() {
       </div>
 
       <nav className="flex flex-1 flex-col gap-0.5 px-3 py-2">
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+        {items.map(({ href, label, icon: Icon }) => {
           const isActive = href === "/" ? pathname === "/" : pathname.startsWith(href);
 
           return (

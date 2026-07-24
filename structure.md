@@ -158,7 +158,13 @@ src/
   `page.tsx` lo usa como primer hijo de su contenedor).
 - `nav-config.ts` es la única fuente de verdad de los links del sidebar.
   Al agregar una pantalla nueva, se agrega su entrada acá (no se edita
-  `app-sidebar.tsx` a mano por cada ruta).
+  `app-sidebar.tsx` a mano por cada ruta). `NavItem.roles?: RolUsuario[]`
+  es opcional — si se define, `AppSidebar` (vía `useAuth().perfil`) solo
+  muestra ese link a esos roles; sin `perfil` cargado (sin sesión) el link
+  no se muestra. Primer uso: `/usuarios`, solo visible para
+  `administrador`. Ocultar el link es UX, no seguridad — igual que
+  `RoleGate`, no reemplaza la protección real de la página (ver
+  `components/usuarios/` abajo).
 - No conoce el dominio (nada de "orden", "cliente", Supabase). Si un
   componente de layout necesita datos de negocio, se los pasan por
   props desde `page.tsx`/`layout.tsx`, no hace fetch propio.
@@ -210,6 +216,12 @@ src/
   usuarios reales creados en Supabase Auth + su fila en `usuarios`. Para
   activarla: agregar el chequeo de sesión en cada `page.tsx` (o
   centralizarlo en `proxy.ts`, ver esa sección).
+- **`/usuarios` es la excepción**: al ser la pantalla que asigna roles, su
+  `page.tsx` sí bloquea de verdad en servidor (no solo con `RoleGate`) —
+  ver `lib/data/usuarios.ts` (`getPerfilActual()`) y
+  `components/usuarios/` abajo. Es el primer caso de protección real de
+  página del proyecto; si se protege otra ruta, seguir el mismo patrón en
+  vez de inventar uno nuevo.
 
 ### `components/<entidad>/`
 - Componentes que sí conocen el dominio (`ordenes-table.tsx`,
@@ -300,6 +312,24 @@ src/
   redirige — el usuario se queda en la misma página de edición.
   `eliminarOrden` tampoco redirige, solo `revalidatePath` — la dispara
   la tabla.
+
+### `components/usuarios/`
+- `usuarios-table.tsx`: única pantalla de administración de usuarios —
+  lista `nombre_completo`/`email`/`rol` y deja cambiar el rol inline con
+  un `<Select>` por fila (dispara `actualizarRolUsuario` de
+  `app/usuarios/actions.ts` al `onValueChange`, sin botón "Guardar"
+  aparte). Mismo patrón de estado que `ordenes-table.tsx`: un `Set` de
+  ids en "guardando" solo para feedback visual mientras corre el Server
+  Action.
+- `app/usuarios/page.tsx` es la única `page.tsx` del proyecto con
+  protección real en servidor (no solo `RoleGate`): usa
+  `getPerfilActual()` de `lib/data/usuarios.ts` y hace `redirect("/")` si
+  el rol no es `administrador`. En modo mock (`isSupabaseConfigured ===
+  false`) no bloquea nada, porque no hay sesión real que verificar.
+- `lib/data/usuarios.ts` sigue el mismo patrón mock/real que
+  `ordenes.ts`, pero usa `createSupabaseServerClient()` para *todas* sus
+  queries (no el singleton de `lib/supabase/client.ts`) porque `usuarios`
+  tiene RLS — mismo motivo que `ordenes.ts`/`info-orden.ts`.
 
 ## Al agregar una entidad nueva (ej. "clientes" como pantalla propia)
 

@@ -20,7 +20,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import type { OrdenServicioFormValues } from "@/lib/validations/orden.schema";
+import {
+  ESTADO_ORDEN_OPCIONES,
+  RESPONSABLE_OS_OPCIONES,
+  TIPO_SERVICIO_OPCIONES,
+  type OrdenServicioFormValues,
+} from "@/lib/validations/orden.schema";
 
 type SelectOption = { id: number; label: string };
 
@@ -29,8 +34,6 @@ export type OrdenCamposProps = {
   control: Control<OrdenServicioFormValues>;
   errors: FieldErrors<OrdenServicioFormValues>;
   clientes: SelectOption[];
-  estados: SelectOption[];
-  profesionales: SelectOption[];
   // Solo administrador puede editar Datos generales (ver structure.md,
   // supabase/004_ordenes_servicio_rls.sql) — cualquier otro rol la ve pero
   // no puede tocarla.
@@ -42,8 +45,6 @@ export function OrdenCampos({
   control,
   errors,
   clientes,
-  estados,
-  profesionales,
   disabled,
 }: OrdenCamposProps) {
   return (
@@ -88,30 +89,29 @@ export function OrdenCampos({
 
       <FormField
         label="Estado"
-        htmlFor="estado_id"
-        error={errors.estado_id?.message}
+        htmlFor="estado"
+        error={errors.estado?.message}
       >
         <Controller
-          name="estado_id"
+          name="estado"
           control={control}
           render={({ field }) => (
             <Select
-              value={field.value != null ? String(field.value) : null}
+              value={field.value ?? null}
               onValueChange={(v: string | null) =>
-                field.onChange(v ? Number(v) : undefined)
+                field.onChange(
+                  v as (typeof ESTADO_ORDEN_OPCIONES)[number] | undefined,
+                )
               }
-              items={estados.map((e) => ({
-                label: e.label,
-                value: String(e.id),
-              }))}
+              items={ESTADO_ORDEN_OPCIONES.map((o) => ({ label: o, value: o }))}
             >
-              <SelectTrigger id="estado_id" className="w-full">
+              <SelectTrigger id="estado" className="w-full">
                 <SelectValue placeholder="Selecciona un estado" />
               </SelectTrigger>
               <SelectContent>
-                {estados.map((e) => (
-                  <SelectItem key={e.id} value={String(e.id)}>
-                    {e.label}
+                {ESTADO_ORDEN_OPCIONES.map((o) => (
+                  <SelectItem key={o} value={o}>
+                    {o}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -130,7 +130,32 @@ export function OrdenCampos({
       </FormField>
 
       <FormField label="Tipo de servicio" htmlFor="tipo_servicio">
-        <Input id="tipo_servicio" {...register("tipo_servicio")} />
+        <Controller
+          name="tipo_servicio"
+          control={control}
+          render={({ field }) => (
+            <Select
+              value={field.value ?? null}
+              onValueChange={(v: string | null) =>
+                field.onChange(
+                  v as (typeof TIPO_SERVICIO_OPCIONES)[number] | undefined,
+                )
+              }
+              items={TIPO_SERVICIO_OPCIONES.map((o) => ({ label: o, value: o }))}
+            >
+              <SelectTrigger id="tipo_servicio" className="w-full">
+                <SelectValue placeholder="Selecciona un tipo de servicio" />
+              </SelectTrigger>
+              <SelectContent>
+                {TIPO_SERVICIO_OPCIONES.map((o) => (
+                  <SelectItem key={o} value={o}>
+                    {o}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
       </FormField>
 
       <FormField label="Número OS del cliente" htmlFor="numero_os_cliente">
@@ -166,8 +191,20 @@ export function OrdenCampos({
         <Input id="fecha_sipab" type="date" {...register("fecha_sipab")} />
       </FormField>
 
-      <FormField label="Cronograma" htmlFor="cronograma">
-        <Input id="cronograma" type="date" {...register("cronograma")} />
+      <FormField
+        label="Cronograma"
+        htmlFor="cronograma"
+        error={errors.cronograma?.message}
+      >
+        <Input
+          id="cronograma"
+          type="number"
+          step="1"
+          {...register("cronograma", {
+            setValueAs: (v) =>
+              v === "" || v === undefined ? undefined : Number(v),
+          })}
+        />
       </FormField>
 
       <FormField label="Secuencia" htmlFor="secuencia">
@@ -192,71 +229,41 @@ export function OrdenCampos({
       >
         <Input
           id="tarifa_valor_transporte"
-          type="number"
-          step="0.01"
-          min="0"
-          {...register("tarifa_valor_transporte", {
-            setValueAs: (v) =>
-              v === "" || v === undefined ? undefined : Number(v),
-          })}
+          {...register("tarifa_valor_transporte")}
         />
       </FormField>
 
       <FormField
         label="Asesor gestión de riesgos"
-        htmlFor="asesor_gestion_riesgos_id"
+        htmlFor="asesor_gestion_riesgos"
       >
-        <Controller
-          name="asesor_gestion_riesgos_id"
-          control={control}
-          render={({ field }) => (
-            <Select
-              value={field.value != null ? String(field.value) : null}
-              onValueChange={(v: string | null) =>
-                field.onChange(v ? Number(v) : undefined)
-              }
-              items={profesionales.map((p) => ({
-                label: p.label,
-                value: String(p.id),
-              }))}
-            >
-              <SelectTrigger id="asesor_gestion_riesgos_id" className="w-full">
-                <SelectValue placeholder="Selecciona un profesional" />
-              </SelectTrigger>
-              <SelectContent>
-                {profesionales.map((p) => (
-                  <SelectItem key={p.id} value={String(p.id)}>
-                    {p.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+        <Input
+          id="asesor_gestion_riesgos"
+          {...register("asesor_gestion_riesgos")}
         />
       </FormField>
 
-      <FormField label="Responsable OS/SEC" htmlFor="responsable_sec_id">
+      <FormField label="Responsable OS/SEC" htmlFor="responsable_os">
         <Controller
-          name="responsable_sec_id"
+          name="responsable_os"
           control={control}
           render={({ field }) => (
             <Select
-              value={field.value != null ? String(field.value) : null}
+              value={field.value ?? null}
               onValueChange={(v: string | null) =>
-                field.onChange(v ? Number(v) : undefined)
+                field.onChange(
+                  v as (typeof RESPONSABLE_OS_OPCIONES)[number] | undefined,
+                )
               }
-              items={profesionales.map((p) => ({
-                label: p.label,
-                value: String(p.id),
-              }))}
+              items={RESPONSABLE_OS_OPCIONES.map((o) => ({ label: o, value: o }))}
             >
-              <SelectTrigger id="responsable_sec_id" className="w-full">
-                <SelectValue placeholder="Selecciona un profesional" />
+              <SelectTrigger id="responsable_os" className="w-full">
+                <SelectValue placeholder="Selecciona un responsable" />
               </SelectTrigger>
               <SelectContent>
-                {profesionales.map((p) => (
-                  <SelectItem key={p.id} value={String(p.id)}>
-                    {p.label}
+                {RESPONSABLE_OS_OPCIONES.map((o) => (
+                  <SelectItem key={o} value={o}>
+                    {o}
                   </SelectItem>
                 ))}
               </SelectContent>

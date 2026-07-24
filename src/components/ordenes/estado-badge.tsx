@@ -3,7 +3,6 @@
 // switch/if de colores en cada lugar donde se muestra un estado.
 
 import { Badge } from "@/components/ui/badge";
-import type { EstadoOrden } from "@/types";
 
 function variantParaEstado(nombre: string): "default" | "secondary" | "destructive" | "outline" {
   const n = nombre.toUpperCase();
@@ -13,11 +12,10 @@ function variantParaEstado(nombre: string): "default" | "secondary" | "destructi
   return "secondary";
 }
 
-export function EstadoBadge({
-  estado,
-}: {
-  estado: Pick<EstadoOrden, "nombre"> | null;
-}) {
+// `estado` es un string con CHECK directo en `ordenes_servicio` (ver
+// ESTADO_ORDEN_OPCIONES en lib/validations/orden.schema.ts) — no hay
+// tabla de catálogo que unir.
+export function EstadoBadge({ estado }: { estado: string | null }) {
   if (!estado) return <Badge variant="secondary">Sin estado</Badge>;
-  return <Badge variant={variantParaEstado(estado.nombre)}>{estado.nombre}</Badge>;
+  return <Badge variant={variantParaEstado(estado)}>{estado}</Badge>;
 }

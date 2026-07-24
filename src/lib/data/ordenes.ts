@@ -13,7 +13,6 @@ import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   mockClientes,
-  mockEstados,
   mockOrdenes,
   mockProfesionales,
 } from "@/lib/mock-data/ordenes";
@@ -32,21 +31,21 @@ export type OrdenesFiltros = {
 function normalizarInput(input: OrdenServicioFormValues) {
   return {
     cliente_id: input.cliente_id,
-    estado_id: input.estado_id ?? null,
+    estado: orNull(input.estado),
     numero_os_cliente: orNull(input.numero_os_cliente),
     fecha_recepcion_os: orNull(input.fecha_recepcion_os),
     nombre_empresa_usuaria: orNull(input.nombre_empresa_usuaria),
     nit_empresa_usuaria: orNull(input.nit_empresa_usuaria),
-    cronograma: orNull(input.cronograma),
+    cronograma: input.cronograma ?? null,
     secuencia: orNull(input.secuencia),
     nombre_servicio: input.nombre_servicio,
     horas_cargadas: input.horas_cargadas ?? null,
     tipo_servicio: orNull(input.tipo_servicio),
     fecha_sipab: orNull(input.fecha_sipab),
-    asesor_gestion_riesgos_id: input.asesor_gestion_riesgos_id ?? null,
+    asesor_gestion_riesgos: orNull(input.asesor_gestion_riesgos),
     observaciones_iniciales: orNull(input.observaciones_iniciales),
-    tarifa_valor_transporte: input.tarifa_valor_transporte ?? null,
-    responsable_sec_id: input.responsable_sec_id ?? null,
+    tarifa_valor_transporte: orNull(input.tarifa_valor_transporte),
+    responsable_os: orNull(input.responsable_os),
     link_archivo_orden: orNull(input.link_archivo_orden),
   };
 }
@@ -56,8 +55,6 @@ function enriquecerMock(): OrdenServicioConRelaciones[] {
     ...orden,
     cliente:
       mockClientes.find((c) => c.id === orden.cliente_id) ?? null,
-    estado:
-      mockEstados.find((e) => e.id === orden.estado_id) ?? null,
   }));
 }
 
@@ -85,9 +82,7 @@ export async function getOrdenes(
 
   let query = supabase
     .from("ordenes_servicio")
-    .select(
-      "*, cliente:clientes(id, nombre_cliente), estado:estados_orden(id, nombre)",
-    )
+    .select("*, cliente:clientes(id, nombre_cliente)")
     .order("id", { ascending: false });
 
   if (filtros.clienteId) query = query.eq("cliente_id", filtros.clienteId);
@@ -109,9 +104,7 @@ export async function getOrdenById(
 
   const { data, error } = await supabase
     .from("ordenes_servicio")
-    .select(
-      "*, cliente:clientes(id, nombre_cliente), estado:estados_orden(id, nombre)",
-    )
+    .select("*, cliente:clientes(id, nombre_cliente)")
     .eq("id", id)
     .maybeSingle();
 
@@ -132,23 +125,6 @@ export async function getClientesParaSelect() {
     .eq("activo", true)
     .order("nombre_cliente");
   if (error) throw new Error(`No se pudieron cargar los clientes: ${error.message}`);
-  return data ?? [];
-}
-
-export async function getEstadosParaSelect() {
-  if (!isSupabaseConfigured) {
-    return mockEstados
-      .filter((e) => e.activo)
-      .sort((a, b) => (a.orden_visual ?? 0) - (b.orden_visual ?? 0))
-      .map((e) => ({ id: e.id, nombre: e.nombre }));
-  }
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("estados_orden")
-    .select("id, nombre")
-    .eq("activo", true)
-    .order("orden_visual");
-  if (error) throw new Error(`No se pudieron cargar los estados: ${error.message}`);
   return data ?? [];
 }
 
@@ -180,10 +156,6 @@ export async function createOrdenRecord(input: OrdenServicioFormValues) {
       id_unico: `OS-MOCK-${nextId}`,
       fecha_creacion: now,
       fecha_actualizacion: now,
-      // Columnas en migración (ver structure.md / plan_mvp): Persona A
-      // todavía no consolidó tipo_servicio con estas dos, el mock no las usa.
-      tipo_servicio_id: null,
-      tipo_servicio_nuevo: null,
     });
     return nextId;
   }
