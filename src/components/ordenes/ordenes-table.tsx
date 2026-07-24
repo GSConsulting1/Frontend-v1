@@ -34,7 +34,10 @@ import { EditableCell } from "@/components/ordenes/editable-cell";
 import { RoleGate } from "@/components/auth/role-gate";
 import { eliminarOrden, actualizarCampoOrden } from "@/app/ordenes/actions";
 import { cn } from "@/lib/utils";
-import { ESTADOS_ORDEN, type EstadoOrden } from "@/lib/validations/orden.schema";
+import {
+  ESTADOS_ORDEN,
+  type EstadoOrden,
+} from "@/lib/validations/orden.schema";
 import type { OrdenServicioConRelaciones, RolUsuario } from "@/types";
 
 const COLUMNAS = 8;
@@ -246,7 +249,7 @@ export function OrdenesTable({ ordenes }: OrdenesTableProps) {
                         ) : (
                           <Download className="size-4" />
                         )}
-                        Descargar PDF
+                        PDF
                       </DropdownMenuItem>
                       <RoleGate allow={["administrador"]}>
                         <DropdownMenuSeparator />
