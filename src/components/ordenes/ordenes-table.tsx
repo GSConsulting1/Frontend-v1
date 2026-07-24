@@ -12,7 +12,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Download, Loader2, Pencil, X } from "lucide-react";
+import { Download, Loader2, MoreHorizontal, Pencil, X } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -22,6 +22,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { EstadoBadge } from "@/components/ordenes/estado-badge";
 import { EditableCell } from "@/components/ordenes/editable-cell";
 import { RoleGate } from "@/components/auth/role-gate";
@@ -30,7 +37,7 @@ import { cn } from "@/lib/utils";
 import { ESTADOS_ORDEN, type EstadoOrden } from "@/lib/validations/orden.schema";
 import type { OrdenServicioConRelaciones, RolUsuario } from "@/types";
 
-const COLUMNAS = 9;
+const COLUMNAS = 8;
 const ROLES_EDITAN_INLINE: RolUsuario[] = ["administrador", "financiero"];
 const OPCIONES_ESTADO = ESTADOS_ORDEN.map((e) => ({ id: e, label: e }));
 
@@ -122,19 +129,14 @@ export function OrdenesTable({ ordenes }: OrdenesTableProps) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Cliente</TableHead>
+            <TableHead className="whitespace-normal">Cliente</TableHead>
             <TableHead>Número de OS</TableHead>
             <TableHead>Fecha recepción</TableHead>
-            <TableHead>Tipo servicio</TableHead>
+            <TableHead className="whitespace-normal">Tipo servicio</TableHead>
             <TableHead>Estado</TableHead>
             <TableHead>Cronograma</TableHead>
             <TableHead>Secuencia</TableHead>
-            <TableHead className="text-right">Editar</TableHead>
-            <TableHead className="text-right">PDF</TableHead>
-
-            <RoleGate allow={["administrador"]}>
-              <TableHead className="text-right">Eliminar</TableHead>
-            </RoleGate>
+            <TableHead className="text-right">Acciones</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -158,12 +160,14 @@ export function OrdenesTable({ ordenes }: OrdenesTableProps) {
                 key={orden.id}
                 className={cn(isDeleting && "opacity-50")}
               >
-                <TableCell className="font-medium">
+                <TableCell className="whitespace-normal font-medium">
                   {orden.cliente?.nombre_cliente ?? "—"}
                 </TableCell>
                 <TableCell>{orden.numero_os_cliente ?? "—"}</TableCell>
                 <TableCell>{orden.fecha_recepcion_os ?? "—"}</TableCell>
-                <TableCell>{orden.tipo_servicio ?? "—"}</TableCell>
+                <TableCell className="whitespace-normal">
+                  {orden.tipo_servicio ?? "—"}
+                </TableCell>
                 <TableCell>
                   <RoleGate
                     allow={ROLES_EDITAN_INLINE}
@@ -214,47 +218,49 @@ export function OrdenesTable({ ordenes }: OrdenesTableProps) {
                   </RoleGate>
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label="Editar orden"
-                    nativeButton={false}
-                    render={
-                      <Link href={`/ordenes/${orden.id}/editar`}>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      render={
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label="Acciones de la orden"
+                        >
+                          <MoreHorizontal className="size-4" />
+                        </Button>
+                      }
+                    />
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        render={<Link href={`/ordenes/${orden.id}/editar`} />}
+                      >
                         <Pencil className="size-4" />
-                      </Link>
-                    }
-                  />
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    disabled={isDownloading}
-                    aria-label="Descargar PDF de la orden"
-                    onClick={() => handleDownload(orden)}
-                  >
-                    {isDownloading ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                      <Download className="size-4" />
-                    )}
-                  </Button>
-                </TableCell>
-                <TableCell className="text-right">
-                  <RoleGate allow={["administrador"]}>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      disabled={isDeleting}
-                      aria-label="Eliminar orden"
-                      onClick={() => handleDelete(orden)}
-                    >
-                      <X className="size-4" />
-                    </Button>
-                  </RoleGate>
+                        Editar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        disabled={isDownloading}
+                        onClick={() => handleDownload(orden)}
+                      >
+                        {isDownloading ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                          <Download className="size-4" />
+                        )}
+                        Descargar PDF
+                      </DropdownMenuItem>
+                      <RoleGate allow={["administrador"]}>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          variant="destructive"
+                          disabled={isDeleting}
+                          onClick={() => handleDelete(orden)}
+                        >
+                          <X className="size-4" />
+                          Eliminar
+                        </DropdownMenuItem>
+                      </RoleGate>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </TableCell>
               </TableRow>
             );
