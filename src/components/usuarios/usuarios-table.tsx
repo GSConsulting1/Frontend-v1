@@ -47,6 +47,15 @@ export function UsuariosTable({ usuarios }: UsuariosTableProps) {
   async function handleChangeRol(usuario: Usuario, rol: RolUsuario) {
     if (rol === usuario.rol) return;
 
+    const etiqueta = ROLES.find((r) => r.value === rol)?.label ?? rol;
+    if (
+      !window.confirm(
+        `¿Cambiar el rol de ${usuario.nombre_completo} a "${etiqueta}"?`,
+      )
+    ) {
+      return;
+    }
+
     setError(null);
     setSavingIds((prev) => new Set(prev).add(usuario.id));
     const result = await actualizarRolUsuario(usuario.id, rol);

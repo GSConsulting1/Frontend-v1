@@ -26,7 +26,7 @@ export interface OrdenServicioData {
   nombreEmpresaCliente: string;
   nombreActividad: string;
   descripcionActividad: string;
-  numeroHoras: number;
+  numeroHoras: number | null;
   fechaEjecucionInicio: string;
   fechaFinalizacionEjecucion: string;
   direccionEmpresaAVisitar: string;
@@ -298,7 +298,10 @@ export function OrdenServicioDocument({ data }: { data: OrdenServicioData }) {
               label="Descripción de la actividad:"
               value={data.descripcionActividad}
             />
-            <FilaTabla label="N.° de horas:" value={String(data.numeroHoras)} />
+            <FilaTabla
+              label="N.° de horas:"
+              value={data.numeroHoras != null ? String(data.numeroHoras) : ""}
+            />
             <FilaTabla
               label="Fecha de inicio de ejecución:"
               value={data.fechaEjecucionInicio}
