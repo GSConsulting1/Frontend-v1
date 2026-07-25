@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
   logo: {
     position: "absolute",
     top: 8,
-    right: 40,
+    left: 40,
     width: 70,
   },
   encabezadoTablaWrapper: {
