@@ -1,0 +1,72 @@
+# Impide que un feature branch se mergee directo a `main`.
+#
+# Por qué existe: GitHub no tiene un setting nativo de "esta rama solo
+# acepta PRs desde tal otra rama". Los rulesets y la branch protection
+# clásica solo saben exigir "que haya PR", "que pase tal check" o "que
+# alguien apruebe" — no de dónde viene el PR. Así que la restricción se
+# implementa como un check que falla, y se vuelve obligatorio marcándolo
+# como required status check en el ruleset de `main`.
+#
+# Contexto real: los PRs #4 (feat/table-edition) y #5
+# (feat/financial-section) se mergearon directo a `main` el 2026-07-20.
+# Como nunca hubo un PR de vuelta de `main` -> `development`, la sección
+# financiera del formulario de edición de órdenes quedó viva en `main` y
+# ausente en `development` durante ~4 días, sin que nada lo avisara.
+#
+# Se usa `pull_request_target` y no `pull_request` a propósito: ese evento
+# evalúa el workflow tal como está en la rama base (`main`), así que un PR
+# no puede desactivar su propio guardián borrando o editando este archivo.
+# Es seguro porque acá solo se lee el payload del evento — nunca se hace
+# checkout ni se ejecuta código del PR.
+
+name: Guard main branch
+
+on:
+  pull_request_target:
+    branches:
+      - main
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - edited
+
+permissions:
+  contents: read
+
+jobs:
+  verificar-rama-origen:
+    name: El PR a main debe venir de development
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verificar rama de origen
+        env:
+          # Vía env y no interpolados en el script: si el nombre de la rama
+          # trae comillas o `$(...)`, interpolarlo directo en el shell sería
+          # inyección de comandos.
+          RAMA_ORIGEN: ${{ github.event.pull_request.head.ref }}
+          REPO_ORIGEN: ${{ github.event.pull_request.head.repo.full_name }}
+          REPO_BASE: ${{ github.repository }}
+        run: |
+          echo "PR: $REPO_ORIGEN:$RAMA_ORIGEN -> $REPO_BASE:main"
+
+          # Un fork podría tener su propia rama llamada "development" y
+          # colarse por el nombre, así que también se exige mismo repo.
+          if [ "$REPO_ORIGEN" != "$REPO_BASE" ]; then
+            echo "::error::Los PRs a main deben salir de $REPO_BASE, no de un fork ($REPO_ORIGEN)."
+            exit 1
+          fi
+
+          if [ "$RAMA_ORIGEN" != "development" ]; then
+            echo "::error::Los PRs a main solo pueden venir de 'development'. Este viene de '$RAMA_ORIGEN'."
+            echo ""
+            echo "Qué hacer:"
+            echo "  1. Cambiá la rama base de este PR a 'development'."
+            echo "  2. Una vez mergeado ahí, abrí el PR de release 'development -> main'."
+            echo ""
+            echo "Mergear un feature branch directo a main deja ese trabajo"
+            echo "fuera de development hasta que alguien lo note a mano."
+            exit 1
+          fi
+
+          echo "OK: el PR viene de 'development'."
