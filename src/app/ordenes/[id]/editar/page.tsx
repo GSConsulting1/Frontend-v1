@@ -1,5 +1,5 @@
 // Pantalla 2b: edición de página completa de una orden — datos generales
-// (OrdenCampos) + las 6 secciones extendidas de "Información orden del
+// (OrdenCampos) + las 11 secciones extendidas de "Información orden del
 // servicio" (OrdenInfoSecciones), todo dentro de OrdenForm mode="existente".
 // Mismo formulario que /ordenes/nueva, pero precargado y apuntando a
 // guardarInformacionOrden en vez de createOrden.
@@ -34,7 +34,17 @@ export default async function EditarOrdenPage({
     getInfoOrdenCompleta(ordenId),
   ]);
 
-  const { infoOrdenServicio, detalleEntrega, checklist, entregablesSeleccionados } = infoCompleta;
+  const {
+    infoOrdenServicio,
+    detalleEntrega,
+    checklist,
+    entregablesSeleccionados,
+    cuentaCobro,
+    actaServicio,
+    radicacionImagine,
+    facturacion,
+    liquidacion,
+  } = infoCompleta;
 
   const defaultValues: Partial<OrdenInfoFormValues> = {
     cliente_id: orden.cliente_id,
@@ -109,6 +119,58 @@ export default async function EditarOrdenPage({
         ChecklistProcesoFormValues["informe_guardian"],
     },
     entregablesIds: entregablesSeleccionados,
+    cuentaCobro: cuentaCobro
+      ? {
+          radicacion_cuenta: cuentaCobro.radicacion_cuenta ?? undefined,
+          fecha_radicacion: cuentaCobro.fecha_radicacion ?? undefined,
+          fecha_corte: cuentaCobro.fecha_corte ?? undefined,
+          corte_pago: cuentaCobro.corte_pago ?? undefined,
+          fecha_pago: cuentaCobro.fecha_pago ?? undefined,
+          documento_soporte: cuentaCobro.documento_soporte ?? undefined,
+          valor_cuenta_cobro: cuentaCobro.valor_cuenta_cobro ?? undefined,
+        }
+      : undefined,
+    actaServicio: actaServicio
+      ? {
+          fecha_acta: actaServicio.fecha_acta ?? undefined,
+          hora_acta: actaServicio.hora_acta ?? undefined,
+          profesional_acta_id: actaServicio.profesional_acta_id ?? undefined,
+        }
+      : undefined,
+    radicacionImagine: radicacionImagine
+      ? {
+          numero_radicado_1: radicacionImagine.numero_radicado_1 ?? undefined,
+          fecha_radicacion_1: radicacionImagine.fecha_radicacion_1 ?? undefined,
+          novedades_1: radicacionImagine.novedades_1 ?? undefined,
+          numero_radicado_2: radicacionImagine.numero_radicado_2 ?? undefined,
+          fecha_radicacion_2: radicacionImagine.fecha_radicacion_2 ?? undefined,
+          novedades_2: radicacionImagine.novedades_2 ?? undefined,
+          estado_imagine: radicacionImagine.estado_imagine ?? undefined,
+          actualizacion_sipab: radicacionImagine.actualizacion_sipab ?? undefined,
+        }
+      : undefined,
+    facturacion: facturacion
+      ? {
+          numero_prefactura: facturacion.numero_prefactura ?? undefined,
+          numero_factura: facturacion.numero_factura ?? undefined,
+          estado_facturacion: facturacion.estado_facturacion ?? undefined,
+          alerta_facturacion: facturacion.alerta_facturacion ?? undefined,
+        }
+      : undefined,
+    liquidacion: liquidacion
+      ? {
+          valor_total_cotizado: liquidacion.valor_total_cotizado ?? undefined,
+          valor_desplazamiento: liquidacion.valor_desplazamiento ?? undefined,
+          gasto_servicio: liquidacion.gasto_servicio ?? undefined,
+          iva: liquidacion.iva ?? undefined,
+          valor_antes_iva: liquidacion.valor_antes_iva ?? undefined,
+          retencion_fuente: liquidacion.retencion_fuente ?? undefined,
+          retencion_ica: liquidacion.retencion_ica ?? undefined,
+          retencion_iva: liquidacion.retencion_iva ?? undefined,
+          total: liquidacion.total ?? undefined,
+          ganancia: liquidacion.ganancia ?? undefined,
+        }
+      : undefined,
   };
 
   return (

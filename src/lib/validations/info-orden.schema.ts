@@ -99,6 +99,71 @@ export type ChecklistProcesoFormValues = z.infer<typeof checklistProcesoSchema>;
 // orden).
 export const entregablesEstandarSchema = z.array(z.number().int().positive());
 
+// Sección financiera: 5 tablas 1-a-1 con ordenes_servicio, mismo criterio de
+// RLS que valorHoraOrdenSchema (solo administrador + financiero) — ver
+// RolUsuario en src/types/index.ts. orden-form.tsx omite estas 5 claves del
+// payload para cualquier otro rol (igual que ya hace con valorHora).
+export const cuentaCobroSchema = z.object({
+  radicacion_cuenta: z.boolean().optional(),
+  fecha_radicacion: z.string().optional(),
+  fecha_corte: z.string().optional(),
+  corte_pago: z.string().optional(),
+  fecha_pago: z.string().optional(),
+  documento_soporte: z.string().optional(),
+  valor_cuenta_cobro: z.number().nonnegative("Debe ser un número positivo").optional(),
+});
+
+export type CuentaCobroFormValues = z.infer<typeof cuentaCobroSchema>;
+
+export const actaServicioSchema = z.object({
+  fecha_acta: z.string().optional(),
+  hora_acta: z.string().optional(),
+  profesional_acta_id: z.number().int().positive().optional(),
+});
+
+export type ActaServicioFormValues = z.infer<typeof actaServicioSchema>;
+
+// estado_imagine / estado_facturacion son texto libre en la BD (sin CHECK,
+// a diferencia de informe_guardian) — no hay un catálogo cerrado de valores
+// del que partir, así que van como texto igual que novedades_1/2 y
+// alerta_facturacion.
+export const radicacionImagineSchema = z.object({
+  numero_radicado_1: z.string().optional(),
+  fecha_radicacion_1: z.string().optional(),
+  novedades_1: z.string().optional(),
+  numero_radicado_2: z.string().optional(),
+  fecha_radicacion_2: z.string().optional(),
+  novedades_2: z.string().optional(),
+  estado_imagine: z.string().optional(),
+  actualizacion_sipab: z.string().optional(),
+});
+
+export type RadicacionImagineFormValues = z.infer<typeof radicacionImagineSchema>;
+
+export const facturacionSchema = z.object({
+  numero_prefactura: z.string().optional(),
+  numero_factura: z.string().optional(),
+  estado_facturacion: z.string().optional(),
+  alerta_facturacion: z.string().optional(),
+});
+
+export type FacturacionFormValues = z.infer<typeof facturacionSchema>;
+
+export const liquidacionSchema = z.object({
+  valor_total_cotizado: z.number().nonnegative("Debe ser un número positivo").optional(),
+  valor_desplazamiento: z.number().nonnegative("Debe ser un número positivo").optional(),
+  gasto_servicio: z.number().nonnegative("Debe ser un número positivo").optional(),
+  iva: z.number().nonnegative("Debe ser un número positivo").optional(),
+  valor_antes_iva: z.number().nonnegative("Debe ser un número positivo").optional(),
+  retencion_fuente: z.number().nonnegative("Debe ser un número positivo").optional(),
+  retencion_ica: z.number().nonnegative("Debe ser un número positivo").optional(),
+  retencion_iva: z.number().nonnegative("Debe ser un número positivo").optional(),
+  total: z.number().nonnegative("Debe ser un número positivo").optional(),
+  ganancia: z.number().optional(),
+});
+
+export type LiquidacionFormValues = z.infer<typeof liquidacionSchema>;
+
 // Lo que envía el formulario completo de la página de edición para las
 // secciones extendidas (todo opcional: una orden nueva puede no tener nada
 // todavía).
@@ -108,6 +173,11 @@ export const ordenInfoExtendidaSchema = z.object({
   checklist: checklistProcesoSchema.optional(),
   entregablesIds: entregablesEstandarSchema.optional(),
   valorHora: valorHoraOrdenSchema.optional(),
+  cuentaCobro: cuentaCobroSchema.optional(),
+  actaServicio: actaServicioSchema.optional(),
+  radicacionImagine: radicacionImagineSchema.optional(),
+  facturacion: facturacionSchema.optional(),
+  liquidacion: liquidacionSchema.optional(),
 });
 
 export type OrdenInfoExtendidaFormValues = z.infer<typeof ordenInfoExtendidaSchema>;
