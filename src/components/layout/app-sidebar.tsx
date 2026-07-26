@@ -3,12 +3,16 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronLeft, ChevronRight, LogOut } from "lucide-react";
+import { ChevronLeft, ChevronRight, LogOut, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth/auth-provider";
 import { NAV_ITEMS } from "./nav-config";
 
 const COLLAPSED_STORAGE_KEY = "gsc-sidebar-collapsed";
+
+// Rutas de auth (sin sesión, o a medio camino de una): pantalla completa
+// propia, sin el chrome de la app.
+const RUTAS_SIN_SIDEBAR = ["/login", "/recuperar-password", "/actualizar-password"];
 
 function readStoredCollapsed() {
   if (typeof window === "undefined") return false;
@@ -28,7 +32,7 @@ export function AppSidebar() {
     });
   };
 
-  if (pathname === "/login") return null;
+  if (RUTAS_SIN_SIDEBAR.includes(pathname)) return null;
 
   return (
     <aside
@@ -106,6 +110,13 @@ export function AppSidebar() {
                   </p>
                 </div>
               )}
+              <Link
+                href="/cuenta"
+                title="Mi cuenta"
+                className="flex size-7 shrink-0 items-center justify-center rounded-lg text-neutral-400 transition-colors hover:bg-neutral-800 hover:text-neutral-100"
+              >
+                <Settings className="size-4" />
+              </Link>
               <button
                 type="button"
                 onClick={() => signOut()}
