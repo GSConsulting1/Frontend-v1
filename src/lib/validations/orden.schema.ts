@@ -73,6 +73,9 @@ export const ordenServicioSchema = z.object({
   // numeric) — se guarda tal cual la escribe quien carga la orden.
   tarifa_valor_transporte: z.string().optional(),
   responsable_os: z.enum(RESPONSABLES_OS).optional(),
+  // Contraparte interna de observaciones_iniciales (que son del cliente):
+  // lo que anota el responsable SEC de GS sobre la orden.
+  observaciones_responsable_sec: z.string().optional(),
   link_archivo_orden: z
     .union([z.literal(""), z.string().trim().url("Debe ser un link válido (http/https)")])
     .optional(),

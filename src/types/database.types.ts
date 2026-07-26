@@ -1,12 +1,12 @@
-// La tabla `ordenes_servicio` (y la eliminación de `estados_orden`, que no
-// existe en la base real) se corrigió a mano el 2026-07-24 para que
-// coincida con el schema real de Supabase — el archivo generado
-// previamente asumía columnas (estado_id, asesor_gestion_riesgos_id,
-// responsable_sec_id, tipo_servicio_id, tipo_servicio_nuevo) y una tabla
-// (estados_orden) que nunca existieron en la base, lo que rompía
-// getOrdenes() con "Could not find a relationship...". Regenerar con
-// `supabase gen types typescript --project-id <id>` en cuanto el proyecto
-// esté linkeado localmente para volver a la fuente generada.
+// ⚠️ ARCHIVO AUTOGENERADO — NO EDITAR A MANO ⚠️
+//
+// Se regenera completo con `pnpm db:types` (ver scripts/gen-db-types.mjs) a
+// partir del esquema de Supabase: cualquier cambio hecho acá se pierde en la
+// siguiente corrida.
+//
+// ¿Cambió una columna en la DB? Corré `pnpm db:types` y ajustá los alias de
+// dominio de src/types/index.ts, que es la capa curada a mano desde la que
+// importa el resto de la app (ver structure.md > "types/").
 
 export type Json =
   | string
@@ -513,6 +513,7 @@ export type Database = {
           nombre_servicio: string | null
           numero_os_cliente: string | null
           observaciones_iniciales: string | null
+          observaciones_responsable_sec: string | null
           responsable_os: string | null
           secuencia: string | null
           tarifa_valor_transporte: string | null
@@ -536,6 +537,7 @@ export type Database = {
           nombre_servicio?: string | null
           numero_os_cliente?: string | null
           observaciones_iniciales?: string | null
+          observaciones_responsable_sec?: string | null
           responsable_os?: string | null
           secuencia?: string | null
           tarifa_valor_transporte?: string | null
@@ -559,6 +561,7 @@ export type Database = {
           nombre_servicio?: string | null
           numero_os_cliente?: string | null
           observaciones_iniciales?: string | null
+          observaciones_responsable_sec?: string | null
           responsable_os?: string | null
           secuencia?: string | null
           tarifa_valor_transporte?: string | null

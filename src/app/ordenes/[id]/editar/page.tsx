@@ -63,6 +63,8 @@ export default async function EditarOrdenPage({
     observaciones_iniciales: orden.observaciones_iniciales ?? undefined,
     tarifa_valor_transporte: orden.tarifa_valor_transporte ?? undefined,
     responsable_os: (orden.responsable_os as ResponsableOs) ?? undefined,
+    observaciones_responsable_sec:
+      orden.observaciones_responsable_sec ?? undefined,
     link_archivo_orden: orden.link_archivo_orden ?? undefined,
     infoOrdenServicio: infoOrdenServicio
       ? {

@@ -41,9 +41,10 @@ src/
 
 ### `types/`
 - `database.types.ts` es **generado**, nunca se edita a mano. Se
-  regenera con `supabase gen types typescript --project-id <id> >
-  src/types/database.types.ts` cada vez que cambia el esquema en
-  Supabase. Crece junto con la base — eso es normal y esperado, no un
+  regenera con `pnpm db:types` (ver `scripts/gen-db-types.mjs`) cada vez
+  que cambia el esquema en Supabase; el archivo arranca con un banner de
+  "no editar a mano" que el script vuelve a escribir en cada corrida.
+  Crece junto con la base — eso es normal y esperado, no un
   problema de mantenibilidad (es un artefacto, no código que alguien lee
   para razonar sobre lógica).
 - `index.ts` es la capa curada a mano: alias de dominio sobre los tipos
