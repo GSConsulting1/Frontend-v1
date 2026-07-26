@@ -5,7 +5,10 @@
 // redirige a /ordenes/{id}/editar.
 
 import { OrdenForm } from "@/components/ordenes/orden-form";
-import { getClientesParaSelect, getProfesionalesParaSelect } from "@/lib/data/ordenes";
+import {
+  getClientesParaSelect,
+  getProfesionalesParaSelect,
+} from "@/lib/data/ordenes";
 import { getCatalogosInfoOrden } from "@/lib/data/info-orden";
 
 export default async function NuevaOrdenPage() {

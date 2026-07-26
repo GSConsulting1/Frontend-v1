@@ -21,8 +21,8 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import {
-  ESTADO_ORDEN_OPCIONES,
-  RESPONSABLE_OS_OPCIONES,
+  ESTADOS_ORDEN,
+  RESPONSABLES_OS,
   TIPO_SERVICIO_OPCIONES,
   type OrdenServicioFormValues,
 } from "@/lib/validations/orden.schema";
@@ -100,18 +100,18 @@ export function OrdenCampos({
               value={field.value ?? null}
               onValueChange={(v: string | null) =>
                 field.onChange(
-                  v as (typeof ESTADO_ORDEN_OPCIONES)[number] | undefined,
+                  v as (typeof ESTADOS_ORDEN)[number] | undefined,
                 )
               }
-              items={ESTADO_ORDEN_OPCIONES.map((o) => ({ label: o, value: o }))}
+              items={ESTADOS_ORDEN.map((e) => ({ label: e, value: e }))}
             >
               <SelectTrigger id="estado" className="w-full">
                 <SelectValue placeholder="Selecciona un estado" />
               </SelectTrigger>
               <SelectContent>
-                {ESTADO_ORDEN_OPCIONES.map((o) => (
-                  <SelectItem key={o} value={o}>
-                    {o}
+                {ESTADOS_ORDEN.map((e) => (
+                  <SelectItem key={e} value={e}>
+                    {e}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -200,6 +200,7 @@ export function OrdenCampos({
           id="cronograma"
           type="number"
           step="1"
+          min="0"
           {...register("cronograma", {
             setValueAs: (v) =>
               v === "" || v === undefined ? undefined : Number(v),
@@ -252,18 +253,18 @@ export function OrdenCampos({
               value={field.value ?? null}
               onValueChange={(v: string | null) =>
                 field.onChange(
-                  v as (typeof RESPONSABLE_OS_OPCIONES)[number] | undefined,
+                  v as (typeof RESPONSABLES_OS)[number] | undefined,
                 )
               }
-              items={RESPONSABLE_OS_OPCIONES.map((o) => ({ label: o, value: o }))}
+              items={RESPONSABLES_OS.map((r) => ({ label: r, value: r }))}
             >
               <SelectTrigger id="responsable_os" className="w-full">
                 <SelectValue placeholder="Selecciona un responsable" />
               </SelectTrigger>
               <SelectContent>
-                {RESPONSABLE_OS_OPCIONES.map((o) => (
-                  <SelectItem key={o} value={o}>
-                    {o}
+                {RESPONSABLES_OS.map((r) => (
+                  <SelectItem key={r} value={r}>
+                    {r}
                   </SelectItem>
                 ))}
               </SelectContent>

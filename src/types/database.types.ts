@@ -24,6 +24,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      acta_servicio: {
+        Row: {
+          fecha_acta: string | null
+          hora_acta: string | null
+          orden_id: number
+          profesional_acta_id: number | null
+        }
+        Insert: {
+          fecha_acta?: string | null
+          hora_acta?: string | null
+          orden_id: number
+          profesional_acta_id?: number | null
+        }
+        Update: {
+          fecha_acta?: string | null
+          hora_acta?: string | null
+          orden_id?: number
+          profesional_acta_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "acta_servicio_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: true
+            referencedRelation: "ordenes_servicio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "acta_servicio_profesional_acta_id_fkey"
+            columns: ["profesional_acta_id"]
+            isOneToOne: false
+            referencedRelation: "profesionales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       checklist_proceso: {
         Row: {
           cumplio_entrega_fecha: boolean | null
@@ -126,6 +162,47 @@ export type Database = {
         }
         Relationships: []
       }
+      cuenta_cobro: {
+        Row: {
+          corte_pago: string | null
+          documento_soporte: string | null
+          fecha_corte: string | null
+          fecha_pago: string | null
+          fecha_radicacion: string | null
+          orden_id: number
+          radicacion_cuenta: boolean | null
+          valor_cuenta_cobro: number | null
+        }
+        Insert: {
+          corte_pago?: string | null
+          documento_soporte?: string | null
+          fecha_corte?: string | null
+          fecha_pago?: string | null
+          fecha_radicacion?: string | null
+          orden_id: number
+          radicacion_cuenta?: boolean | null
+          valor_cuenta_cobro?: number | null
+        }
+        Update: {
+          corte_pago?: string | null
+          documento_soporte?: string | null
+          fecha_corte?: string | null
+          fecha_pago?: string | null
+          fecha_radicacion?: string | null
+          orden_id?: number
+          radicacion_cuenta?: boolean | null
+          valor_cuenta_cobro?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cuenta_cobro_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: true
+            referencedRelation: "ordenes_servicio"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       detalle_entrega_profesional: {
         Row: {
           comentarios_valor_acordado: string | null
@@ -214,6 +291,38 @@ export type Database = {
         }
         Relationships: []
       }
+      facturacion: {
+        Row: {
+          alerta_facturacion: string | null
+          estado_facturacion: string | null
+          numero_factura: string | null
+          numero_prefactura: string | null
+          orden_id: number
+        }
+        Insert: {
+          alerta_facturacion?: string | null
+          estado_facturacion?: string | null
+          numero_factura?: string | null
+          numero_prefactura?: string | null
+          orden_id: number
+        }
+        Update: {
+          alerta_facturacion?: string | null
+          estado_facturacion?: string | null
+          numero_factura?: string | null
+          numero_prefactura?: string | null
+          orden_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facturacion_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: true
+            referencedRelation: "ordenes_servicio"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       info_orden_servicio: {
         Row: {
           actividad_reprogramada: boolean | null
@@ -301,6 +410,56 @@ export type Database = {
             columns: ["profesional_id"]
             isOneToOne: false
             referencedRelation: "profesionales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      liquidacion: {
+        Row: {
+          ganancia: number | null
+          gasto_servicio: number | null
+          iva: number | null
+          orden_id: number
+          retencion_fuente: number | null
+          retencion_ica: number | null
+          retencion_iva: number | null
+          total: number | null
+          valor_antes_iva: number | null
+          valor_desplazamiento: number | null
+          valor_total_cotizado: number | null
+        }
+        Insert: {
+          ganancia?: number | null
+          gasto_servicio?: number | null
+          iva?: number | null
+          orden_id: number
+          retencion_fuente?: number | null
+          retencion_ica?: number | null
+          retencion_iva?: number | null
+          total?: number | null
+          valor_antes_iva?: number | null
+          valor_desplazamiento?: number | null
+          valor_total_cotizado?: number | null
+        }
+        Update: {
+          ganancia?: number | null
+          gasto_servicio?: number | null
+          iva?: number | null
+          orden_id?: number
+          retencion_fuente?: number | null
+          retencion_ica?: number | null
+          retencion_iva?: number | null
+          total?: number | null
+          valor_antes_iva?: number | null
+          valor_desplazamiento?: number | null
+          valor_total_cotizado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "liquidacion_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: true
+            referencedRelation: "ordenes_servicio"
             referencedColumns: ["id"]
           },
         ]
@@ -445,6 +604,50 @@ export type Database = {
         }
         Relationships: []
       }
+      radicacion_imagine: {
+        Row: {
+          actualizacion_sipab: string | null
+          estado_imagine: string | null
+          fecha_radicacion_1: string | null
+          fecha_radicacion_2: string | null
+          novedades_1: string | null
+          novedades_2: string | null
+          numero_radicado_1: string | null
+          numero_radicado_2: string | null
+          orden_id: number
+        }
+        Insert: {
+          actualizacion_sipab?: string | null
+          estado_imagine?: string | null
+          fecha_radicacion_1?: string | null
+          fecha_radicacion_2?: string | null
+          novedades_1?: string | null
+          novedades_2?: string | null
+          numero_radicado_1?: string | null
+          numero_radicado_2?: string | null
+          orden_id: number
+        }
+        Update: {
+          actualizacion_sipab?: string | null
+          estado_imagine?: string | null
+          fecha_radicacion_1?: string | null
+          fecha_radicacion_2?: string | null
+          novedades_1?: string | null
+          novedades_2?: string | null
+          numero_radicado_1?: string | null
+          numero_radicado_2?: string | null
+          orden_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "radicacion_imagine_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: true
+            referencedRelation: "ordenes_servicio"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       usuarios: {
         Row: {
           activo: boolean | null
@@ -511,7 +714,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      es_administrador: { Args: never; Returns: boolean }
     }
     Enums: {
       [_ in never]: never

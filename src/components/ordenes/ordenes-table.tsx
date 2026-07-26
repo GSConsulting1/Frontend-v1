@@ -12,7 +12,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Download, ExternalLink, Loader2, Pencil, X } from "lucide-react";
+import { Download, Loader2, MoreHorizontal, Pencil, X } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -22,13 +22,27 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { EstadoBadge } from "@/components/ordenes/estado-badge";
+import { EditableCell } from "@/components/ordenes/editable-cell";
 import { RoleGate } from "@/components/auth/role-gate";
-import { eliminarOrden } from "@/app/ordenes/actions";
+import { eliminarOrden, actualizarCampoOrden } from "@/app/ordenes/actions";
 import { cn } from "@/lib/utils";
-import type { OrdenServicioConRelaciones } from "@/types";
+import {
+  ESTADOS_ORDEN,
+  type EstadoOrden,
+} from "@/lib/validations/orden.schema";
+import type { OrdenServicioConRelaciones, RolUsuario } from "@/types";
 
-const COLUMNAS = 9;
+const COLUMNAS = 8;
+const ROLES_EDITAN_INLINE: RolUsuario[] = ["administrador", "financiero"];
+const OPCIONES_ESTADO = ESTADOS_ORDEN.map((e) => ({ id: e, label: e }));
 
 type OrdenesTableProps = {
   ordenes: OrdenServicioConRelaciones[];
@@ -39,6 +53,7 @@ export function OrdenesTable({ ordenes }: OrdenesTableProps) {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [downloadingIds, setDownloadingIds] = useState<Set<number>>(new Set());
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [editError, setEditError] = useState<string | null>(null);
 
   async function handleDownload(orden: OrdenServicioConRelaciones) {
     setDownloadError(null);
@@ -108,23 +123,23 @@ export function OrdenesTable({ ordenes }: OrdenesTableProps) {
           {downloadError}
         </p>
       )}
+      {editError && (
+        <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {editError}
+        </p>
+      )}
 
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Cliente</TableHead>
+            <TableHead className="whitespace-normal">Cliente</TableHead>
             <TableHead>Número de OS</TableHead>
             <TableHead>Fecha recepción</TableHead>
-            <TableHead>Tipo servicio</TableHead>
+            <TableHead className="whitespace-normal">Tipo servicio</TableHead>
             <TableHead>Estado</TableHead>
-            <TableHead>Horas</TableHead>
-            <TableHead>Archivo</TableHead>
-            <TableHead className="text-right">Editar</TableHead>
-            <TableHead className="text-right">PDF</TableHead>
-
-            <RoleGate allow={["administrador"]}>
-              <TableHead className="text-right">Eliminar</TableHead>
-            </RoleGate>
+            <TableHead>Cronograma</TableHead>
+            <TableHead>Secuencia</TableHead>
+            <TableHead className="text-right">Acciones</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -148,74 +163,107 @@ export function OrdenesTable({ ordenes }: OrdenesTableProps) {
                 key={orden.id}
                 className={cn(isDeleting && "opacity-50")}
               >
-                <TableCell className="font-medium">
+                <TableCell className="whitespace-normal font-medium">
                   {orden.cliente?.nombre_cliente ?? "—"}
                 </TableCell>
                 <TableCell>{orden.numero_os_cliente ?? "—"}</TableCell>
                 <TableCell>{orden.fecha_recepcion_os ?? "—"}</TableCell>
-                <TableCell>{orden.tipo_servicio ?? "—"}</TableCell>
+                <TableCell className="whitespace-normal">
+                  {orden.tipo_servicio ?? "—"}
+                </TableCell>
                 <TableCell>
-                  <EstadoBadge estado={orden.estado} />
-                </TableCell>
-                <TableCell>{orden.horas_cargadas ?? "—"}</TableCell>
-                <TableCell>
-                  {orden.link_archivo_orden ? (
-                    <a
-                      href={orden.link_archivo_orden}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-primary hover:underline"
-                      aria-label="Abrir archivo de la orden"
-                    >
-                      <ExternalLink className="size-4" />
-                      Ver
-                    </a>
-                  ) : (
-                    "—"
-                  )}
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label="Editar orden"
-                    nativeButton={false}
-                    render={
-                      <Link href={`/ordenes/${orden.id}/editar`}>
-                        <Pencil className="size-4" />
-                      </Link>
-                    }
-                  />
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    disabled={isDownloading}
-                    aria-label="Descargar PDF de la orden"
-                    onClick={() => handleDownload(orden)}
+                  <RoleGate
+                    allow={ROLES_EDITAN_INLINE}
+                    fallback={<EstadoBadge estado={orden.estado} />}
                   >
-                    {isDownloading ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                      <Download className="size-4" />
-                    )}
-                  </Button>
+                    <EditableCell
+                      type="select"
+                      value={orden.estado}
+                      options={OPCIONES_ESTADO}
+                      renderValue={() => <EstadoBadge estado={orden.estado} />}
+                      onSave={(value) =>
+                        actualizarCampoOrden(orden.id, {
+                          estado: value as EstadoOrden | null,
+                        })
+                      }
+                      onError={setEditError}
+                    />
+                  </RoleGate>
+                </TableCell>
+                <TableCell>
+                  <RoleGate
+                    allow={ROLES_EDITAN_INLINE}
+                    fallback={<span>{orden.cronograma ?? "—"}</span>}
+                  >
+                    <EditableCell
+                      type="number"
+                      value={orden.cronograma}
+                      onSave={(value) =>
+                        actualizarCampoOrden(orden.id, { cronograma: value })
+                      }
+                      onError={setEditError}
+                    />
+                  </RoleGate>
+                </TableCell>
+                <TableCell>
+                  <RoleGate
+                    allow={ROLES_EDITAN_INLINE}
+                    fallback={<span>{orden.secuencia ?? "—"}</span>}
+                  >
+                    <EditableCell
+                      type="text"
+                      value={orden.secuencia}
+                      onSave={(value) =>
+                        actualizarCampoOrden(orden.id, { secuencia: value })
+                      }
+                      onError={setEditError}
+                    />
+                  </RoleGate>
                 </TableCell>
                 <TableCell className="text-right">
-                  <RoleGate allow={["administrador"]}>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      disabled={isDeleting}
-                      aria-label="Eliminar orden"
-                      onClick={() => handleDelete(orden)}
-                    >
-                      <X className="size-4" />
-                    </Button>
-                  </RoleGate>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      render={
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label="Acciones de la orden"
+                        >
+                          <MoreHorizontal className="size-4" />
+                        </Button>
+                      }
+                    />
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        render={<Link href={`/ordenes/${orden.id}/editar`} />}
+                      >
+                        <Pencil className="size-4" />
+                        Editar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        disabled={isDownloading}
+                        onClick={() => handleDownload(orden)}
+                      >
+                        {isDownloading ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                          <Download className="size-4" />
+                        )}
+                        PDF
+                      </DropdownMenuItem>
+                      <RoleGate allow={["administrador"]}>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          variant="destructive"
+                          disabled={isDeleting}
+                          onClick={() => handleDelete(orden)}
+                        >
+                          <X className="size-4" />
+                          Eliminar
+                        </DropdownMenuItem>
+                      </RoleGate>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </TableCell>
               </TableRow>
             );
