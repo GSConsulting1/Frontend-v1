@@ -12,9 +12,11 @@ export type OrdenServicio =
   Database["public"]["Tables"]["ordenes_servicio"]["Row"];
 
 // Tipo "enriquecido" para el listado, con las relaciones ya resueltas (join
-// con clientes vía la query de Supabase). `estado` ya viene como columna de
-// texto plana en OrdenServicio — la tabla catálogo `estados_orden` se
-// eliminó, ver ESTADOS_ORDEN en lib/validations/orden.schema.ts.
+// con clientes vía la query de Supabase). `ordenes_servicio.estado` es un
+// string con CHECK (no hay tabla `estados_orden` — ver
+// ESTADO_ORDEN_OPCIONES en lib/validations/orden.schema.ts), así que ya
+// viene resuelto en OrdenServicio: acá solo se agrega el cliente, que sí es
+// una FK real.
 export type OrdenServicioConRelaciones = OrdenServicio & {
   cliente: Pick<Cliente, "id" | "nombre_cliente"> | null;
 };
@@ -41,11 +43,11 @@ export type ValorHoraOrden =
   Database["public"]["Tables"]["valor_hora_orden"]["Row"];
 // `usuarios.rol` es un string sin enum en la BD (solo tiene un CHECK), así
 // que este union lo angosta a mano — valores tomados del CHECK real de
-// supabase/002_usuarios_roles_rls.sql. Si Persona A agrega/renombra un rol
-// ahí, hay que reflejarlo acá también.
+// supabase/002_usuarios_roles_rls.sql. Si se agrega/renombra un rol ahí, hay
+// que reflejarlo acá también.
 export type RolUsuario =
   | "administrador"
-  | "programadoras"
+  | "programador"
   | "profesional"
   | "lectura"
   | "financiero";

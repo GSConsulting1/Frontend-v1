@@ -23,6 +23,9 @@ src/
 │   └── utils.ts        # Helpers genéricos, sin lógica de negocio
 ├── app/               # Rutas (file-based routing de Next.js App Router)
 │   ├── login/page.tsx  # Login, sin sidebar (ver AppSidebar)
+│   ├── recuperar-password/page.tsx   # "Olvidé mi contraseña", sin sidebar
+│   ├── actualizar-password/page.tsx  # Landing del link de recuperación, sin sidebar
+│   ├── cuenta/page.tsx  # Cambio de contraseña logueado, CON sidebar
 │   ├── api/<entidad>/[id]/pdf/route.tsx  # Excepción: genera PDF, ver abajo
 │   └── <entidad>/
 │       ├── page.tsx        # Server Component: lee datos, renderiza
@@ -41,9 +44,10 @@ src/
 
 ### `types/`
 - `database.types.ts` es **generado**, nunca se edita a mano. Se
-  regenera con `supabase gen types typescript --project-id <id> >
-  src/types/database.types.ts` cada vez que cambia el esquema en
-  Supabase. Crece junto con la base — eso es normal y esperado, no un
+  regenera con `pnpm db:types` (ver `scripts/gen-db-types.mjs`) cada vez
+  que cambia el esquema en Supabase; el archivo arranca con un banner de
+  "no editar a mano" que el script vuelve a escribir en cada corrida.
+  Crece junto con la base — eso es normal y esperado, no un
   problema de mantenibilidad (es un artefacto, no código que alguien lee
   para razonar sobre lógica).
 - `index.ts` es la capa curada a mano: alias de dominio sobre los tipos
@@ -170,7 +174,13 @@ src/
   `page.tsx` lo usa como primer hijo de su contenedor).
 - `nav-config.ts` es la única fuente de verdad de los links del sidebar.
   Al agregar una pantalla nueva, se agrega su entrada acá (no se edita
-  `app-sidebar.tsx` a mano por cada ruta).
+  `app-sidebar.tsx` a mano por cada ruta). `NavItem.roles?: RolUsuario[]`
+  es opcional — si se define, `AppSidebar` (vía `useAuth().perfil`) solo
+  muestra ese link a esos roles; sin `perfil` cargado (sin sesión) el link
+  no se muestra. Primer uso: `/usuarios`, solo visible para
+  `administrador`. Ocultar el link es UX, no seguridad — igual que
+  `RoleGate`, no reemplaza la protección real de la página (ver
+  `components/usuarios/` abajo).
 - No conoce el dominio (nada de "orden", "cliente", Supabase). Si un
   componente de layout necesita datos de negocio, se los pasan por
   props desde `page.tsx`/`layout.tsx`, no hace fetch propio.
@@ -184,8 +194,11 @@ src/
   envuelve cualquier input/select/textarea), `save-button.tsx` (variante
   de `Button` con un anillo animado en el borde mientras `pending` es
   true — pensado para guardados en lote donde no hay una navegación que
-  ya comunique "está cargando") y `checkbox.tsx` (checkbox con label
-  inline).
+  ya comunique "está cargando"), `checkbox.tsx` (checkbox con label
+  inline) y `password-input.tsx` (`Input` + botón con ícono Eye/EyeOff
+  para mostrar/ocultar el valor — promovido acá cuando lo empezaron a
+  necesitar `login-form.tsx`, `cambiar-password-form.tsx` y
+  `actualizar-password-form.tsx`, los tres en `components/auth/`).
 - Si un componente de este folder empieza a necesitar props específicas
   de una entidad (ej. "orden"), es señal de que en realidad pertenece a
   `components/<entidad>/`, no acá.
@@ -216,8 +229,8 @@ src/
 - `auth-provider.tsx`: `AuthProvider` (montado una sola vez en
   `app/layout.tsx`, envolviendo `AppSidebar` + `main`) y el hook
   `useAuth()` (`session`, `perfil` de la tabla `usuarios`, `loading`,
-  `signIn`, `signOut`). Es el único consumidor de
-  `lib/supabase/browser-client.ts`.
+  `signIn`, `signOut`, `updatePassword`, `sendPasswordResetEmail`). Es el
+  único consumidor de `lib/supabase/browser-client.ts`.
 - `role-gate.tsx`: `<RoleGate allow={[...]}>` genérico — oculta
   `children` (muestra `fallback`, `null` por defecto) si `perfil` no
   tiene un rol permitido. Es UX, no seguridad: el dato solo queda
@@ -225,14 +238,42 @@ src/
 - `login-form.tsx`: Client Component con el formulario de `/login`
   (llama a `useAuth().signIn`); `app/login/page.tsx` es el wrapper Server
   Component delgado, mismo patrón que `app/ordenes/nueva/page.tsx`.
-- `AppSidebar` se oculta a sí mismo en `/login` (`usePathname() === "/login"`)
-  para que esa pantalla no tenga el chrome de la app — no hay un layout
-  de ruta aparte para eso todavía.
+- Contraseña — dos flujos separados, ambos vía `useAuth()`, nunca
+  importando `supabaseBrowser` directo desde el form:
+  - **Logueado** (`cambiar-password-form.tsx`, ruta `/cuenta`, CON
+    sidebar): pide la contraseña actual y la valida a mano con `signIn`
+    antes de llamar `updatePassword`, porque `auth.updateUser()` de
+    Supabase no re-pide la contraseña vieja por sí solo.
+  - **Deslogueado** (`recuperar-password-form.tsx` en `/recuperar-password`
+    → email vía `sendPasswordResetEmail` → `actualizar-password-form.tsx`
+    en `/actualizar-password`): el link del correo trae un `code` que
+    `@supabase/ssr` intercambia solo por una sesión de recovery; la
+    pantalla de `/actualizar-password` solo necesita esperar a `session`
+    de `useAuth()`, no parsear la URL. **Requiere agregar
+    `<origin>/actualizar-password` a Authentication > URL Configuration >
+    Redirect URLs en el dashboard de Supabase** (dev y cada dominio de
+    producción) — si falta, Supabase rechaza el `redirectTo` y el link
+    del correo no funciona.
+  - En los dos flujos, tras un `updatePassword` exitoso se llama a
+    `signOut()` (con un `setTimeout` corto para que se vea el mensaje de
+    éxito) en vez de dejar seguir con la sesión actual — el usuario debe
+    volver a loguearse con la contraseña nueva.
+- `AppSidebar` se oculta a sí mismo en `/login`, `/recuperar-password` y
+  `/actualizar-password` (`RUTAS_SIN_SIDEBAR` en `app-sidebar.tsx`) para
+  que esas pantallas no tengan el chrome de la app — no hay un layout de
+  ruta aparte para eso todavía. `/cuenta` sí lleva sidebar (usuario ya
+  logueado), con un ícono de engranaje junto al botón de logout.
 - **Las rutas de `/ordenes/*` siguen sin protección** (no hay redirect a
   `/login` si no hay sesión) — decisión a propósito mientras no existan
   usuarios reales creados en Supabase Auth + su fila en `usuarios`. Para
   activarla: agregar el chequeo de sesión en cada `page.tsx` (o
   centralizarlo en `proxy.ts`, ver esa sección).
+- **`/usuarios` es la excepción**: al ser la pantalla que asigna roles, su
+  `page.tsx` sí bloquea de verdad en servidor (no solo con `RoleGate`) —
+  ver `lib/data/usuarios.ts` (`getPerfilActual()`) y
+  `components/usuarios/` abajo. Es el primer caso de protección real de
+  página del proyecto; si se protege otra ruta, seguir el mismo patrón en
+  vez de inventar uno nuevo.
 
 ### `components/<entidad>/`
 - Componentes que sí conocen el dominio (`ordenes-table.tsx`,
@@ -339,6 +380,24 @@ src/
   redirige — el usuario se queda en la misma página de edición.
   `eliminarOrden` tampoco redirige, solo `revalidatePath` — la dispara
   la tabla.
+
+### `components/usuarios/`
+- `usuarios-table.tsx`: única pantalla de administración de usuarios —
+  lista `nombre_completo`/`email`/`rol` y deja cambiar el rol inline con
+  un `<Select>` por fila (dispara `actualizarRolUsuario` de
+  `app/usuarios/actions.ts` al `onValueChange`, sin botón "Guardar"
+  aparte). Mismo patrón de estado que `ordenes-table.tsx`: un `Set` de
+  ids en "guardando" solo para feedback visual mientras corre el Server
+  Action.
+- `app/usuarios/page.tsx` es la única `page.tsx` del proyecto con
+  protección real en servidor (no solo `RoleGate`): usa
+  `getPerfilActual()` de `lib/data/usuarios.ts` y hace `redirect("/")` si
+  el rol no es `administrador`. En modo mock (`isSupabaseConfigured ===
+  false`) no bloquea nada, porque no hay sesión real que verificar.
+- `lib/data/usuarios.ts` sigue el mismo patrón mock/real que
+  `ordenes.ts`, pero usa `createSupabaseServerClient()` para *todas* sus
+  queries (no el singleton de `lib/supabase/client.ts`) porque `usuarios`
+  tiene RLS — mismo motivo que `ordenes.ts`/`info-orden.ts`.
 
 ## Al agregar una entidad nueva (ej. "clientes" como pantalla propia)
 
