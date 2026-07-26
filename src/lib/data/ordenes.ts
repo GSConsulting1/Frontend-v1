@@ -91,10 +91,7 @@ export async function getOrdenes(
       );
     }
     if (filtros.tipoServicio) {
-      const needle = filtros.tipoServicio.toLowerCase();
-      ordenes = ordenes.filter((o) =>
-        (o.tipo_servicio ?? "").toLowerCase().includes(needle),
-      );
+      ordenes = ordenes.filter((o) => o.tipo_servicio === filtros.tipoServicio);
     }
     if (filtros.estado) {
       ordenes = ordenes.filter((o) => o.estado === filtros.estado);
@@ -120,9 +117,7 @@ export async function getOrdenes(
   if (filtros.numeroOs) {
     query = query.ilike("numero_os_cliente", `%${filtros.numeroOs}%`);
   }
-  if (filtros.tipoServicio) {
-    query = query.ilike("tipo_servicio", `%${filtros.tipoServicio}%`);
-  }
+  if (filtros.tipoServicio) query = query.eq("tipo_servicio", filtros.tipoServicio);
   if (filtros.estado) query = query.eq("estado", filtros.estado);
   if (filtros.secuencia) {
     query = query.ilike("secuencia", `%${filtros.secuencia}%`);

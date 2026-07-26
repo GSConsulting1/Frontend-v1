@@ -18,7 +18,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ESTADOS_ORDEN } from "@/lib/validations/orden.schema";
+import {
+  ESTADOS_ORDEN,
+  TIPO_SERVICIO_OPCIONES,
+} from "@/lib/validations/orden.schema";
 
 const TODOS = "__todos__";
 
@@ -38,7 +41,7 @@ export function OrdenesFiltros({ clientes }: OrdenesFiltrosProps) {
   );
   const [numeroOs, setNumeroOs] = useState(searchParams.get("numeroOs") ?? "");
   const [tipoServicio, setTipoServicio] = useState(
-    searchParams.get("tipoServicio") ?? "",
+    searchParams.get("tipoServicio") ?? TODOS,
   );
   const [estado, setEstado] = useState(searchParams.get("estado") ?? TODOS);
   const [secuencia, setSecuencia] = useState(
@@ -50,7 +53,7 @@ export function OrdenesFiltros({ clientes }: OrdenesFiltrosProps) {
     const params = new URLSearchParams();
     if (clienteId !== TODOS) params.set("clienteId", clienteId);
     if (numeroOs.trim()) params.set("numeroOs", numeroOs.trim());
-    if (tipoServicio.trim()) params.set("tipoServicio", tipoServicio.trim());
+    if (tipoServicio !== TODOS) params.set("tipoServicio", tipoServicio);
     if (estado !== TODOS) params.set("estado", estado);
     if (secuencia.trim()) params.set("secuencia", secuencia.trim());
 
@@ -61,7 +64,7 @@ export function OrdenesFiltros({ clientes }: OrdenesFiltrosProps) {
   function limpiarFiltros() {
     setClienteId(TODOS);
     setNumeroOs("");
-    setTipoServicio("");
+    setTipoServicio(TODOS);
     setEstado(TODOS);
     setSecuencia("");
     router.push(pathname);
@@ -108,12 +111,26 @@ export function OrdenesFiltros({ clientes }: OrdenesFiltrosProps) {
       </FormField>
 
       <FormField label="Tipo de servicio" htmlFor="filtro-tipo-servicio">
-        <Input
-          id="filtro-tipo-servicio"
+        <Select
           value={tipoServicio}
-          onChange={(e) => setTipoServicio(e.target.value)}
-          placeholder="Buscar por tipo de servicio"
-        />
+          onValueChange={(v: string | null) => setTipoServicio(v ?? TODOS)}
+          items={[
+            { label: "Todos", value: TODOS },
+            ...TIPO_SERVICIO_OPCIONES.map((t) => ({ label: t, value: t })),
+          ]}
+        >
+          <SelectTrigger id="filtro-tipo-servicio" className="w-full">
+            <SelectValue placeholder="Todos" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={TODOS}>Todos</SelectItem>
+            {TIPO_SERVICIO_OPCIONES.map((t) => (
+              <SelectItem key={t} value={t}>
+                {t}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </FormField>
 
       <FormField label="Estado" htmlFor="filtro-estado">
