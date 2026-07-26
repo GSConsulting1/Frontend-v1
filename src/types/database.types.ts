@@ -169,6 +169,7 @@ export type Database = {
           fecha_corte: string | null
           fecha_pago: string | null
           fecha_radicacion: string | null
+          numero_radicado: string | null
           orden_id: number
           radicacion_cuenta: boolean | null
           valor_cuenta_cobro: number | null
@@ -179,6 +180,7 @@ export type Database = {
           fecha_corte?: string | null
           fecha_pago?: string | null
           fecha_radicacion?: string | null
+          numero_radicado?: string | null
           orden_id: number
           radicacion_cuenta?: boolean | null
           valor_cuenta_cobro?: number | null
@@ -189,6 +191,7 @@ export type Database = {
           fecha_corte?: string | null
           fecha_pago?: string | null
           fecha_radicacion?: string | null
+          numero_radicado?: string | null
           orden_id?: number
           radicacion_cuenta?: boolean | null
           valor_cuenta_cobro?: number | null

@@ -286,6 +286,7 @@ function normalizarCuentaCobro(ordenId: number, input: CuentaCobroFormValues) {
     orden_id: ordenId,
     radicacion_cuenta: input.radicacion_cuenta ?? null,
     fecha_radicacion: orNull(input.fecha_radicacion),
+    numero_radicado: orNull(input.numero_radicado),
     fecha_corte: orNull(input.fecha_corte),
     corte_pago: orNull(input.corte_pago),
     fecha_pago: orNull(input.fecha_pago),
