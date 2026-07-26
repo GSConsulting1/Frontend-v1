@@ -32,6 +32,13 @@ export const ESTADOS_ORDEN = [
   "Facturada",
 ] as const;
 
+export const TIPO_SERVICIO_OPCIONES = [
+  "Asesoría",
+  "Informe técnico",
+  "Capacitación",
+  "N/A",
+] as const;
+
 export const RESPONSABLES_OS = [
   "Yulieth Amell",
   "Bibiana Sarmiento",
@@ -50,18 +57,25 @@ export const ordenServicioSchema = z.object({
   fecha_recepcion_os: z.string().optional(),
   nombre_empresa_usuaria: z.string().optional(),
   nit_empresa_usuaria: z.string().optional(),
+  // `cronograma` es numeric en la base real (no una fecha) — ver
+  // database.types.ts.
   cronograma: z.number().nonnegative("Debe ser un número positivo").optional(),
   secuencia: z.string().optional(),
   nombre_servicio: z.string().trim().min(1, "Describe el servicio"),
   horas_cargadas: z.number().nonnegative("Debe ser un número positivo").optional(),
-  tipo_servicio: z.string().optional(),
+  tipo_servicio: z.enum(TIPO_SERVICIO_OPCIONES).optional(),
   fecha_sipab: z.string().optional(),
   // Sin CHECK en la DB (a diferencia de estado/responsable_os arriba): texto
   // libre a propósito, para asesores externos que no están en `profesionales`.
   asesor_gestion_riesgos: z.string().optional(),
   observaciones_iniciales: z.string().optional(),
-  tarifa_valor_transporte: z.number().nonnegative("Debe ser un número positivo").optional(),
+  // `tarifa_valor_transporte` es character varying en la base real (no
+  // numeric) — se guarda tal cual la escribe quien carga la orden.
+  tarifa_valor_transporte: z.string().optional(),
   responsable_os: z.enum(RESPONSABLES_OS).optional(),
+  // Contraparte interna de observaciones_iniciales (que son del cliente):
+  // lo que anota el responsable SEC de GS sobre la orden.
+  observaciones_responsable_sec: z.string().optional(),
   link_archivo_orden: z
     .union([z.literal(""), z.string().trim().url("Debe ser un link válido (http/https)")])
     .optional(),

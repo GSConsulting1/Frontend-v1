@@ -34,6 +34,10 @@ export function AppSidebar() {
 
   if (RUTAS_SIN_SIDEBAR.includes(pathname)) return null;
 
+  const items = NAV_ITEMS.filter(
+    (item) => !item.roles || (perfil && item.roles.includes(perfil.rol)),
+  );
+
   return (
     <aside
       suppressHydrationWarning
@@ -63,7 +67,7 @@ export function AppSidebar() {
         </div>
 
         <nav className="flex flex-1 flex-col gap-0.5 px-3 py-2">
-          {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+          {items.map(({ href, label, icon: Icon }) => {
             const isActive =
               href === "/" ? pathname === "/" : pathname.startsWith(href);
 

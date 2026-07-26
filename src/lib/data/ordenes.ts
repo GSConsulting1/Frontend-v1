@@ -34,7 +34,7 @@ export type OrdenesFiltros = {
 function normalizarInput(input: OrdenServicioFormValues) {
   return {
     cliente_id: input.cliente_id,
-    estado: input.estado ?? null,
+    estado: orNull(input.estado),
     numero_os_cliente: orNull(input.numero_os_cliente),
     fecha_recepcion_os: orNull(input.fecha_recepcion_os),
     nombre_empresa_usuaria: orNull(input.nombre_empresa_usuaria),
@@ -47,14 +47,9 @@ function normalizarInput(input: OrdenServicioFormValues) {
     fecha_sipab: orNull(input.fecha_sipab),
     asesor_gestion_riesgos: orNull(input.asesor_gestion_riesgos),
     observaciones_iniciales: orNull(input.observaciones_iniciales),
-    // Columna numeric en la DB, tipada como string por el generador de
-    // Supabase (ver src/types/database.types.ts) — se convierte acá, en el
-    // único borde entre el form (number) y Supabase.
-    tarifa_valor_transporte:
-      input.tarifa_valor_transporte != null
-        ? String(input.tarifa_valor_transporte)
-        : null,
-    responsable_os: input.responsable_os ?? null,
+    tarifa_valor_transporte: orNull(input.tarifa_valor_transporte),
+    responsable_os: orNull(input.responsable_os),
+    observaciones_responsable_sec: orNull(input.observaciones_responsable_sec),
     link_archivo_orden: orNull(input.link_archivo_orden),
   };
 }
@@ -165,10 +160,6 @@ export async function createOrdenRecord(input: OrdenServicioFormValues) {
       id_unico: `OS-MOCK-${nextId}`,
       fecha_creacion: now,
       fecha_actualizacion: now,
-      // Columnas en migración (ver structure.md / plan_mvp): Persona A
-      // todavía no consolidó tipo_servicio con estas dos, el mock no las usa.
-      tipo_servicio_id: null,
-      tipo_servicio_nuevo: null,
     });
     return nextId;
   }

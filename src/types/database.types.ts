@@ -1,3 +1,13 @@
+// ⚠️ ARCHIVO AUTOGENERADO — NO EDITAR A MANO ⚠️
+//
+// Se regenera completo con `pnpm db:types` (ver scripts/gen-db-types.mjs) a
+// partir del esquema de Supabase: cualquier cambio hecho acá se pierde en la
+// siguiente corrida.
+//
+// ¿Cambió una columna en la DB? Corré `pnpm db:types` y ajustá los alias de
+// dominio de src/types/index.ts, que es la capa curada a mano desde la que
+// importa el resto de la app (ver structure.md > "types/").
+
 export type Json =
   | string
   | number
@@ -503,12 +513,11 @@ export type Database = {
           nombre_servicio: string | null
           numero_os_cliente: string | null
           observaciones_iniciales: string | null
+          observaciones_responsable_sec: string | null
           responsable_os: string | null
           secuencia: string | null
           tarifa_valor_transporte: string | null
           tipo_servicio: string | null
-          tipo_servicio_id: number | null
-          tipo_servicio_nuevo: string | null
         }
         Insert: {
           asesor_gestion_riesgos?: string | null
@@ -528,12 +537,11 @@ export type Database = {
           nombre_servicio?: string | null
           numero_os_cliente?: string | null
           observaciones_iniciales?: string | null
+          observaciones_responsable_sec?: string | null
           responsable_os?: string | null
           secuencia?: string | null
           tarifa_valor_transporte?: string | null
           tipo_servicio?: string | null
-          tipo_servicio_id?: number | null
-          tipo_servicio_nuevo?: string | null
         }
         Update: {
           asesor_gestion_riesgos?: string | null
@@ -553,12 +561,11 @@ export type Database = {
           nombre_servicio?: string | null
           numero_os_cliente?: string | null
           observaciones_iniciales?: string | null
+          observaciones_responsable_sec?: string | null
           responsable_os?: string | null
           secuencia?: string | null
           tarifa_valor_transporte?: string | null
           tipo_servicio?: string | null
-          tipo_servicio_id?: number | null
-          tipo_servicio_nuevo?: string | null
         }
         Relationships: [
           {
