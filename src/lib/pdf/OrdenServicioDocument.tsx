@@ -2,13 +2,17 @@
 // Consumido por app/api/ordenes/[id]/pdf/route.tsx, que arma OrdenServicioData
 // a partir de Supabase y llama a renderToBuffer(<OrdenServicioDocument data={...} />).
 //
-// Los textos institucionales fijos (plazo de entrega de soportes, correo de
-// radicación, lista de documentos para factura, datos del gerente que firma)
-// no existen en ninguna tabla de la base de datos — son constantes de este
-// archivo (ver GERENTE / CORREO_RADICACION_SOPORTES / DOCUMENTOS_FACTURA más
-// abajo). Reemplazarlas si cambian los datos reales de la empresa.
+// El formato (tabla, colores, banda de encabezado, textos institucionales fijos)
+// replica la plantilla oficial en uso por el área administrativa. Los textos
+// institucionales fijos (saludo, plazo de entrega de soportes, correo de
+// radicación, lista de documentos para factura, datos de quien firma) no
+// existen en ninguna tabla de la base de datos — son constantes de este
+// archivo (ver GERENTE / NOTA_SOPORTES / NOTA_FECHA_PAGO / DOCUMENTOS_FACTURA
+// más abajo). Reemplazarlas si cambian los datos reales de la empresa.
 
-import { Document, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import type { ReactNode } from "react";
+import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { HEADER_BANNER_JPG, LOGO_GS_GROUP_JPG } from "./assets";
 
 export interface OrdenServicioData {
   encabezadoFecha: string;
@@ -22,7 +26,7 @@ export interface OrdenServicioData {
   nombreEmpresaCliente: string;
   nombreActividad: string;
   descripcionActividad: string;
-  numeroHoras: number;
+  numeroHoras: number | null;
   fechaEjecucionInicio: string;
   fechaFinalizacionEjecucion: string;
   direccionEmpresaAVisitar: string;
@@ -37,21 +41,32 @@ export interface OrdenServicioData {
   costoTotal: string;
 }
 
-const MORADO = "#5B2A86";
+const MORADO = "#9E1B7D";
 
 const styles = StyleSheet.create({
   page: {
-    paddingTop: 30,
-    paddingBottom: 40,
+    paddingTop: 0,
+    paddingBottom: 24,
     paddingHorizontal: 40,
-    fontSize: 9,
+    fontSize: 8.5,
     fontFamily: "Helvetica",
     color: "#1a1a1a",
+  },
+  banner: {
+    width: "100%",
+    height: 38,
+    marginBottom: 2,
+  },
+  logo: {
+    position: "absolute",
+    top: 8,
+    left: 40,
+    width: 70,
   },
   encabezadoTablaWrapper: {
     flexDirection: "row",
     justifyContent: "flex-end",
-    marginBottom: 12,
+    marginBottom: 6,
   },
   encabezadoTabla: {
     borderWidth: 1,
@@ -76,89 +91,128 @@ const styles = StyleSheet.create({
     borderColor: "#999",
   },
   titulo: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: 700,
     textAlign: "center",
-    marginBottom: 14,
-    color: MORADO,
+    marginBottom: 8,
+  },
+  encabezadoFila2: {
+    flexDirection: "row",
+    marginBottom: 2,
+  },
+  encabezadoLabel: {
+    fontWeight: 700,
+  },
+  encabezadoValue: {
+    marginLeft: 3,
+  },
+  saludo: {
+    marginTop: 6,
+    marginBottom: 6,
+    lineHeight: 1.3,
+  },
+  tabla: {
+    borderWidth: 1,
+    borderColor: "#999",
   },
   fila: {
     flexDirection: "row",
-    marginBottom: 4,
+    borderBottomWidth: 1,
+    borderColor: "#999",
   },
-  label: {
-    width: 200,
+  filaSinBorde: {
+    flexDirection: "row",
+  },
+  celdaLabel: {
+    width: "42%",
+    padding: 3,
+    fontWeight: 700,
+    color: MORADO,
+    borderRightWidth: 1,
+    borderColor: "#999",
+  },
+  celdaValue: {
+    width: "58%",
+    padding: 3,
+  },
+  celdaNota: {
+    width: "58%",
+    padding: 3,
     fontWeight: 700,
     color: MORADO,
   },
-  value: {
-    flex: 1,
-  },
-  notaItalica: {
-    fontStyle: "italic",
-    marginTop: 10,
-    marginBottom: 6,
-  },
-  nota: {
-    marginBottom: 6,
-  },
-  listaTitulo: {
-    fontWeight: 700,
-    marginTop: 10,
-    marginBottom: 4,
-  },
-  listaItem: {
-    marginBottom: 2,
-    paddingLeft: 10,
-  },
   parrafo: {
-    marginTop: 10,
-    marginBottom: 20,
-    lineHeight: 1.4,
+    marginTop: 6,
+    marginBottom: 10,
+    lineHeight: 1.3,
+  },
+  cordialmente: {
+    marginBottom: 14,
   },
   firmaFila: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 20,
   },
   firmaBloque: {
     width: "45%",
+    alignItems: "center",
   },
   firmaLinea: {
     marginBottom: 2,
+    textAlign: "center",
+  },
+  firmaCajaWrapper: {
+    width: "45%",
   },
   firmaCaja: {
     borderWidth: 1,
     borderColor: "#999",
+    backgroundColor: "#f7f7f7",
     height: 70,
-    marginTop: 4,
-    padding: 4,
-    justifyContent: "flex-end",
+    padding: 6,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  firmaCajaTexto: {
+    textAlign: "center",
+    color: "#666",
   },
 });
 
-// Datos del gerente que firma la orden — no existe tabla para esto en
-// Supabase todavía, es información fija de la empresa.
+// Datos de quien firma la orden como gerente general — no existe tabla para
+// esto en Supabase todavía, es información fija de la empresa.
 const GERENTE = {
-  nombre: "Gestión y Soluciones Corporativas",
-  cedula: "N/A",
-  cargo: "Gerente General",
+  nombre: "Bibiana Andrea Sarmiento Ariza",
+  cedula: "1019032814",
+  cargo: "Gerente general",
 };
 
-const CORREO_RADICACION_SOPORTES = "soportes@gsc.com.co";
+const NOTA_SOPORTES =
+  "Los soportes de las actividades ejecutadas durante la visita deben ser remitidos el mismo día o, a más tardar, al siguiente día calendario al correo: soportesgs25@gmail.com.";
+
+const NOTA_FECHA_PAGO =
+  "45 días calendario a partir de la radicación de la cuenta de cobro. La cuenta de cobro debe ser radicada en el correo finanzas@gsgroupsas.com";
+
+const NOTA_CIERRE_ORDEN =
+  "La fecha de cierre de la orden de servicio corresponde al plazo máximo para la entrega de todos los documentos que sustenten la gestión de la presente orden.";
 
 const DOCUMENTOS_FACTURA = [
-  "Factura electrónica con los requisitos legales vigentes (DIAN).",
-  "Copia de la Orden de Servicio firmada.",
-  "Soportes de ejecución de la actividad (informe, registro fotográfico, listas de asistencia, según aplique).",
-  "Certificación de pago de seguridad social vigente (si aplica).",
+  "Recibido a satisfacción del servicio.",
+  "La presente orden de servicio firmada y en formato PDF.",
+  "Cuenta de cobro en formato PDF y firmada.",
 ];
 
-function FilaLabelValue({ label, value }: { label: string; value: string }) {
+function FilaTabla({
+  label,
+  value,
+}: {
+  label: string;
+  value: ReactNode;
+}) {
   return (
     <View style={styles.fila}>
-      <Text style={styles.label}>{label}</Text>
-      <Text style={styles.value}>{value}</Text>
+      <Text style={styles.celdaLabel}>{label}</Text>
+      <Text style={styles.celdaValue}>{value}</Text>
     </View>
   );
 }
@@ -167,144 +221,166 @@ export function OrdenServicioDocument({ data }: { data: OrdenServicioData }) {
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <View style={styles.encabezadoTablaWrapper}>
-          <View style={styles.encabezadoTabla}>
-            <View style={styles.encabezadoFila}>
-              <Text style={styles.encabezadoCeldaLabel}>FECHA</Text>
-              <Text style={styles.encabezadoCeldaLabel}>CÓDIGO</Text>
-              <Text
-                style={[styles.encabezadoCeldaLabel, { borderRightWidth: 0 }]}
-              >
-                VERSIÓN
-              </Text>
-            </View>
-            <View style={styles.encabezadoFila}>
-              <Text style={styles.encabezadoCeldaValue}>
-                {data.encabezadoFecha}
-              </Text>
-              <Text style={styles.encabezadoCeldaValue}>
-                {data.encabezadoCodigo}
-              </Text>
-              <Text
-                style={[styles.encabezadoCeldaValue, { borderRightWidth: 0 }]}
-              >
-                {data.encabezadoVersion}
-              </Text>
+        {/* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image, no alt prop */}
+        <Image src={HEADER_BANNER_JPG} style={styles.banner} />
+        {/* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image, no alt prop */}
+        <Image src={LOGO_GS_GROUP_JPG} style={styles.logo} />
+
+        <View>
+          <View style={styles.encabezadoTablaWrapper}>
+            <View style={styles.encabezadoTabla}>
+              <View style={styles.encabezadoFila}>
+                <Text style={styles.encabezadoCeldaLabel}>FECHA</Text>
+                <Text style={styles.encabezadoCeldaLabel}>CÓDIGO</Text>
+                <Text
+                  style={[styles.encabezadoCeldaLabel, { borderRightWidth: 0 }]}
+                >
+                  VERSIÓN
+                </Text>
+              </View>
+              <View style={styles.encabezadoFila}>
+                <Text style={styles.encabezadoCeldaValue}>
+                  {data.encabezadoFecha}
+                </Text>
+                <Text style={styles.encabezadoCeldaValue}>
+                  {data.encabezadoCodigo}
+                </Text>
+                <Text
+                  style={[styles.encabezadoCeldaValue, { borderRightWidth: 0 }]}
+                >
+                  {data.encabezadoVersion}
+                </Text>
+              </View>
             </View>
           </View>
-        </View>
 
-        <Text style={styles.titulo}>ORDEN DE SERVICIO</Text>
+          <Text style={styles.titulo}>Orden de servicio</Text>
 
-        <FilaLabelValue label="FECHA DE EMISIÓN" value={data.fechaEmision} />
-        <FilaLabelValue
-          label="Apreciado profesional"
-          value={data.profesionalNombre}
-        />
-        <FilaLabelValue
-          label="Identificado con cédula de ciudadanía"
-          value={data.profesionalCedula}
-        />
-        <FilaLabelValue label="Ciudad" value={data.ciudad} />
-        <FilaLabelValue
-          label="N° DE ORDEN DE SERVICIO"
-          value={data.numeroOrden}
-        />
-        <FilaLabelValue
-          label="NOMBRE DE LA EMPRESA CLIENTE"
-          value={data.nombreEmpresaCliente}
-        />
-        <FilaLabelValue
-          label="NOMBRE DE LA ACTIVIDAD"
-          value={data.nombreActividad}
-        />
-        <FilaLabelValue
-          label="DESCRIPCIÓN DE LA ACTIVIDAD"
-          value={data.descripcionActividad}
-        />
-        <FilaLabelValue
-          label="N° DE HORAS"
-          value={String(data.numeroHoras)}
-        />
-        <FilaLabelValue
-          label="FECHA DE EJECUCIÓN INICIO"
-          value={data.fechaEjecucionInicio}
-        />
-        <FilaLabelValue
-          label="FECHA DE FINALIZACIÓN DE LA EJECUCIÓN"
-          value={data.fechaFinalizacionEjecucion}
-        />
-        <FilaLabelValue
-          label="DIRECCIÓN EMPRESA A VISITAR"
-          value={data.direccionEmpresaAVisitar}
-        />
-        <FilaLabelValue
-          label="HORA DE INICIO DE LA ACTIVIDAD"
-          value={data.horaInicioActividad}
-        />
-        <FilaLabelValue
-          label="FINALIZACIÓN DE LA ACTIVIDAD"
-          value={data.finalizacionActividad}
-        />
-        <FilaLabelValue
-          label="PERSONA DE CONTACTO EMPRESA CLIENTE"
-          value={data.personaContacto}
-        />
-        <FilaLabelValue
-          label="ENTREGABLE ESTÁNDAR"
-          value={data.entregableEstandar}
-        />
-        <FilaLabelValue
-          label="ENTREGABLES ESPECÍFICOS"
-          value={data.entregablesEspecificos}
-        />
-        <FilaLabelValue
-          label="FECHA DE CIERRE DE LA ORDEN"
-          value={data.fechaCierreOrden}
-        />
-        <FilaLabelValue
-          label="PROFESIONAL QUE EMITE VoBo"
-          value={data.profesionalVoBo}
-        />
-        <FilaLabelValue label="COSTO DE LA HORA" value={data.costoHora} />
-        <FilaLabelValue
-          label="COSTO TOTAL DEL SERVICIO"
-          value={data.costoTotal}
-        />
+          <View style={styles.encabezadoFila2}>
+            <Text style={styles.encabezadoLabel}>Fecha de emisión:</Text>
+            <Text style={styles.encabezadoValue}>{data.fechaEmision}</Text>
+          </View>
+          <View style={styles.encabezadoFila2}>
+            <Text style={styles.encabezadoLabel}>Apreciado profesional:</Text>
+            <Text style={styles.encabezadoValue}>{data.profesionalNombre}</Text>
+          </View>
+          <View style={styles.encabezadoFila2}>
+            <Text style={styles.encabezadoLabel}>
+              Identificado con cédula de ciudadanía:
+            </Text>
+            <Text style={styles.encabezadoValue}>{data.profesionalCedula}</Text>
+          </View>
+          <View style={styles.encabezadoFila2}>
+            <Text style={styles.encabezadoLabel}>Ciudad:</Text>
+            <Text style={styles.encabezadoValue}>{data.ciudad}</Text>
+          </View>
 
-        <Text style={styles.notaItalica}>
-          Nota: el plazo máximo para la entrega de los soportes de ejecución
-          de la actividad es de tres (3) días hábiles contados a partir de la
-          fecha de finalización de la ejecución.
-        </Text>
-
-        <Text style={styles.nota}>
-          Los soportes deben enviarse al correo: {CORREO_RADICACION_SOPORTES}
-        </Text>
-
-        <Text style={styles.listaTitulo}>
-          Documentos para la radicación de la factura:
-        </Text>
-        {DOCUMENTOS_FACTURA.map((doc, i) => (
-          <Text key={i} style={styles.listaItem}>
-            {i + 1}. {doc}
+          <Text style={styles.saludo}>
+            Reciba un cordial saludo. En el presente documento encontrará los
+            detalles de la actividad a realizar. Si presenta alguna inquietud
+            o novedad, agradecemos que nos sea informado.
           </Text>
-        ))}
 
-        <Text style={styles.parrafo}>
-          Se confirma la presente Orden de Servicio, emitida en {data.ciudad}{" "}
-          en la fecha indicada.
-        </Text>
-
-        <View style={styles.firmaFila}>
-          <View style={styles.firmaBloque}>
-            <Text style={styles.firmaLinea}>{GERENTE.nombre}</Text>
-            <Text style={styles.firmaLinea}>C.C. {GERENTE.cedula}</Text>
-            <Text style={styles.firmaLinea}>{GERENTE.cargo}</Text>
+          <View style={styles.tabla}>
+            <FilaTabla
+              label="N.° de orden de servicio:"
+              value={data.numeroOrden}
+            />
+            <FilaTabla
+              label="Nombre de la empresa cliente:"
+              value={data.nombreEmpresaCliente}
+            />
+            <FilaTabla
+              label="Nombre de la actividad:"
+              value={data.nombreActividad}
+            />
+            <FilaTabla
+              label="Descripción de la actividad:"
+              value={data.descripcionActividad}
+            />
+            <FilaTabla
+              label="N.° de horas:"
+              value={data.numeroHoras != null ? String(data.numeroHoras) : ""}
+            />
+            <FilaTabla
+              label="Fecha de inicio de ejecución:"
+              value={data.fechaEjecucionInicio}
+            />
+            <FilaTabla
+              label="Fecha de finalización de ejecución:"
+              value={data.fechaFinalizacionEjecucion}
+            />
+            <FilaTabla label="Dirección:" value={data.direccionEmpresaAVisitar} />
+            <FilaTabla label="Hora de inicio:" value={data.horaInicioActividad} />
+            <FilaTabla
+              label="Hora de finalización:"
+              value={data.finalizacionActividad}
+            />
+            <FilaTabla
+              label="Persona de contacto de la empresa cliente:"
+              value={data.personaContacto}
+            />
+            <FilaTabla
+              label="Entregable estándar:"
+              value={data.entregableEstandar}
+            />
+            <FilaTabla
+              label="Entregables específicos:"
+              value={data.entregablesEspecificos}
+            />
+            <FilaTabla
+              label="Fecha máxima de entrega:"
+              value={data.fechaCierreOrden}
+            />
+            <View style={styles.fila}>
+              <Text style={styles.celdaLabel}></Text>
+              <Text style={styles.celdaNota}>{NOTA_CIERRE_ORDEN}</Text>
+            </View>
+            <FilaTabla
+              label="Profesional que emite VoBo para facturación:"
+              value={data.profesionalVoBo}
+            />
+            <FilaTabla label="Costo de la hora:" value={data.costoHora} />
+            <FilaTabla
+              label="Costo total del servicio:"
+              value={data.costoTotal}
+            />
+            <FilaTabla label="Nota:" value={NOTA_SOPORTES} />
+            <FilaTabla label="Fecha de pago:" value={NOTA_FECHA_PAGO} />
+            <View style={styles.filaSinBorde}>
+              <Text style={styles.celdaLabel}>
+                Documentos para la radicación de la factura:
+              </Text>
+              <View style={styles.celdaValue}>
+                {DOCUMENTOS_FACTURA.map((doc, i) => (
+                  <Text key={i}>
+                    {i + 1}. {doc}
+                  </Text>
+                ))}
+              </View>
+            </View>
           </View>
-          <View style={styles.firmaBloque}>
-            <View style={styles.firmaCaja}>
-              <Text>Firma Confirmación de aceptación del profesional</Text>
+
+          <Text style={styles.parrafo}>
+            Agradecemos confirmar la aceptación de la orden de servicio
+            mediante correo confirmatorio. La presente orden de servicio es
+            emitida desde la ciudad de Bogotá.
+          </Text>
+
+          <Text style={styles.cordialmente}>Cordialmente,</Text>
+
+          <View style={styles.firmaFila}>
+            <View style={styles.firmaBloque}>
+              <Text style={styles.firmaLinea}>{GERENTE.nombre}</Text>
+              <Text style={styles.firmaLinea}>C. C. {GERENTE.cedula}</Text>
+              <Text style={styles.firmaLinea}>{GERENTE.cargo}</Text>
+            </View>
+            <View style={styles.firmaCajaWrapper}>
+              <View style={styles.firmaCaja}>
+                <Text style={styles.firmaCajaTexto}>
+                  Firma de confirmación de aceptación del profesional
+                </Text>
+              </View>
             </View>
           </View>
         </View>

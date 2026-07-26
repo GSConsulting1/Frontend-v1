@@ -1,5 +1,13 @@
 // "Datos generales": todo lo editable de ordenes_servicio, cliente incluido.
 // Único consumidor: OrdenForm (formulario de página completa).
+//
+// El orden de los campos NO es libre: sigue el orden en que quien carga la
+// orden lee el documento del cliente (datos del cliente -> cronograma ->
+// servicio -> responsables) y fue definido por negocio. Los dos últimos
+// campos (Estado y Link del archivo de la orden) quedan al final a
+// propósito: no vienen del documento del cliente, son de gestión interna.
+// Si hay que mover un campo, moverlo acá; los labels también son los
+// acordados con negocio, no descripciones libres.
 
 "use client";
 
@@ -23,6 +31,7 @@ import { cn } from "@/lib/utils";
 import {
   ESTADOS_ORDEN,
   RESPONSABLES_OS,
+  TIPO_SERVICIO_OPCIONES,
   type OrdenServicioFormValues,
 } from "@/lib/validations/orden.schema";
 
@@ -87,71 +96,16 @@ export function OrdenCampos({
       </FormField>
 
       <FormField
-        label="Estado"
-        htmlFor="estado"
-        error={errors.estado?.message}
+        label="Número de OS del cliente"
+        htmlFor="numero_os_cliente"
       >
-        <Controller
-          name="estado"
-          control={control}
-          render={({ field }) => (
-            <Select
-              value={field.value ?? null}
-              onValueChange={(v: string | null) =>
-                field.onChange(v ?? undefined)
-              }
-              items={ESTADOS_ORDEN.map((e) => ({ label: e, value: e }))}
-            >
-              <SelectTrigger id="estado" className="w-full">
-                <SelectValue placeholder="Selecciona un estado" />
-              </SelectTrigger>
-              <SelectContent>
-                {ESTADOS_ORDEN.map((e) => (
-                  <SelectItem key={e} value={e}>
-                    {e}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        />
-      </FormField>
-
-      <FormField
-        label="Servicio"
-        htmlFor="nombre_servicio"
-        required
-        error={errors.nombre_servicio?.message}
-      >
-        <Input id="nombre_servicio" {...register("nombre_servicio")} />
-      </FormField>
-
-      <FormField label="Tipo de servicio" htmlFor="tipo_servicio">
-        <Input id="tipo_servicio" {...register("tipo_servicio")} />
-      </FormField>
-
-      <FormField label="Número OS del cliente" htmlFor="numero_os_cliente">
         <Input id="numero_os_cliente" {...register("numero_os_cliente")} />
       </FormField>
 
       <FormField
-        label="Horas cargadas"
-        htmlFor="horas_cargadas"
-        error={errors.horas_cargadas?.message}
+        label="Fecha de recepción OS del cliente"
+        htmlFor="fecha_recepcion_os"
       >
-        <Input
-          id="horas_cargadas"
-          type="number"
-          step="0.5"
-          min="0"
-          {...register("horas_cargadas", {
-            setValueAs: (v) =>
-              v === "" || v === undefined ? undefined : Number(v),
-          })}
-        />
-      </FormField>
-
-      <FormField label="Fecha recepción OS" htmlFor="fecha_recepcion_os">
         <Input
           id="fecha_recepcion_os"
           type="date"
@@ -159,8 +113,21 @@ export function OrdenCampos({
         />
       </FormField>
 
-      <FormField label="Fecha SIPAB" htmlFor="fecha_sipab">
-        <Input id="fecha_sipab" type="date" {...register("fecha_sipab")} />
+      <FormField
+        label="Nombre Empresa usuaria del cliente"
+        htmlFor="nombre_empresa_usuaria"
+      >
+        <Input
+          id="nombre_empresa_usuaria"
+          {...register("nombre_empresa_usuaria")}
+        />
+      </FormField>
+
+      <FormField
+        label="Nit Empresa usuaria del cliente"
+        htmlFor="nit_empresa_usuaria"
+      >
+        <Input id="nit_empresa_usuaria" {...register("nit_empresa_usuaria")} />
       </FormField>
 
       <FormField
@@ -184,36 +151,67 @@ export function OrdenCampos({
         <Input id="secuencia" {...register("secuencia")} />
       </FormField>
 
-      <FormField label="Empresa usuaria" htmlFor="nombre_empresa_usuaria">
-        <Input
-          id="nombre_empresa_usuaria"
-          {...register("nombre_empresa_usuaria")}
-        />
-      </FormField>
-
-      <FormField label="NIT empresa usuaria" htmlFor="nit_empresa_usuaria">
-        <Input id="nit_empresa_usuaria" {...register("nit_empresa_usuaria")} />
+      <FormField
+        label="Nombre del servicio"
+        htmlFor="nombre_servicio"
+        required
+        error={errors.nombre_servicio?.message}
+      >
+        <Input id="nombre_servicio" {...register("nombre_servicio")} />
       </FormField>
 
       <FormField
-        label="Tarifa / valor transporte"
-        htmlFor="tarifa_valor_transporte"
-        error={errors.tarifa_valor_transporte?.message}
+        label="Horas cargadas"
+        htmlFor="horas_cargadas"
+        error={errors.horas_cargadas?.message}
       >
         <Input
-          id="tarifa_valor_transporte"
+          id="horas_cargadas"
           type="number"
-          step="0.01"
+          step="0.5"
           min="0"
-          {...register("tarifa_valor_transporte", {
+          {...register("horas_cargadas", {
             setValueAs: (v) =>
               v === "" || v === undefined ? undefined : Number(v),
           })}
         />
       </FormField>
 
+      <FormField label="Tipo Servicio" htmlFor="tipo_servicio">
+        <Controller
+          name="tipo_servicio"
+          control={control}
+          render={({ field }) => (
+            <Select
+              value={field.value ?? null}
+              onValueChange={(v: string | null) =>
+                field.onChange(
+                  v as (typeof TIPO_SERVICIO_OPCIONES)[number] | undefined,
+                )
+              }
+              items={TIPO_SERVICIO_OPCIONES.map((o) => ({ label: o, value: o }))}
+            >
+              <SelectTrigger id="tipo_servicio" className="w-full">
+                <SelectValue placeholder="Selecciona un tipo de servicio" />
+              </SelectTrigger>
+              <SelectContent>
+                {TIPO_SERVICIO_OPCIONES.map((o) => (
+                  <SelectItem key={o} value={o}>
+                    {o}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
+      </FormField>
+
+      <FormField label="Fecha SIPAB" htmlFor="fecha_sipab">
+        <Input id="fecha_sipab" type="date" {...register("fecha_sipab")} />
+      </FormField>
+
       <FormField
-        label="Asesor gestión de riesgos"
+        label="Asesor Gestión Riesgos / Responsable de la OS del cliente"
         htmlFor="asesor_gestion_riesgos"
       >
         <Input
@@ -222,7 +220,30 @@ export function OrdenCampos({
         />
       </FormField>
 
-      <FormField label="Responsable OS/SEC" htmlFor="responsable_os">
+      <div className="sm:col-span-2">
+        <FormField
+          label="Observaciones iniciales del cliente"
+          htmlFor="observaciones_iniciales"
+        >
+          <Textarea
+            id="observaciones_iniciales"
+            {...register("observaciones_iniciales")}
+          />
+        </FormField>
+      </div>
+
+      <FormField
+        label="Tiene Valor Transporte"
+        htmlFor="tarifa_valor_transporte"
+        error={errors.tarifa_valor_transporte?.message}
+      >
+        <Input
+          id="tarifa_valor_transporte"
+          {...register("tarifa_valor_transporte")}
+        />
+      </FormField>
+
+      <FormField label="Responsable SEC para GS" htmlFor="responsable_os">
         <Controller
           name="responsable_os"
           control={control}
@@ -230,7 +251,9 @@ export function OrdenCampos({
             <Select
               value={field.value ?? null}
               onValueChange={(v: string | null) =>
-                field.onChange(v ?? undefined)
+                field.onChange(
+                  v as (typeof RESPONSABLES_OS)[number] | undefined,
+                )
               }
               items={RESPONSABLES_OS.map((r) => ({ label: r, value: r }))}
             >
@@ -251,6 +274,53 @@ export function OrdenCampos({
 
       <div className="sm:col-span-2">
         <FormField
+          label="Observaciones del responsable SEC para GS"
+          htmlFor="observaciones_responsable_sec"
+        >
+          <Textarea
+            id="observaciones_responsable_sec"
+            {...register("observaciones_responsable_sec")}
+          />
+        </FormField>
+      </div>
+
+      {/* Estado y Link del archivo cierran la sección: son gestión interna,
+          no datos que vengan de la OS del cliente (ver comentario de arriba). */}
+      <FormField
+        label="Estado"
+        htmlFor="estado"
+        error={errors.estado?.message}
+      >
+        <Controller
+          name="estado"
+          control={control}
+          render={({ field }) => (
+            <Select
+              value={field.value ?? null}
+              onValueChange={(v: string | null) =>
+                field.onChange(
+                  v as (typeof ESTADOS_ORDEN)[number] | undefined,
+                )
+              }
+              items={ESTADOS_ORDEN.map((e) => ({ label: e, value: e }))}
+            >
+              <SelectTrigger id="estado" className="w-full">
+                <SelectValue placeholder="Selecciona un estado" />
+              </SelectTrigger>
+              <SelectContent>
+                {ESTADOS_ORDEN.map((e) => (
+                  <SelectItem key={e} value={e}>
+                    {e}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
+      </FormField>
+
+      <div className="sm:col-span-2">
+        <FormField
           label="Link del archivo de la orden"
           htmlFor="link_archivo_orden"
           error={errors.link_archivo_orden?.message}
@@ -260,18 +330,6 @@ export function OrdenCampos({
             type="url"
             placeholder="https://drive.google.com/..."
             {...register("link_archivo_orden")}
-          />
-        </FormField>
-      </div>
-
-      <div className="sm:col-span-2">
-        <FormField
-          label="Observaciones iniciales"
-          htmlFor="observaciones_iniciales"
-        >
-          <Textarea
-            id="observaciones_iniciales"
-            {...register("observaciones_iniciales")}
           />
         </FormField>
       </div>
