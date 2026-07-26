@@ -7,22 +7,38 @@
 
 import { PageHeader } from "@/components/layout/page-header";
 import { OrdenesTable } from "@/components/ordenes/ordenes-table";
+import { OrdenesFiltros } from "@/components/ordenes/ordenes-filtros";
 import { NuevaOrdenButton } from "@/components/ordenes/nueva-orden-button";
-import { getOrdenes } from "@/lib/data/ordenes";
+import { getOrdenes, getClientesParaSelect } from "@/lib/data/ordenes";
 
 export default async function OrdenesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ clienteId?: string; desde?: string; hasta?: string }>;
+  searchParams: Promise<{
+    clienteId?: string;
+    desde?: string;
+    hasta?: string;
+    numeroOs?: string;
+    tipoServicio?: string;
+    estado?: string;
+    secuencia?: string;
+  }>;
 }) {
   const params = await searchParams;
   const filtros = {
     clienteId: params.clienteId ? Number(params.clienteId) : undefined,
     desde: params.desde || undefined,
     hasta: params.hasta || undefined,
+    numeroOs: params.numeroOs || undefined,
+    tipoServicio: params.tipoServicio || undefined,
+    estado: params.estado || undefined,
+    secuencia: params.secuencia || undefined,
   };
 
-  const ordenes = await getOrdenes(filtros);
+  const [ordenes, clientes] = await Promise.all([
+    getOrdenes(filtros),
+    getClientesParaSelect(),
+  ]);
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-10">
@@ -31,6 +47,8 @@ export default async function OrdenesPage({
         description="Registra y consulta las OS de cada cliente"
         actions={<NuevaOrdenButton />}
       />
+
+      <OrdenesFiltros clientes={clientes} />
 
       <OrdenesTable ordenes={ordenes} />
     </div>

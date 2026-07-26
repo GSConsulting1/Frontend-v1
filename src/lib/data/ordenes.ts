@@ -27,6 +27,10 @@ export type OrdenesFiltros = {
   clienteId?: number;
   desde?: string;
   hasta?: string;
+  numeroOs?: string;
+  tipoServicio?: string;
+  estado?: string;
+  secuencia?: string;
 };
 
 // Normaliza los campos opcionales de texto ("" -> null) del formulario antes
@@ -80,6 +84,24 @@ export async function getOrdenes(
         (o) => (o.fecha_recepcion_os ?? "") <= filtros.hasta!,
       );
     }
+    if (filtros.numeroOs) {
+      const needle = filtros.numeroOs.toLowerCase();
+      ordenes = ordenes.filter((o) =>
+        (o.numero_os_cliente ?? "").toLowerCase().includes(needle),
+      );
+    }
+    if (filtros.tipoServicio) {
+      ordenes = ordenes.filter((o) => o.tipo_servicio === filtros.tipoServicio);
+    }
+    if (filtros.estado) {
+      ordenes = ordenes.filter((o) => o.estado === filtros.estado);
+    }
+    if (filtros.secuencia) {
+      const needle = filtros.secuencia.toLowerCase();
+      ordenes = ordenes.filter((o) =>
+        (o.secuencia ?? "").toLowerCase().includes(needle),
+      );
+    }
     return ordenes.sort((a, b) => b.id - a.id);
   }
   const supabase = await createSupabaseServerClient();
@@ -92,6 +114,14 @@ export async function getOrdenes(
   if (filtros.clienteId) query = query.eq("cliente_id", filtros.clienteId);
   if (filtros.desde) query = query.gte("fecha_recepcion_os", filtros.desde);
   if (filtros.hasta) query = query.lte("fecha_recepcion_os", filtros.hasta);
+  if (filtros.numeroOs) {
+    query = query.ilike("numero_os_cliente", `%${filtros.numeroOs}%`);
+  }
+  if (filtros.tipoServicio) query = query.eq("tipo_servicio", filtros.tipoServicio);
+  if (filtros.estado) query = query.eq("estado", filtros.estado);
+  if (filtros.secuencia) {
+    query = query.ilike("secuencia", `%${filtros.secuencia}%`);
+  }
 
   const { data, error } = await query;
   if (error) throw new Error(`No se pudieron cargar las órdenes: ${error.message}`);
