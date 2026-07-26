@@ -30,6 +30,28 @@ export async function getUsuarios(): Promise<Usuario[]> {
   return (data ?? []) as unknown as Usuario[];
 }
 
+// Cuenta administradores activos, excluyendo opcionalmente uno (el usuario
+// que se está por cambiar) — usado por actualizarRolUsuario() en
+// app/usuarios/actions.ts para no dejar el sistema sin ningún administrador.
+export async function contarAdministradores(excludeId?: string): Promise<number> {
+  if (!isSupabaseConfigured) {
+    return mockUsuarios.filter(
+      (u) => u.rol === "administrador" && u.id !== excludeId,
+    ).length;
+  }
+  const supabase = await createSupabaseServerClient();
+
+  let query = supabase
+    .from("usuarios")
+    .select("id", { count: "exact", head: true })
+    .eq("rol", "administrador");
+  if (excludeId) query = query.neq("id", excludeId);
+
+  const { count, error } = await query;
+  if (error) throw new Error(`No se pudo verificar administradores: ${error.message}`);
+  return count ?? 0;
+}
+
 export async function updateUsuarioRol(id: string, rol: RolUsuario): Promise<void> {
   if (!isSupabaseConfigured) {
     const index = mockUsuarios.findIndex((u) => u.id === id);

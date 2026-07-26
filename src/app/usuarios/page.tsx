@@ -15,9 +15,12 @@ import { getPerfilActual, getUsuarios } from "@/lib/data/usuarios";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 
 export default async function UsuariosPage() {
+  let currentUserId: string | undefined;
+
   if (isSupabaseConfigured) {
     const perfil = await getPerfilActual();
     if (!perfil || perfil.rol !== "administrador") redirect("/");
+    currentUserId = perfil.id;
   }
 
   const usuarios = await getUsuarios();
@@ -29,7 +32,7 @@ export default async function UsuariosPage() {
         description="Asigna el rol de cada usuario del sistema"
       />
 
-      <UsuariosTable usuarios={usuarios} />
+      <UsuariosTable usuarios={usuarios} currentUserId={currentUserId} />
     </div>
   );
 }
