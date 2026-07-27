@@ -19,7 +19,8 @@ src/
 │   ├── data/          # Capa de acceso a datos (queries reales/mock)
 │   ├── validations/    # Schemas de Zod (forma válida de cada entidad)
 │   ├── pdf/            # Componentes @react-pdf/renderer (documentos binarios)
-│   ├── supabaseAdmin.ts # Cliente service role — solo para app/api/*/pdf, ver abajo
+│   ├── excel/          # Builder de .xlsx con exceljs (matriz de órdenes)
+│   ├── supabaseAdmin.ts # Cliente service role — solo para app/api/*/{pdf,excel}, ver abajo
 │   └── utils.ts        # Helpers genéricos, sin lógica de negocio
 ├── app/               # Rutas (file-based routing de Next.js App Router)
 │   ├── login/page.tsx  # Login, sin sidebar (ver AppSidebar)
@@ -27,6 +28,7 @@ src/
 │   ├── actualizar-password/page.tsx  # Landing del link de recuperación, sin sidebar
 │   ├── cuenta/page.tsx  # Cambio de contraseña logueado, CON sidebar
 │   ├── api/<entidad>/[id]/pdf/route.tsx  # Excepción: genera PDF, ver abajo
+│   ├── api/ordenes/excel/route.tsx  # Excepción: genera Excel, ver abajo
 │   └── <entidad>/
 │       ├── page.tsx        # Server Component: lee datos, renderiza
 │       ├── actions.ts       # Server Actions ("use server"): mutaciones
@@ -159,6 +161,22 @@ src/
   `lib/supabase/server.ts`, a propósito: el documento debe incluir datos
   con RLS restringido a `administrador` (`valor_hora_orden`) sin importar
   el rol de quien dispara la descarga.
+- Misma excepción, segundo caso: `app/api/ordenes/excel/route.tsx` genera
+  la "matriz de órdenes" en `.xlsx` (`Content-Type` de xlsx) de las filas
+  seleccionadas en el listado. Recibe los IDs por `POST { ids: number[] }`
+  (no query string: la selección puede ser larga). Arma el binario con
+  `lib/excel/` (ver abajo) y también usa `lib/supabaseAdmin.ts` porque la
+  matriz incluye `valor_hora_orden` y toda la sección financiera. Como el
+  service role saltaría RLS para cualquiera, la protección real vive en la
+  ruta: primero valida sesión + rol (`administrador`/`financiero`) con
+  `lib/supabase/server.ts` y solo entonces consulta con el service role. No
+  tiene ruta mock: sin credenciales de Supabase no funciona, igual que el
+  PDF.
+- `lib/excel/`: builder de `.xlsx` con `exceljs`, análogo a `lib/pdf/` pero
+  para hojas de cálculo. `matriz-ordenes.ts` es la única fuente de verdad
+  del orden y el mapeo de columnas (una fila por orden, hoja plana con los
+  textos exactos del documento de referencia); `construir-matriz-excel.ts`
+  arma el workbook. Solo lo importa la ruta de arriba (corre en Node).
 - `layout.tsx` solo para lo que envuelve toda la app (fuentes, metadata
   global). No mete lógica de una entidad específica.
 - `globals.css` vive en `app/globals.css` (convención de Next.js App
@@ -281,17 +299,34 @@ src/
   vía de props desde `page.tsx` — no hacen fetch propio salvo que sean
   Client Components que llaman a un Server Action (ej. `orden-form.tsx`
   → `actions.ts`).
-- `ordenes-table.tsx` es de **solo lectura**: sin filas desplegables, sin
-  edición inline. Cada fila tiene un ícono "editar" que navega a
-  `/ordenes/{id}/editar` (visible a cualquier rol) y un ícono "eliminar"
-  envuelto en `<RoleGate allow={["administrador"]}>` (columna de header
-  incluida) — el único estado de cliente que le queda es el de
-  "eliminando" mientras corre `eliminarOrden`. Crear y editar viven los
-  dos en páginas completas — `/ordenes/nueva` y `/ordenes/[id]/editar` —
-  no en la tabla. `nueva-orden-button.tsx` es el botón "Nueva orden" de
-  `app/ordenes/page.tsx`, en su propio Client Component (el Server
-  Component de la página no puede llamar `useAuth()`) también gateado a
-  `administrador`.
+- `ordenes-table.tsx` es de **solo lectura** en cuanto a los datos: sin
+  filas desplegables, sin edición inline de contenido. Cada fila tiene un
+  ícono "editar" que navega a `/ordenes/{id}/editar` (visible a cualquier
+  rol) y un ícono "eliminar" envuelto en
+  `<RoleGate allow={["administrador"]}>`. Además tiene una **columna de
+  checkbox** (con select-all en el header) para elegir filas a exportar:
+  la tabla no es dueña de esa selección, la recibe por props
+  (`selectedIds`/`onToggle`/`onToggleAll`) desde `ordenes-listado.tsx`. Su
+  estado propio sigue siendo solo el de "eliminando" (`eliminarOrden`) y
+  el de "descargando" el PDF por fila. Crear y editar viven los dos en
+  páginas completas — `/ordenes/nueva` y `/ordenes/[id]/editar` — no en la
+  tabla.
+- `ordenes-listado.tsx` es el Client Component que envuelve el listado:
+  `app/ordenes/page.tsx` (Server Component) hace el fetch y solo renderiza
+  `<OrdenesListado ordenes={...} />`. Existe porque el botón "Exportar
+  Excel" vive en el `PageHeader` (al lado de "Nueva orden") pero la
+  selección de filas vive en la tabla — ambos comparten el `Set<number>`
+  de IDs seleccionados, así que ese estado se sube acá. NO es el viejo
+  `ordenes-manager.tsx` de guardado en lote (ver más abajo): lo único que
+  gobierna es la selección para exportar.
+- `nueva-orden-button.tsx` es el botón "Nueva orden" (Client Component
+  propio porque el Server Component de la página no puede llamar
+  `useAuth()`), gateado a `administrador`. `exportar-excel-button.tsx` es
+  el botón "Exportar Excel" hermano, gateado a `administrador`+`financiero`
+  (`<RoleGate>`); descarga el `.xlsx` llamando a `POST /api/ordenes/excel`
+  con los IDs seleccionados (mismo patrón `fetch → blob → <a download>`
+  que la descarga de PDF de la tabla). El `RoleGate` es solo UX — la
+  protección real la hace la ruta (ver sección `app/`).
 - `orden-campos.tsx` ("Datos generales", TODOS los campos de
   `ordenes_servicio`) recibe `disabled` — `true` para cualquier rol que
   no sea `administrador` (ver `supabase/004_ordenes_servicio_rls.sql`):
@@ -366,10 +401,11 @@ src/
   puede fallarle a alguien sin esos roles si la orden ya tiene fila en
   cualquiera de las 6 tablas (el DELETE ahí también está restringido) —
   ver el comentario en `lib/data/info-orden.ts`; no hay solución del lado
-  del front, es una decisión de política que le toca a Persona A. No hay
-  `ordenes-manager.tsx` ni ningún Client Component intermedio
-  gobernando la pantalla de listado, porque ya no hay estado de
-  "guardar cambios en lote" que compartir entre header y tabla.
+  del front, es una decisión de política que le toca a Persona A. El
+  viejo `ordenes-manager.tsx` de "guardar cambios en lote" ya no existe
+  (el listado pasó a solo lectura); el único Client Component que hoy
+  envuelve el listado es `ordenes-listado.tsx`, y solo para compartir la
+  selección de filas a exportar entre el header y la tabla (ver arriba).
 - `createOrden`/`guardarInformacionOrden`/`eliminarOrden` en
   `app/ordenes/actions.ts`: `createOrden` es la única que hace
   `redirect()` (a `/ordenes/{id}/editar`, al crear la orden desde
