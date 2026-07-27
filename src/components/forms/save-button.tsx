@@ -2,6 +2,7 @@
 
 import type { ComponentProps } from "react";
 import { Button } from "@/components/ui/button";
+import { PendingRing } from "@/components/forms/pending-ring";
 import { cn } from "@/lib/utils";
 
 type SaveButtonProps = Omit<ComponentProps<typeof Button>, "children"> & {
@@ -30,28 +31,7 @@ export function SaveButton({
       className={cn("relative isolate", className)}
       {...props}
     >
-      {pending && (
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-[-1px] overflow-hidden rounded-[inherit]"
-          style={{
-            padding: 1,
-            WebkitMask: "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
-            WebkitMaskComposite: "xor",
-            mask: "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
-            maskComposite: "exclude",
-          }}
-        >
-          <span
-            className="absolute inset-[-60%] animate-spin"
-            style={{
-              animationDuration: "1.1s",
-              background:
-                "conic-gradient(from 0deg, transparent 0deg, var(--primary) 55deg, transparent 130deg)",
-            }}
-          />
-        </span>
-      )}
+      {pending && <PendingRing />}
       {pending ? pendingLabel : idleLabel}
     </Button>
   );
