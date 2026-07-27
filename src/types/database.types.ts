@@ -55,7 +55,7 @@ export type Database = {
             foreignKeyName: "acta_servicio_profesional_acta_id_fkey"
             columns: ["profesional_acta_id"]
             isOneToOne: false
-            referencedRelation: "profesionales"
+            referencedRelation: "participantes_arl"
             referencedColumns: ["id"]
           },
         ]
@@ -169,6 +169,7 @@ export type Database = {
           fecha_corte: string | null
           fecha_pago: string | null
           fecha_radicacion: string | null
+          numero_radicado: string | null
           orden_id: number
           radicacion_cuenta: boolean | null
           valor_cuenta_cobro: number | null
@@ -179,6 +180,7 @@ export type Database = {
           fecha_corte?: string | null
           fecha_pago?: string | null
           fecha_radicacion?: string | null
+          numero_radicado?: string | null
           orden_id: number
           radicacion_cuenta?: boolean | null
           valor_cuenta_cobro?: number | null
@@ -189,6 +191,7 @@ export type Database = {
           fecha_corte?: string | null
           fecha_pago?: string | null
           fecha_radicacion?: string | null
+          numero_radicado?: string | null
           orden_id?: number
           radicacion_cuenta?: boolean | null
           valor_cuenta_cobro?: number | null
@@ -246,7 +249,7 @@ export type Database = {
             foreignKeyName: "detalle_entrega_profesional_participante_arl_id_fkey"
             columns: ["participante_arl_id"]
             isOneToOne: false
-            referencedRelation: "profesionales"
+            referencedRelation: "participantes_arl"
             referencedColumns: ["id"]
           },
           {
@@ -576,6 +579,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      participantes_arl: {
+        Row: {
+          activo: boolean | null
+          cedula: string | null
+          fecha_creacion: string | null
+          id: number
+          nombre_completo: string
+        }
+        Insert: {
+          activo?: boolean | null
+          cedula?: string | null
+          fecha_creacion?: string | null
+          id?: number
+          nombre_completo: string
+        }
+        Update: {
+          activo?: boolean | null
+          cedula?: string | null
+          fecha_creacion?: string | null
+          id?: number
+          nombre_completo?: string
+        }
+        Relationships: []
       }
       profesionales: {
         Row: {

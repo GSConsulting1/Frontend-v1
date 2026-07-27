@@ -95,6 +95,7 @@ type OrdenFormProps = {
   defaultValues?: Partial<OrdenInfoFormValues>;
   clientes: SelectOption[];
   profesionales: SelectOption[];
+  participantesArl: SelectOption[];
   ciudades: SelectOption[];
   estadosEjecucion: SelectOption[];
   entregablesEstandar: SelectOption[];
@@ -107,6 +108,7 @@ export function OrdenForm({
   defaultValues,
   clientes,
   profesionales,
+  participantesArl,
   ciudades,
   estadosEjecucion,
   entregablesEstandar,
@@ -276,6 +278,7 @@ export function OrdenForm({
           ciudades={ciudades}
           estadosEjecucion={estadosEjecucion}
           profesionales={profesionales}
+          participantesArl={participantesArl}
           entregablesEstandar={entregablesEstandar}
           disabled={mode === "nueva"}
           seccionAbierta={seccionAbierta}
