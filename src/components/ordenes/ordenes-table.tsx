@@ -310,17 +310,19 @@ export function OrdenesTable({
                         <Pencil className="size-4" />
                         Editar
                       </DropdownMenuItem>
-                      <DropdownMenuItem
-                        disabled={isDownloading}
-                        onClick={() => handleDownload(orden)}
-                      >
-                        {isDownloading ? (
-                          <Loader2 className="size-4 animate-spin" />
-                        ) : (
-                          <Download className="size-4" />
-                        )}
-                        PDF
-                      </DropdownMenuItem>
+                      <RoleGate allow={ROLES_EDITAN_INLINE}>
+                        <DropdownMenuItem
+                          disabled={isDownloading}
+                          onClick={() => handleDownload(orden)}
+                        >
+                          {isDownloading ? (
+                            <Loader2 className="size-4 animate-spin" />
+                          ) : (
+                            <Download className="size-4" />
+                          )}
+                          PDF
+                        </DropdownMenuItem>
+                      </RoleGate>
                       <RoleGate allow={["administrador"]}>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
