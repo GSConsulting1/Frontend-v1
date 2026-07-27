@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronLeft, ChevronRight, LogOut, Settings } from "lucide-react";
@@ -14,15 +14,23 @@ const COLLAPSED_STORAGE_KEY = "gsc-sidebar-collapsed";
 // propia, sin el chrome de la app.
 const RUTAS_SIN_SIDEBAR = ["/login", "/recuperar-password", "/actualizar-password"];
 
-function readStoredCollapsed() {
-  if (typeof window === "undefined") return false;
-  return localStorage.getItem(COLLAPSED_STORAGE_KEY) === "true";
-}
-
 export function AppSidebar() {
   const pathname = usePathname();
   const { session, perfil, signOut } = useAuth();
-  const [collapsed, setCollapsed] = useState(readStoredCollapsed);
+  // Arranca en false (mismo valor que renderiza el servidor, que no tiene
+  // localStorage) y solo se lee el valor guardado en un efecto, después de
+  // hidratar — leerlo en el initializer de useState rompía la hidratación
+  // (servidor siempre "false", cliente a veces "true") y React tiraba todo
+  // el árbol de AppSidebar para re-renderizarlo desde cero.
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    // Única sincronización con localStorage al montar (no una suscripción
+    // a cambios externos) — justo el caso que la regla no distingue del
+    // patrón "cascading renders" que sí quiere evitar.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCollapsed(localStorage.getItem(COLLAPSED_STORAGE_KEY) === "true");
+  }, []);
 
   const toggleCollapsed = () => {
     setCollapsed((prev) => {

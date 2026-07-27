@@ -35,6 +35,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { EstadoBadge } from "@/components/ordenes/estado-badge";
 import { EditableCell } from "@/components/ordenes/editable-cell";
 import { RoleGate } from "@/components/auth/role-gate";
@@ -52,13 +62,14 @@ const OPCIONES_ESTADO = ESTADOS_ORDEN.map((e) => ({ id: e, label: e }));
 
 type OrdenesTableProps = {
   ordenes: OrdenServicioConRelaciones[];
-  // Selección de filas para exportar a Excel — la gobierna OrdenesListado
-  // (el estado se sube ahí porque el botón de exportar vive en el header).
+  // Selección de filas para las acciones en lote del header (exportar o
+  // eliminar) — la gobierna OrdenesListado (el estado se sube ahí porque
+  // el botón activo vive en el header, ver ordenes-listado.tsx).
   selectionMode: boolean;
   selectedIds: Set<number>;
   onToggle: (id: number) => void;
   onToggleAll: () => void;
-  exportError?: string | null;
+  accionError?: string | null;
 };
 
 export function OrdenesTable({
@@ -67,10 +78,12 @@ export function OrdenesTable({
   selectedIds,
   onToggle,
   onToggleAll,
-  exportError,
+  accionError,
 }: OrdenesTableProps) {
   const [deletingIds, setDeletingIds] = useState<Set<number>>(new Set());
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [ordenPendienteEliminar, setOrdenPendienteEliminar] =
+    useState<OrdenServicioConRelaciones | null>(null);
   const [downloadingIds, setDownloadingIds] = useState<Set<number>>(new Set());
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
@@ -108,16 +121,11 @@ export function OrdenesTable({
     }
   }
 
-  async function handleDelete(orden: OrdenServicioConRelaciones) {
-    const nombre =
-      orden.cliente?.nombre_cliente ?? orden.id_unico ?? `#${orden.id}`;
-    if (
-      !window.confirm(
-        `¿Eliminar la orden de ${nombre}? Esta acción no se puede deshacer.`,
-      )
-    ) {
-      return;
-    }
+  async function confirmarEliminar() {
+    const orden = ordenPendienteEliminar;
+    if (!orden) return;
+    setOrdenPendienteEliminar(null);
+
     setDeleteError(null);
     setDeletingIds((prev) => new Set(prev).add(orden.id));
     const result = await eliminarOrden(orden.id);
@@ -152,9 +160,9 @@ export function OrdenesTable({
           {editError}
         </p>
       )}
-      {exportError && (
+      {accionError && (
         <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {exportError}
+          {accionError}
         </p>
       )}
 
@@ -310,23 +318,25 @@ export function OrdenesTable({
                         <Pencil className="size-4" />
                         Editar
                       </DropdownMenuItem>
-                      <DropdownMenuItem
-                        disabled={isDownloading}
-                        onClick={() => handleDownload(orden)}
-                      >
-                        {isDownloading ? (
-                          <Loader2 className="size-4 animate-spin" />
-                        ) : (
-                          <Download className="size-4" />
-                        )}
-                        PDF
-                      </DropdownMenuItem>
+                      <RoleGate allow={ROLES_EDITAN_INLINE}>
+                        <DropdownMenuItem
+                          disabled={isDownloading}
+                          onClick={() => handleDownload(orden)}
+                        >
+                          {isDownloading ? (
+                            <Loader2 className="size-4 animate-spin" />
+                          ) : (
+                            <Download className="size-4" />
+                          )}
+                          PDF
+                        </DropdownMenuItem>
+                      </RoleGate>
                       <RoleGate allow={["administrador"]}>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           variant="destructive"
                           disabled={isDeleting}
-                          onClick={() => handleDelete(orden)}
+                          onClick={() => setOrdenPendienteEliminar(orden)}
                         >
                           <X className="size-4" />
                           Eliminar
@@ -340,6 +350,38 @@ export function OrdenesTable({
           })}
         </TableBody>
       </Table>
+
+      <AlertDialog
+        open={ordenPendienteEliminar != null}
+        onOpenChange={(open) => {
+          if (!open) setOrdenPendienteEliminar(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar orden</AlertDialogTitle>
+            <AlertDialogDescription>
+              {ordenPendienteEliminar && (
+                <>
+                  ¿Eliminar la orden de{" "}
+                  <strong className="text-foreground">
+                    {ordenPendienteEliminar.cliente?.nombre_cliente ??
+                      ordenPendienteEliminar.id_unico ??
+                      `#${ordenPendienteEliminar.id}`}
+                  </strong>
+                  ? Esta acción no se puede deshacer.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={confirmarEliminar}>
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

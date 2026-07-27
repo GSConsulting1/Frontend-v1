@@ -4,12 +4,15 @@
 //
 // Mismo contenedor (max-w-6xl, padding) y mismo título/descripción/acciones
 // que page.tsx a propósito: que al terminar de cargar no haya salto de
-// layout. "Nueva orden" no depende de datos, así que se muestra real (no
-// hace falta un esqueleto para eso).
+// layout. El menú "⋮" no depende de datos, así que se muestra real (no
+// hace falta un esqueleto para eso); no se le pasa onExportar (acá no hay
+// tabla ni estado de selección todavía, getOrdenes() sigue resolviendo, y
+// de todas formas una función no se puede pasar desde este Server
+// Component a un Client Component).
 
 import { PageHeader } from "@/components/layout/page-header";
 import { TableSkeleton } from "@/components/layout/table-skeleton";
-import { NuevaOrdenButton } from "@/components/ordenes/nueva-orden-button";
+import { OrdenesAccionesMenu } from "@/components/ordenes/ordenes-acciones-menu";
 
 export default function OrdenesLoading() {
   return (
@@ -17,7 +20,7 @@ export default function OrdenesLoading() {
       <PageHeader
         title="Orden de servicio recibida del cliente"
         description="Registra y consulta las OS de cada cliente"
-        actions={<NuevaOrdenButton />}
+        actions={<OrdenesAccionesMenu />}
       />
 
       <TableSkeleton

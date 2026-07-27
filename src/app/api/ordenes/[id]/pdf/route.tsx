@@ -9,14 +9,22 @@
 // debe incluir el valor hora del profesional sin importar el rol de quien
 // dispara la descarga — lib/supabase/server.ts respetaría el RLS de
 // valor_hora_orden y devolvería 0 filas para roles no-administrador.
+//
+// Como supabaseAdmin salta RLS, la protección real vive acá: solo continúa si
+// hay sesión y el rol es administrador o financiero (el RoleGate del botón es
+// solo UX). Mismo patrón que app/api/ordenes/excel/route.tsx.
 
 import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   OrdenServicioDocument,
   type OrdenServicioData,
 } from "@/lib/pdf/OrdenServicioDocument";
+import type { RolUsuario } from "@/types";
+
+const ROLES_PERMITIDOS: RolUsuario[] = ["administrador", "financiero"];
 
 function formatFecha(iso: string | null): string {
   if (!iso) return "";
@@ -49,6 +57,22 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  }
+  const { data: perfil } = await supabaseAdmin
+    .from("usuarios")
+    .select("rol")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (!perfil || !ROLES_PERMITIDOS.includes(perfil.rol as RolUsuario)) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+  }
+
   const { id } = await params;
   const ordenId = Number(id);
   if (!Number.isInteger(ordenId)) {
