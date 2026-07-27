@@ -9,6 +9,15 @@
 --
 -- Usa es_administrador() de supabase/003_fix_rls_recursion.sql — hay que
 -- haber corrido ese script antes que este.
+--
+-- ADVERTENCIA (2026-07-26): en la base actual también existe una policy
+-- "mvp_open_access" (FOR ALL, USING true, WITH CHECK true) que no viene de
+-- ningún script de esta carpeta. Postgres combina policies permisivas con
+-- OR, así que mientras esa policy siga activa, "solo_admin_escribe_ordenes"
+-- no bloquea nada en la práctica — cualquier autenticado puede escribir la
+-- tabla completa a nivel de base, y lo único que hoy restringe por rol es
+-- el front (OrdenForm). Si en algún momento se quita mvp_open_access, esta
+-- policy sí vuelve a ser la protección real.
 -- ============================================================
 
 ALTER TABLE ordenes_servicio ENABLE ROW LEVEL SECURITY;

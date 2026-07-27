@@ -1,17 +1,18 @@
 -- Genera automáticamente ordenes_servicio.id_unico al crear una orden, con
 -- formato OS-AAAAMMDD-NNNN donde NNNN es el consecutivo de órdenes creadas
--- ese mismo día calendario (reinicia en 0001 cada día). Antes id_unico se
--- dejaba en NULL porque nada lo asignaba (createOrdenRecord en
--- src/lib/data/ordenes.ts nunca lo incluye en el insert) — de ahí que
--- siempre saliera vacío en el PDF (ver OrdenServicioDocument.tsx).
+-- ese mismo día calendario en hora de Bogotá (reinicia en 0001 cada día).
 --
--- Solo usa columnas que ya existen en ordenes_servicio (id, fecha_creacion,
--- id_unico); no requiere tabla ni columna nueva.
+-- Ojo con la zona horaria: fecha_creacion se guarda como "timestamp without
+-- time zone" con DEFAULT now(), y el server de Postgres/Supabase trabaja en
+-- UTC por defecto — por eso hay que convertir explícitamente a
+-- America/Bogota (UTC-5, sin horario de verano) antes de sacar la fecha; si
+-- no, entre las 7pm y la medianoche hora Colombia el día en UTC ya es el
+-- siguiente.
 
 CREATE OR REPLACE FUNCTION public.generar_id_unico_orden()
 RETURNS trigger AS $$
 DECLARE
-  dia_actual date := (now() AT TIME ZONE 'utc')::date;
+  dia_actual date := (now() AT TIME ZONE 'America/Bogota')::date;
   consecutivo integer;
 BEGIN
   -- Serializa por día (clave = hash del texto de la fecha) para que dos
@@ -21,7 +22,7 @@ BEGIN
 
   SELECT count(*) + 1 INTO consecutivo
   FROM public.ordenes_servicio
-  WHERE (fecha_creacion AT TIME ZONE 'utc')::date = dia_actual;
+  WHERE (fecha_creacion AT TIME ZONE 'utc' AT TIME ZONE 'America/Bogota')::date = dia_actual;
 
   NEW.id_unico := 'OS-' || to_char(dia_actual, 'YYYYMMDD') || '-' || lpad(consecutivo::text, 4, '0');
   RETURN NEW;
@@ -35,15 +36,27 @@ FOR EACH ROW
 WHEN (NEW.id_unico IS NULL)
 EXECUTE FUNCTION public.generar_id_unico_orden();
 
--- Backfill: las órdenes que ya existen y tienen id_unico vacío quedan
--- numeradas con el mismo criterio, respetando el orden real de creación
--- dentro de cada día. No toca filas que ya tengan un id_unico asignado.
+-- Repara filas que ya hubieran quedado numeradas con el día en UTC (versión
+-- anterior de este archivo): las deja en NULL para que el backfill de abajo
+-- las vuelva a calcular con el día correcto en hora de Bogotá.
+UPDATE public.ordenes_servicio
+SET id_unico = NULL
+WHERE id_unico IS NOT NULL
+  AND id_unico LIKE 'OS-________-____'
+  AND substring(id_unico from 4 for 8) <> to_char(
+    (fecha_creacion AT TIME ZONE 'utc' AT TIME ZONE 'America/Bogota')::date,
+    'YYYYMMDD'
+  );
+
+-- Backfill: las órdenes sin id_unico (nuevas o recién reparadas arriba)
+-- quedan numeradas con el mismo criterio, respetando el orden real de
+-- creación dentro de cada día en hora de Bogotá.
 WITH numerado AS (
   SELECT
     id,
-    (fecha_creacion AT TIME ZONE 'utc')::date AS dia,
+    (fecha_creacion AT TIME ZONE 'utc' AT TIME ZONE 'America/Bogota')::date AS dia,
     row_number() OVER (
-      PARTITION BY (fecha_creacion AT TIME ZONE 'utc')::date
+      PARTITION BY (fecha_creacion AT TIME ZONE 'utc' AT TIME ZONE 'America/Bogota')::date
       ORDER BY fecha_creacion, id
     ) AS consecutivo
   FROM public.ordenes_servicio

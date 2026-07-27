@@ -96,7 +96,7 @@ export async function POST(request: Request) {
     supabaseAdmin
       .from("detalle_entrega_profesional")
       .select(
-        "*, profesional_vobo:profesionales!detalle_entrega_profesional_profesional_vobo_id_fkey(nombre_completo), participante_arl:profesionales!detalle_entrega_profesional_participante_arl_id_fkey(nombre_completo)",
+        "*, profesional_vobo:profesionales!detalle_entrega_profesional_profesional_vobo_id_fkey(nombre_completo), participante_arl:participantes_arl!detalle_entrega_profesional_participante_arl_id_fkey(nombre_completo)",
       )
       .in("orden_id", ids),
     supabaseAdmin
@@ -113,7 +113,7 @@ export async function POST(request: Request) {
       .in("orden_id", ids),
     supabaseAdmin
       .from("acta_servicio")
-      .select("*, profesional_acta:profesionales(nombre_completo)")
+      .select("*, profesional_acta:participantes_arl(nombre_completo)")
       .in("orden_id", ids),
     supabaseAdmin.from("cuenta_cobro").select("*").in("orden_id", ids),
     supabaseAdmin.from("facturacion").select("*").in("orden_id", ids),
@@ -151,11 +151,19 @@ export async function POST(request: Request) {
   }
 
   // 4. Índices por orden_id para unir en memoria.
-  const infoMap = indexarPorOrden(infos.data as unknown as { orden_id: number }[]);
-  const detalleMap = indexarPorOrden(detalles.data as unknown as { orden_id: number }[]);
-  const checklistMap = indexarPorOrden(checklists.data as unknown as { orden_id: number }[]);
+  const infoMap = indexarPorOrden(
+    infos.data as unknown as { orden_id: number }[],
+  );
+  const detalleMap = indexarPorOrden(
+    detalles.data as unknown as { orden_id: number }[],
+  );
+  const checklistMap = indexarPorOrden(
+    checklists.data as unknown as { orden_id: number }[],
+  );
   const valorMap = indexarPorOrden(valores.data);
-  const actaMap = indexarPorOrden(actas.data as unknown as { orden_id: number }[]);
+  const actaMap = indexarPorOrden(
+    actas.data as unknown as { orden_id: number }[],
+  );
   const cuentaMap = indexarPorOrden(cuentas.data);
   const facturacionMap = indexarPorOrden(facturaciones.data);
   const radicacionMap = indexarPorOrden(radicaciones.data);
@@ -163,7 +171,8 @@ export async function POST(request: Request) {
 
   const entregablesMap = new Map<number, string[]>();
   for (const fila of entregables.data ?? []) {
-    const nombre = (fila.entregables_estandar as { nombre: string } | null)?.nombre;
+    const nombre = (fila.entregables_estandar as { nombre: string } | null)
+      ?.nombre;
     if (!nombre) continue;
     const lista = entregablesMap.get(fila.orden_id) ?? [];
     lista.push(nombre);
@@ -177,12 +186,17 @@ export async function POST(request: Request) {
       orden: orden as unknown as MatrizOrdenRow["orden"],
       info: (infoMap.get(orden.id) ?? null) as MatrizOrdenRow["info"],
       detalle: (detalleMap.get(orden.id) ?? null) as MatrizOrdenRow["detalle"],
-      checklist: (checklistMap.get(orden.id) ?? null) as MatrizOrdenRow["checklist"],
+      checklist: (checklistMap.get(orden.id) ??
+        null) as MatrizOrdenRow["checklist"],
       acta: (actaMap.get(orden.id) ?? null) as MatrizOrdenRow["acta"],
-      cuentaCobro: (cuentaMap.get(orden.id) ?? null) as MatrizOrdenRow["cuentaCobro"],
-      facturacion: (facturacionMap.get(orden.id) ?? null) as MatrizOrdenRow["facturacion"],
-      radicacion: (radicacionMap.get(orden.id) ?? null) as MatrizOrdenRow["radicacion"],
-      liquidacion: (liquidacionMap.get(orden.id) ?? null) as MatrizOrdenRow["liquidacion"],
+      cuentaCobro: (cuentaMap.get(orden.id) ??
+        null) as MatrizOrdenRow["cuentaCobro"],
+      facturacion: (facturacionMap.get(orden.id) ??
+        null) as MatrizOrdenRow["facturacion"],
+      radicacion: (radicacionMap.get(orden.id) ??
+        null) as MatrizOrdenRow["radicacion"],
+      liquidacion: (liquidacionMap.get(orden.id) ??
+        null) as MatrizOrdenRow["liquidacion"],
       valorHora: valorMap.get(orden.id)?.valor_hora_profesional ?? null,
       entregablesEstandar: (entregablesMap.get(orden.id) ?? []).join(", "),
     }));
