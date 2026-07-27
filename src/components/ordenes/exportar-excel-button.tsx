@@ -1,14 +1,13 @@
-// Botón "Exportar Excel" del listado de órdenes — al lado de "Nueva orden"
-// (ver ordenes-listado.tsx). Descarga la matriz de las filas seleccionadas en
-// la tabla llamando a POST /api/ordenes/excel con los IDs. Mismo patrón
-// fetch → blob → <a download> que la descarga de PDF en ordenes-table.tsx.
-//
-// El botón siempre está activo (no depende de tener filas seleccionadas):
-// el primer click solo prende el "modo selección" en OrdenesTable (aparecen
-// los checkboxes); ahí el label cambia a "Descargar (N)" para que sea obvio
-// que el click ya no hace lo mismo que antes. Un botón "Cancelar" aparte
-// permite salir del modo selección sin descargar. Ver ordenes-listado.tsx,
-// donde vive el estado de selectionMode/selectedIds.
+// Controles "Descargar (N)" / "Cancelar" del listado de órdenes — la etapa
+// activa del export, mientras la tabla está en "modo selección" (aparecen
+// los checkboxes en OrdenesTable). El punto de entrada (lo que antes era
+// el primer click de este mismo botón, "Exportar Excel") ahora es el ítem
+// "Exportar Excel" del menú "⋮" del header (ver ordenes-acciones-menu.tsx):
+// ese ítem llama a onStartSelection/iniciarSeleccion de ordenes-listado.tsx,
+// que prende selectionMode y con eso aparece este componente. Descarga la
+// matriz de las filas seleccionadas llamando a POST /api/ordenes/excel con
+// los IDs — mismo patrón fetch → blob → <a download> que la descarga de PDF
+// en ordenes-table.tsx.
 //
 // Solo para administrador y financiero (RoleGate) — coincide con el chequeo
 // de rol del endpoint. Es UX: la protección real vive en la ruta.
@@ -16,22 +15,19 @@
 "use client";
 
 import { useState } from "react";
-import { Download, Loader2, X } from "lucide-react";
+import { Download, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PendingRing } from "@/components/forms/pending-ring";
 import { RoleGate } from "@/components/auth/role-gate";
 
 type ExportarExcelButtonProps = {
   selectedIds: number[];
-  selectionMode: boolean;
-  onStartSelection: () => void;
   onCancelSelection: () => void;
   onError?: (mensaje: string | null) => void;
 };
 
 export function ExportarExcelButton({
   selectedIds,
-  selectionMode,
-  onStartSelection,
   onCancelSelection,
   onError,
 }: ExportarExcelButtonProps) {
@@ -73,29 +69,23 @@ export function ExportarExcelButton({
       <div className="flex items-center gap-1.5">
         <Button
           variant="outline"
-          disabled={exportando || (selectionMode && selectedIds.length === 0)}
-          onClick={selectionMode ? handleExport : onStartSelection}
+          disabled={exportando || selectedIds.length === 0}
+          onClick={handleExport}
+          className="relative isolate"
         >
-          {exportando ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <Download className="size-4" />
-          )}
-          {selectionMode
-            ? `Descargar${selectedIds.length > 0 ? ` (${selectedIds.length})` : ""}`
-            : "Exportar Excel"}
+          {exportando && <PendingRing />}
+          <Download className="size-4" />
+          {`Descargar${selectedIds.length > 0 ? ` (${selectedIds.length})` : ""}`}
         </Button>
-        {selectionMode && (
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label="Cancelar selección de órdenes"
-            disabled={exportando}
-            onClick={onCancelSelection}
-          >
-            <X className="size-4" />
-          </Button>
-        )}
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Cancelar selección de órdenes"
+          disabled={exportando}
+          onClick={onCancelSelection}
+        >
+          <X className="size-4" />
+        </Button>
       </div>
     </RoleGate>
   );

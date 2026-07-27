@@ -24,6 +24,7 @@ import {
   ordenServicioSchema,
   campoOrdenInlineSchema,
   type CampoOrdenInlinePatch,
+  type OrdenServicioFormValues,
 } from "@/lib/validations/orden.schema";
 import { ordenInfoExtendidaSchema } from "@/lib/validations/info-orden.schema";
 import {
@@ -36,6 +37,7 @@ import {
   eliminarInfoOrdenCompleta,
   guardarInfoOrdenCompleta,
 } from "@/lib/data/info-orden";
+import { leerOrdenesDesdeExcel } from "@/lib/excel/leer-ordenes-excel";
 
 export type OrdenActionState =
   | { error: string }
@@ -158,4 +160,121 @@ export async function eliminarOrden(id: number): Promise<MutacionResult> {
 
   revalidatePath("/ordenes");
   return { ok: true };
+}
+
+export async function eliminarOrdenes(
+  ids: number[],
+): Promise<{ eliminadas: number; fallidas: { id: number; error: string }[] }> {
+  let eliminadas = 0;
+  const fallidas: { id: number; error: string }[] = [];
+
+  for (const id of ids) {
+    try {
+      await eliminarInfoOrdenCompleta(id);
+      await deleteOrdenRecord(id);
+      eliminadas++;
+    } catch (err) {
+      fallidas.push({
+        id,
+        error:
+          err instanceof Error
+            ? err.message
+            : "Error desconocido al eliminar la orden",
+      });
+    }
+  }
+
+  revalidatePath("/ordenes");
+  return { eliminadas, fallidas };
+}
+
+export type FilaPreviewImportacion = {
+  fila: number;
+  valores: OrdenServicioFormValues;
+  errores: string[];
+  valida: boolean;
+};
+
+export async function previsualizarImportacionOrdenes(
+  formData: FormData,
+): Promise<{ filas: FilaPreviewImportacion[] } | { error: string }> {
+  const archivo = formData.get("archivo");
+  if (!(archivo instanceof File) || archivo.size === 0) {
+    return { error: "Selecciona un archivo Excel (.xlsx)." };
+  }
+  const clienteId = Number(formData.get("clienteId"));
+  if (!clienteId || Number.isNaN(clienteId)) {
+    return { error: "Selecciona un cliente." };
+  }
+
+  let filasExcel;
+  try {
+    const buffer = Buffer.from(await archivo.arrayBuffer());
+    filasExcel = await leerOrdenesDesdeExcel(buffer);
+  } catch {
+    return {
+      error:
+        "No se pudo leer el archivo. Verifica que sea un Excel (.xlsx) válido.",
+    };
+  }
+
+  const filas: FilaPreviewImportacion[] = filasExcel.map(
+    ({ fila, valores }) => {
+      const candidato = {
+        ...valores,
+        nombre_servicio: valores.nombre_servicio ?? "",
+        cliente_id: clienteId,
+      };
+      const parsed = ordenServicioSchema.safeParse(candidato);
+      if (parsed.success) {
+        return { fila, valores: parsed.data, errores: [], valida: true };
+      }
+      const errores = Object.values(parsed.error.flatten().fieldErrors)
+        .flat()
+        .filter((mensaje): mensaje is string => Boolean(mensaje));
+      return {
+        fila,
+        valores: candidato as OrdenServicioFormValues,
+        errores: errores.length ? errores : ["Datos inválidos"],
+        valida: false,
+      };
+    },
+  );
+
+  return { filas };
+}
+
+export type FilaParaImportar = {
+  fila: number;
+  valores: OrdenServicioFormValues;
+};
+
+export async function importarOrdenesDesdeExcel(
+  filas: FilaParaImportar[],
+): Promise<{ creadas: number; fallidas: { fila: number; error: string }[] }> {
+  let creadas = 0;
+  const fallidas: { fila: number; error: string }[] = [];
+
+  for (const { fila, valores } of filas) {
+    const parsed = ordenServicioSchema.safeParse(valores);
+    if (!parsed.success) {
+      fallidas.push({ fila, error: "Datos inválidos" });
+      continue;
+    }
+    try {
+      await createOrdenRecord(parsed.data);
+      creadas++;
+    } catch (err) {
+      fallidas.push({
+        fila,
+        error:
+          err instanceof Error
+            ? err.message
+            : "Error desconocido al crear la orden",
+      });
+    }
+  }
+
+  revalidatePath("/ordenes");
+  return { creadas, fallidas };
 }
