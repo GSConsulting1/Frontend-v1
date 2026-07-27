@@ -24,12 +24,12 @@ import type {
 import type { OrdenServicioConRelaciones } from "@/types";
 
 export type OrdenesFiltros = {
-  clienteId?: number;
+  clienteIds?: number[];
   desde?: string;
   hasta?: string;
   numeroOs?: string;
-  tipoServicio?: string;
-  estado?: string;
+  tiposServicio?: string[];
+  estados?: string[];
   secuencia?: string;
 };
 
@@ -61,8 +61,7 @@ function normalizarInput(input: OrdenServicioFormValues) {
 function enriquecerMock(): OrdenServicioConRelaciones[] {
   return mockOrdenes.map((orden) => ({
     ...orden,
-    cliente:
-      mockClientes.find((c) => c.id === orden.cliente_id) ?? null,
+    cliente: mockClientes.find((c) => c.id === orden.cliente_id) ?? null,
   }));
 }
 
@@ -71,8 +70,10 @@ export async function getOrdenes(
 ): Promise<OrdenServicioConRelaciones[]> {
   if (!isSupabaseConfigured) {
     let ordenes = enriquecerMock();
-    if (filtros.clienteId) {
-      ordenes = ordenes.filter((o) => o.cliente_id === filtros.clienteId);
+    if (filtros.clienteIds?.length) {
+      ordenes = ordenes.filter((o) =>
+        filtros.clienteIds!.includes(o.cliente_id),
+      );
     }
     if (filtros.desde) {
       ordenes = ordenes.filter(
@@ -90,11 +91,16 @@ export async function getOrdenes(
         (o.numero_os_cliente ?? "").toLowerCase().includes(needle),
       );
     }
-    if (filtros.tipoServicio) {
-      ordenes = ordenes.filter((o) => o.tipo_servicio === filtros.tipoServicio);
+    if (filtros.tiposServicio?.length) {
+      ordenes = ordenes.filter(
+        (o) =>
+          o.tipo_servicio && filtros.tiposServicio!.includes(o.tipo_servicio),
+      );
     }
-    if (filtros.estado) {
-      ordenes = ordenes.filter((o) => o.estado === filtros.estado);
+    if (filtros.estados?.length) {
+      ordenes = ordenes.filter(
+        (o) => o.estado && filtros.estados!.includes(o.estado),
+      );
     }
     if (filtros.secuencia) {
       const needle = filtros.secuencia.toLowerCase();
@@ -111,20 +117,24 @@ export async function getOrdenes(
     .select("*, cliente:clientes(id, nombre_cliente)")
     .order("id", { ascending: false });
 
-  if (filtros.clienteId) query = query.eq("cliente_id", filtros.clienteId);
+  if (filtros.clienteIds?.length)
+    query = query.in("cliente_id", filtros.clienteIds);
   if (filtros.desde) query = query.gte("fecha_recepcion_os", filtros.desde);
   if (filtros.hasta) query = query.lte("fecha_recepcion_os", filtros.hasta);
   if (filtros.numeroOs) {
     query = query.ilike("numero_os_cliente", `%${filtros.numeroOs}%`);
   }
-  if (filtros.tipoServicio) query = query.eq("tipo_servicio", filtros.tipoServicio);
-  if (filtros.estado) query = query.eq("estado", filtros.estado);
+  if (filtros.tiposServicio?.length) {
+    query = query.in("tipo_servicio", filtros.tiposServicio);
+  }
+  if (filtros.estados?.length) query = query.in("estado", filtros.estados);
   if (filtros.secuencia) {
     query = query.ilike("secuencia", `%${filtros.secuencia}%`);
   }
 
   const { data, error } = await query;
-  if (error) throw new Error(`No se pudieron cargar las órdenes: ${error.message}`);
+  if (error)
+    throw new Error(`No se pudieron cargar las órdenes: ${error.message}`);
   return (data ?? []) as unknown as OrdenServicioConRelaciones[];
 }
 
@@ -158,7 +168,8 @@ export async function getClientesParaSelect() {
     .select("id, nombre_cliente")
     .eq("activo", true)
     .order("nombre_cliente");
-  if (error) throw new Error(`No se pudieron cargar los clientes: ${error.message}`);
+  if (error)
+    throw new Error(`No se pudieron cargar los clientes: ${error.message}`);
   return data ?? [];
 }
 
@@ -174,7 +185,10 @@ export async function getProfesionalesParaSelect() {
     .select("id, nombre_completo")
     .eq("activo", true)
     .order("nombre_completo");
-  if (error) throw new Error(`No se pudieron cargar los profesionales: ${error.message}`);
+  if (error)
+    throw new Error(
+      `No se pudieron cargar los profesionales: ${error.message}`,
+    );
   return data ?? [];
 }
 
@@ -226,7 +240,8 @@ export async function updateOrdenRecord(
     .from("ordenes_servicio")
     .update({ ...normalizado, fecha_actualizacion: new Date().toISOString() })
     .eq("id", id);
-  if (error) throw new Error(`No se pudo actualizar la orden: ${error.message}`);
+  if (error)
+    throw new Error(`No se pudo actualizar la orden: ${error.message}`);
 }
 
 // Patch de un solo campo desde la edición inline de la tabla de listado —
@@ -255,7 +270,8 @@ export async function actualizarCampoOrdenRecord(
     .from("ordenes_servicio")
     .update({ ...patch, fecha_actualizacion: new Date().toISOString() })
     .eq("id", id);
-  if (error) throw new Error(`No se pudo actualizar la orden: ${error.message}`);
+  if (error)
+    throw new Error(`No se pudo actualizar la orden: ${error.message}`);
 }
 
 export async function deleteOrdenRecord(id: number) {
@@ -267,6 +283,9 @@ export async function deleteOrdenRecord(id: number) {
   }
   const supabase = await createSupabaseServerClient();
 
-  const { error } = await supabase.from("ordenes_servicio").delete().eq("id", id);
+  const { error } = await supabase
+    .from("ordenes_servicio")
+    .delete()
+    .eq("id", id);
   if (error) throw new Error(`No se pudo eliminar la orden: ${error.message}`);
 }

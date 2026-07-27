@@ -12,16 +12,21 @@
 
 import { useState } from "react";
 import { PageHeader } from "@/components/layout/page-header";
+import { OrdenesFiltros } from "@/components/ordenes/ordenes-filtros";
 import { OrdenesTable } from "@/components/ordenes/ordenes-table";
 import { NuevaOrdenButton } from "@/components/ordenes/nueva-orden-button";
 import { ExportarExcelButton } from "@/components/ordenes/exportar-excel-button";
 import type { OrdenServicioConRelaciones } from "@/types";
 
+type ClienteOption = { id: number; nombre_cliente: string };
+
 type OrdenesListadoProps = {
   ordenes: OrdenServicioConRelaciones[];
+  clientes: ClienteOption[];
 };
 
-export function OrdenesListado({ ordenes }: OrdenesListadoProps) {
+export function OrdenesListado({ ordenes, clientes }: OrdenesListadoProps) {
+  const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [exportError, setExportError] = useState<string | null>(null);
 
@@ -42,6 +47,17 @@ export function OrdenesListado({ ordenes }: OrdenesListadoProps) {
     );
   }
 
+  function iniciarSeleccion() {
+    setExportError(null);
+    setSelectionMode(true);
+  }
+
+  function cancelarSeleccion() {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+    setExportError(null);
+  }
+
   return (
     <>
       <PageHeader
@@ -51,6 +67,9 @@ export function OrdenesListado({ ordenes }: OrdenesListadoProps) {
           <>
             <ExportarExcelButton
               selectedIds={[...selectedIds]}
+              selectionMode={selectionMode}
+              onStartSelection={iniciarSeleccion}
+              onCancelSelection={cancelarSeleccion}
               onError={setExportError}
             />
             <NuevaOrdenButton />
@@ -58,8 +77,11 @@ export function OrdenesListado({ ordenes }: OrdenesListadoProps) {
         }
       />
 
+      <OrdenesFiltros clientes={clientes} />
+
       <OrdenesTable
         ordenes={ordenes}
+        selectionMode={selectionMode}
         selectedIds={selectedIds}
         onToggle={toggle}
         onToggleAll={toggleAll}
