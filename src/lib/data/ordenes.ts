@@ -33,6 +33,22 @@ export type OrdenesFiltros = {
   secuencia?: string;
 };
 
+// Mismo criterio de zona horaria que supabase/006_ordenes_servicio_id_unico.sql:
+// Colombia no tiene horario de verano, así que un offset fijo alcanza, pero
+// se usa Intl para no hardcodear "-5" dos veces.
+const ZONA_HORARIA_NEGOCIO = "America/Bogota";
+
+function diaEnZonaHoraria(fecha: Date): string {
+  const partes = new Intl.DateTimeFormat("en-CA", {
+    timeZone: ZONA_HORARIA_NEGOCIO,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(fecha);
+  const map = Object.fromEntries(partes.map((p) => [p.type, p.value]));
+  return `${map.year}-${map.month}-${map.day}`;
+}
+
 // Normaliza los campos opcionales de texto ("" -> null) del formulario antes
 // de persistir, tanto en el mock en memoria como en Supabase real.
 function normalizarInput(input: OrdenServicioFormValues) {
@@ -197,18 +213,20 @@ export async function createOrdenRecord(input: OrdenServicioFormValues) {
 
   if (!isSupabaseConfigured) {
     const nextId = Math.max(0, ...mockOrdenes.map((o) => o.id)) + 1;
-    const now = new Date().toISOString();
-    const dia = now.slice(0, 10);
-    // Mismo formato y criterio (consecutivo diario) que el trigger real —
-    // ver supabase/006_ordenes_servicio_id_unico.sql.
+    const now = new Date();
+    const dia = diaEnZonaHoraria(now);
+    // Mismo formato y criterio (consecutivo diario en hora de Bogotá) que el
+    // trigger real — ver supabase/006_ordenes_servicio_id_unico.sql.
     const consecutivoHoy =
-      mockOrdenes.filter((o) => (o.fecha_creacion ?? "").slice(0, 10) === dia).length + 1;
+      mockOrdenes.filter(
+        (o) => o.fecha_creacion && diaEnZonaHoraria(new Date(o.fecha_creacion)) === dia,
+      ).length + 1;
     mockOrdenes.push({
       ...normalizado,
       id: nextId,
       id_unico: `OS-${dia.replace(/-/g, "")}-${String(consecutivoHoy).padStart(4, "0")}`,
-      fecha_creacion: now,
-      fecha_actualizacion: now,
+      fecha_creacion: now.toISOString(),
+      fecha_actualizacion: now.toISOString(),
     });
     return nextId;
   }
