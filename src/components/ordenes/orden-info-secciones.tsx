@@ -22,7 +22,10 @@ import type {
 } from "react-hook-form";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth/auth-provider";
-import type { OrdenInfoFormValues, SeccionId } from "@/components/ordenes/orden-form";
+import type {
+  OrdenInfoFormValues,
+  SeccionId,
+} from "@/components/ordenes/orden-form";
 import { SeccionDatosActividad } from "@/components/ordenes/secciones/datos-actividad";
 import { SeccionProfesionalContacto } from "@/components/ordenes/secciones/profesional-contacto";
 import { SeccionDetalleEntrega } from "@/components/ordenes/secciones/detalle-entrega";
@@ -45,6 +48,7 @@ export type OrdenInfoSeccionesProps = {
   ciudades: SelectOption[];
   estadosEjecucion: SelectOption[];
   profesionales: SelectOption[];
+  participantesArl: SelectOption[];
   entregablesEstandar: SelectOption[];
   disabled: boolean;
   seccionAbierta: SeccionId | null;
@@ -59,6 +63,7 @@ export function OrdenInfoSecciones({
   ciudades,
   estadosEjecucion,
   profesionales,
+  participantesArl,
   entregablesEstandar,
   disabled,
   seccionAbierta,
@@ -101,6 +106,7 @@ export function OrdenInfoSecciones({
         control={control}
         watch={watch}
         profesionales={profesionales}
+        participantesArl={participantesArl}
         open={seccionAbierta === "detalle-entrega"}
         onOpenChange={(open) => onToggleSeccion("detalle-entrega", open)}
       />
@@ -148,7 +154,7 @@ export function OrdenInfoSecciones({
         control={control}
         errors={errors}
         watch={watch}
-        profesionales={profesionales}
+        participantesArl={participantesArl}
         puedeVerFinanciera={puedeVerFinanciera}
         open={seccionAbierta === "acta-servicio"}
         onOpenChange={(open) => onToggleSeccion("acta-servicio", open)}

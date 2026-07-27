@@ -3,7 +3,12 @@
 // Tienen la MISMA forma que las filas reales (ver database.types.ts) para que
 // el swap a Supabase en Día 3 no rompa nada en la UI.
 
-import type { Cliente, Profesional, OrdenServicio } from "@/types";
+import type {
+  Cliente,
+  Profesional,
+  ParticipanteArl,
+  OrdenServicio,
+} from "@/types";
 
 export const mockClientes: Cliente[] = [
   {
@@ -56,6 +61,32 @@ export const mockProfesionales: Profesional[] = [
     telefono: "3012345678",
     activo: true,
     fecha_creacion: "2026-01-06T08:00:00Z",
+  },
+];
+
+// Catálogo aparte de mockProfesionales (misma forma, otra tabla en la BD
+// real: `participantes_arl`) — ver comentario en src/types/index.ts.
+export const mockParticipantesArl: ParticipanteArl[] = [
+  {
+    id: 1,
+    nombre_completo: "Andrea Carolina Berruecos Zul",
+    cedula: "1040112233",
+    activo: true,
+    fecha_creacion: "2026-01-05T08:00:00Z",
+  },
+  {
+    id: 2,
+    nombre_completo: "Diana Carolina Ramírez Páez",
+    cedula: "1040223344",
+    activo: true,
+    fecha_creacion: "2026-01-05T08:00:00Z",
+  },
+  {
+    id: 3,
+    nombre_completo: "Mónica Alejandra Farlas Castillo",
+    cedula: "1040334455",
+    activo: true,
+    fecha_creacion: "2026-01-05T08:00:00Z",
   },
 ];
 

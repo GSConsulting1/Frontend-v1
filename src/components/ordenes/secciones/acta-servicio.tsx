@@ -29,7 +29,9 @@ export type SeccionActaServicioProps = {
   control: Control<OrdenInfoFormValues>;
   errors: FieldErrors<OrdenInfoFormValues>;
   watch: UseFormWatch<OrdenInfoFormValues>;
-  profesionales: SelectOption[];
+  // Catálogo aparte de `profesionales` (tabla `participantes_arl` en la BD
+  // real) — quién firma el acta. Ver comentario en src/types/index.ts.
+  participantesArl: SelectOption[];
   puedeVerFinanciera: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -41,7 +43,7 @@ export function SeccionActaServicio({
   register,
   control,
   watch,
-  profesionales,
+  participantesArl,
   puedeVerFinanciera,
   open,
   onOpenChange,
@@ -61,7 +63,9 @@ export function SeccionActaServicio({
       }
       completo={algunoLleno(actaServicio)}
       locked={!puedeVerFinanciera}
-      chipTexto={puedeVerFinanciera ? undefined : "Solo administrador/financiero"}
+      chipTexto={
+        puedeVerFinanciera ? undefined : "Solo administrador/financiero"
+      }
       open={open}
       onOpenChange={onOpenChange}
     >
@@ -113,16 +117,16 @@ export function SeccionActaServicio({
                   onValueChange={(v: string | null) =>
                     field.onChange(v ? Number(v) : undefined)
                   }
-                  items={profesionales.map((p) => ({
+                  items={participantesArl.map((p) => ({
                     label: p.label,
                     value: String(p.id),
                   }))}
                 >
                   <SelectTrigger id="profesional_acta_id" className="w-full">
-                    <SelectValue placeholder="Selecciona un profesional" />
+                    <SelectValue placeholder="Selecciona un participante" />
                   </SelectTrigger>
                   <SelectContent>
-                    {profesionales.map((p) => (
+                    {participantesArl.map((p) => (
                       <SelectItem key={p.id} value={String(p.id)}>
                         {p.label}
                       </SelectItem>

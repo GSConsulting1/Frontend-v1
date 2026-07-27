@@ -95,6 +95,7 @@ type OrdenFormProps = {
   defaultValues?: Partial<OrdenInfoFormValues>;
   clientes: SelectOption[];
   profesionales: SelectOption[];
+  participantesArl: SelectOption[];
   ciudades: SelectOption[];
   estadosEjecucion: SelectOption[];
   entregablesEstandar: SelectOption[];
@@ -107,6 +108,7 @@ export function OrdenForm({
   defaultValues,
   clientes,
   profesionales,
+  participantesArl,
   ciudades,
   estadosEjecucion,
   entregablesEstandar,
@@ -263,7 +265,9 @@ export function OrdenForm({
             <Info className="size-4 shrink-0" aria-hidden />
             Orden sin guardar: las secciones de información extendida se
             habilitan después de guardar los datos generales, porque cada una
-            depende del <code className="rounded bg-background px-1">id</code>{" "}
+            depende del <code className="rounded bg-background px-1">
+              id
+            </code>{" "}
             de la orden.
           </p>
         )}
@@ -276,6 +280,7 @@ export function OrdenForm({
           ciudades={ciudades}
           estadosEjecucion={estadosEjecucion}
           profesionales={profesionales}
+          participantesArl={participantesArl}
           entregablesEstandar={entregablesEstandar}
           disabled={mode === "nueva"}
           seccionAbierta={seccionAbierta}

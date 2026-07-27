@@ -28,6 +28,7 @@ export type SeccionDetalleEntregaProps = {
   control: Control<OrdenInfoFormValues>;
   watch: UseFormWatch<OrdenInfoFormValues>;
   profesionales: SelectOption[];
+  participantesArl: SelectOption[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
@@ -37,6 +38,7 @@ export function SeccionDetalleEntrega({
   control,
   watch,
   profesionales,
+  participantesArl,
   open,
   onOpenChange,
 }: SeccionDetalleEntregaProps) {
@@ -75,7 +77,10 @@ export function SeccionDetalleEntrega({
             {...register("detalleEntrega.fecha_cierre_orden")}
           />
         </FormField>
-        <FormField label="Profesional que da VoBo" htmlFor="profesional_vobo_id">
+        <FormField
+          label="Profesional que da VoBo"
+          htmlFor="profesional_vobo_id"
+        >
           <Controller
             name="detalleEntrega.profesional_vobo_id"
             control={control}
@@ -136,16 +141,16 @@ export function SeccionDetalleEntrega({
                 onValueChange={(v: string | null) =>
                   field.onChange(v ? Number(v) : undefined)
                 }
-                items={profesionales.map((p) => ({
+                items={participantesArl.map((p) => ({
                   label: p.label,
                   value: String(p.id),
                 }))}
               >
                 <SelectTrigger id="participante_arl_id" className="w-full">
-                  <SelectValue placeholder="Selecciona un profesional" />
+                  <SelectValue placeholder="Selecciona un participante" />
                 </SelectTrigger>
                 <SelectContent>
-                  {profesionales.map((p) => (
+                  {participantesArl.map((p) => (
                     <SelectItem key={p.id} value={String(p.id)}>
                       {p.label}
                     </SelectItem>

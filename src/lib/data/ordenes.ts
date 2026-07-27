@@ -15,6 +15,7 @@ import {
   mockClientes,
   mockOrdenes,
   mockProfesionales,
+  mockParticipantesArl,
 } from "@/lib/mock-data/ordenes";
 import { orNull } from "@/lib/utils";
 import type {
@@ -188,6 +189,28 @@ export async function getProfesionalesParaSelect() {
   if (error)
     throw new Error(
       `No se pudieron cargar los profesionales: ${error.message}`,
+    );
+  return data ?? [];
+}
+
+// Catálogo aparte de profesionales (tabla `participantes_arl` en la BD real)
+// — quién participó por la ARL en el detalle de entrega. Ver comentario en
+// src/types/index.ts.
+export async function getParticipantesArlParaSelect() {
+  if (!isSupabaseConfigured) {
+    return mockParticipantesArl
+      .filter((p) => p.activo)
+      .map((p) => ({ id: p.id, nombre_completo: p.nombre_completo }));
+  }
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("participantes_arl")
+    .select("id, nombre_completo")
+    .eq("activo", true)
+    .order("nombre_completo");
+  if (error)
+    throw new Error(
+      `No se pudieron cargar los participantes ARL: ${error.message}`,
     );
   return data ?? [];
 }

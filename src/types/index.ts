@@ -8,6 +8,11 @@ import type { Database } from "./database.types";
 
 export type Cliente = Database["public"]["Tables"]["clientes"]["Row"];
 export type Profesional = Database["public"]["Tables"]["profesionales"]["Row"];
+// Catálogo aparte de `profesionales` (misma forma, otra tabla) — quién
+// participó por la ARL en el detalle de entrega. No confundir con
+// profesional_vobo, que sí sale de `profesionales`.
+export type ParticipanteArl =
+  Database["public"]["Tables"]["participantes_arl"]["Row"];
 export type OrdenServicio =
   Database["public"]["Tables"]["ordenes_servicio"]["Row"];
 
@@ -46,11 +51,7 @@ export type ValorHoraOrden =
 // supabase/002_usuarios_roles_rls.sql. Si se agrega/renombra un rol ahí, hay
 // que reflejarlo acá también.
 export type RolUsuario =
-  | "administrador"
-  | "programador"
-  | "profesional"
-  | "lectura"
-  | "financiero";
+  "administrador" | "programador" | "profesional" | "lectura" | "financiero";
 
 // Perfil de src/components/auth/auth-provider.tsx (tabla `usuarios`, PK =
 // auth.users.id). No confundir con Profesional: un usuario con rol
@@ -71,7 +72,7 @@ export type InfoOrdenServicioConRelaciones = InfoOrdenServicio & {
 export type DetalleEntregaProfesionalConRelaciones =
   DetalleEntregaProfesional & {
     profesional_vobo: Pick<Profesional, "id" | "nombre_completo"> | null;
-    participante_arl: Pick<Profesional, "id" | "nombre_completo"> | null;
+    participante_arl: Pick<ParticipanteArl, "id" | "nombre_completo"> | null;
   };
 
 export type ChecklistProcesoConRelaciones = ChecklistProceso & {
@@ -90,7 +91,7 @@ export type Facturacion = Database["public"]["Tables"]["facturacion"]["Row"];
 export type Liquidacion = Database["public"]["Tables"]["liquidacion"]["Row"];
 
 export type ActaServicioConRelaciones = ActaServicio & {
-  profesional_acta: Pick<Profesional, "id" | "nombre_completo"> | null;
+  profesional_acta: Pick<ParticipanteArl, "id" | "nombre_completo"> | null;
 };
 
 // Lo que trae getInfoOrdenCompleta(ordenId): todas las tablas extendidas de
