@@ -22,7 +22,10 @@ import type {
 } from "react-hook-form";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth/auth-provider";
-import type { OrdenInfoFormValues, SeccionId } from "@/components/ordenes/orden-form";
+import type {
+  OrdenInfoFormValues,
+  SeccionId,
+} from "@/components/ordenes/orden-form";
 import { SeccionDatosActividad } from "@/components/ordenes/secciones/datos-actividad";
 import { SeccionProfesionalContacto } from "@/components/ordenes/secciones/profesional-contacto";
 import { SeccionDetalleEntrega } from "@/components/ordenes/secciones/detalle-entrega";
