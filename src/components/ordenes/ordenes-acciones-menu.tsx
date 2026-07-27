@@ -53,7 +53,7 @@ export function OrdenesAccionesMenu({
           </Button>
         }
       />
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="end" className="min-w-56">
         {esAdmin && (
           <DropdownMenuItem render={<Link href="/ordenes/nueva" />}>
             <FilePlus className="size-4" />
@@ -79,7 +79,10 @@ export function OrdenesAccionesMenu({
         )}
         {esAdmin && <DropdownMenuSeparator />}
         {esAdmin && (
-          <DropdownMenuItem variant="destructive" onClick={() => onEliminar?.()}>
+          <DropdownMenuItem
+            variant="destructive"
+            onClick={() => onEliminar?.()}
+          >
             <Trash2 className="size-4" />
             Eliminar órdenes
           </DropdownMenuItem>
