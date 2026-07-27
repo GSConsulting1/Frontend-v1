@@ -106,6 +106,7 @@ export const entregablesEstandarSchema = z.array(z.number().int().positive());
 export const cuentaCobroSchema = z.object({
   radicacion_cuenta: z.boolean().optional(),
   fecha_radicacion: z.string().optional(),
+  numero_radicado: z.string().optional(),
   fecha_corte: z.string().optional(),
   corte_pago: z.string().optional(),
   fecha_pago: z.string().optional(),

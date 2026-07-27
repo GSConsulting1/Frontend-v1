@@ -8,6 +8,11 @@ import type { Database } from "./database.types";
 
 export type Cliente = Database["public"]["Tables"]["clientes"]["Row"];
 export type Profesional = Database["public"]["Tables"]["profesionales"]["Row"];
+// Catálogo fijo y separado de profesionales: equipo ARL/seguridad que firma
+// el detalle de entrega y el acta de servicio (ver participante_arl_id /
+// profesional_acta_id más abajo).
+export type ParticipanteArl =
+  Database["public"]["Tables"]["participantes_arl"]["Row"];
 export type OrdenServicio =
   Database["public"]["Tables"]["ordenes_servicio"]["Row"];
 
@@ -71,7 +76,7 @@ export type InfoOrdenServicioConRelaciones = InfoOrdenServicio & {
 export type DetalleEntregaProfesionalConRelaciones =
   DetalleEntregaProfesional & {
     profesional_vobo: Pick<Profesional, "id" | "nombre_completo"> | null;
-    participante_arl: Pick<Profesional, "id" | "nombre_completo"> | null;
+    participante_arl: Pick<ParticipanteArl, "id" | "nombre_completo"> | null;
   };
 
 export type ChecklistProcesoConRelaciones = ChecklistProceso & {
@@ -90,7 +95,7 @@ export type Facturacion = Database["public"]["Tables"]["facturacion"]["Row"];
 export type Liquidacion = Database["public"]["Tables"]["liquidacion"]["Row"];
 
 export type ActaServicioConRelaciones = ActaServicio & {
-  profesional_acta: Pick<Profesional, "id" | "nombre_completo"> | null;
+  profesional_acta: Pick<ParticipanteArl, "id" | "nombre_completo"> | null;
 };
 
 // Lo que trae getInfoOrdenCompleta(ordenId): todas las tablas extendidas de

@@ -29,7 +29,7 @@ export type SeccionActaServicioProps = {
   control: Control<OrdenInfoFormValues>;
   errors: FieldErrors<OrdenInfoFormValues>;
   watch: UseFormWatch<OrdenInfoFormValues>;
-  profesionales: SelectOption[];
+  participantesArl: SelectOption[];
   puedeVerFinanciera: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -41,7 +41,7 @@ export function SeccionActaServicio({
   register,
   control,
   watch,
-  profesionales,
+  participantesArl,
   puedeVerFinanciera,
   open,
   onOpenChange,
@@ -113,16 +113,16 @@ export function SeccionActaServicio({
                   onValueChange={(v: string | null) =>
                     field.onChange(v ? Number(v) : undefined)
                   }
-                  items={profesionales.map((p) => ({
+                  items={participantesArl.map((p) => ({
                     label: p.label,
                     value: String(p.id),
                   }))}
                 >
                   <SelectTrigger id="profesional_acta_id" className="w-full">
-                    <SelectValue placeholder="Selecciona un profesional" />
+                    <SelectValue placeholder="Selecciona un participante ARL" />
                   </SelectTrigger>
                   <SelectContent>
-                    {profesionales.map((p) => (
+                    {participantesArl.map((p) => (
                       <SelectItem key={p.id} value={String(p.id)}>
                         {p.label}
                       </SelectItem>

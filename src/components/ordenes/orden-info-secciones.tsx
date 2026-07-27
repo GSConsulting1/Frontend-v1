@@ -45,6 +45,7 @@ export type OrdenInfoSeccionesProps = {
   ciudades: SelectOption[];
   estadosEjecucion: SelectOption[];
   profesionales: SelectOption[];
+  participantesArl: SelectOption[];
   entregablesEstandar: SelectOption[];
   disabled: boolean;
   seccionAbierta: SeccionId | null;
@@ -59,6 +60,7 @@ export function OrdenInfoSecciones({
   ciudades,
   estadosEjecucion,
   profesionales,
+  participantesArl,
   entregablesEstandar,
   disabled,
   seccionAbierta,
@@ -101,6 +103,7 @@ export function OrdenInfoSecciones({
         control={control}
         watch={watch}
         profesionales={profesionales}
+        participantesArl={participantesArl}
         open={seccionAbierta === "detalle-entrega"}
         onOpenChange={(open) => onToggleSeccion("detalle-entrega", open)}
       />
@@ -148,7 +151,7 @@ export function OrdenInfoSecciones({
         control={control}
         errors={errors}
         watch={watch}
-        profesionales={profesionales}
+        participantesArl={participantesArl}
         puedeVerFinanciera={puedeVerFinanciera}
         open={seccionAbierta === "acta-servicio"}
         onOpenChange={(open) => onToggleSeccion("acta-servicio", open)}

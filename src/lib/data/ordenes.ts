@@ -198,10 +198,15 @@ export async function createOrdenRecord(input: OrdenServicioFormValues) {
   if (!isSupabaseConfigured) {
     const nextId = Math.max(0, ...mockOrdenes.map((o) => o.id)) + 1;
     const now = new Date().toISOString();
+    const dia = now.slice(0, 10);
+    // Mismo formato y criterio (consecutivo diario) que el trigger real —
+    // ver supabase/006_ordenes_servicio_id_unico.sql.
+    const consecutivoHoy =
+      mockOrdenes.filter((o) => (o.fecha_creacion ?? "").slice(0, 10) === dia).length + 1;
     mockOrdenes.push({
       ...normalizado,
       id: nextId,
-      id_unico: `OS-MOCK-${nextId}`,
+      id_unico: `OS-${dia.replace(/-/g, "")}-${String(consecutivoHoy).padStart(4, "0")}`,
       fecha_creacion: now,
       fecha_actualizacion: now,
     });
@@ -209,6 +214,9 @@ export async function createOrdenRecord(input: OrdenServicioFormValues) {
   }
   const supabase = await createSupabaseServerClient();
 
+  // id_unico no va en el insert: lo asigna el trigger
+  // generar_id_unico_orden (supabase/006_ordenes_servicio_id_unico.sql) con
+  // formato OS-AAAAMMDD-NNNN, consecutivo por día.
   const { data, error } = await supabase
     .from("ordenes_servicio")
     .insert(normalizado)

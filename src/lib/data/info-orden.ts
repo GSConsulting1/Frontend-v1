@@ -18,6 +18,7 @@ import {
   mockInfoOrdenServicio,
   mockLiquidacion,
   mockOrdenEntregablesEstandar,
+  mockParticipantesArl,
   mockRadicacionImagine,
   mockValorHoraOrden,
 } from "@/lib/mock-data/info-orden";
@@ -51,28 +52,40 @@ export async function getCatalogosInfoOrden() {
       entregablesEstandar: [...mockEntregablesEstandar].sort((a, b) =>
         a.nombre.localeCompare(b.nombre),
       ),
+      participantesArl: mockParticipantesArl
+        .filter((p) => p.activo)
+        .sort((a, b) => a.nombre_completo.localeCompare(b.nombre_completo)),
     };
   }
   const supabase = await createSupabaseServerClient();
 
-  const [ciudades, estadosEjecucion, entregablesEstandar] = await Promise.all([
-    supabase.from("ciudades").select("id, nombre, departamento").order("nombre"),
-    supabase
-      .from("estados_ejecucion")
-      .select("id, nombre, orden_visual")
-      .order("orden_visual"),
-    supabase.from("entregables_estandar").select("id, nombre").order("nombre"),
-  ]);
+  const [ciudades, estadosEjecucion, entregablesEstandar, participantesArl] =
+    await Promise.all([
+      supabase.from("ciudades").select("id, nombre, departamento").order("nombre"),
+      supabase
+        .from("estados_ejecucion")
+        .select("id, nombre, orden_visual")
+        .order("orden_visual"),
+      supabase.from("entregables_estandar").select("id, nombre").order("nombre"),
+      supabase
+        .from("participantes_arl")
+        .select("id, nombre_completo")
+        .eq("activo", true)
+        .order("nombre_completo"),
+    ]);
   if (ciudades.error) throw new Error(`No se pudieron cargar las ciudades: ${ciudades.error.message}`);
   if (estadosEjecucion.error)
     throw new Error(`No se pudieron cargar los estados de ejecución: ${estadosEjecucion.error.message}`);
   if (entregablesEstandar.error)
     throw new Error(`No se pudieron cargar los entregables estándar: ${entregablesEstandar.error.message}`);
+  if (participantesArl.error)
+    throw new Error(`No se pudieron cargar los participantes ARL: ${participantesArl.error.message}`);
 
   return {
     ciudades: ciudades.data ?? [],
     estadosEjecucion: estadosEjecucion.data ?? [],
     entregablesEstandar: entregablesEstandar.data ?? [],
+    participantesArl: participantesArl.data ?? [],
   };
 }
 
@@ -95,7 +108,7 @@ function enriquecerDetalleEntregaMock(ordenId: number): DetalleEntregaProfesiona
     profesional_vobo:
       mockProfesionales.find((p) => p.id === fila.profesional_vobo_id) ?? null,
     participante_arl:
-      mockProfesionales.find((p) => p.id === fila.participante_arl_id) ?? null,
+      mockParticipantesArl.find((p) => p.id === fila.participante_arl_id) ?? null,
   };
 }
 
@@ -115,7 +128,7 @@ function enriquecerActaServicioMock(ordenId: number): ActaServicioConRelaciones 
   return {
     ...fila,
     profesional_acta:
-      mockProfesionales.find((p) => p.id === fila.profesional_acta_id) ?? null,
+      mockParticipantesArl.find((p) => p.id === fila.profesional_acta_id) ?? null,
   };
 }
 
@@ -158,7 +171,7 @@ export async function getInfoOrdenCompleta(ordenId: number): Promise<OrdenInfoCo
     supabase
       .from("detalle_entrega_profesional")
       .select(
-        "*, profesional_vobo:profesionales!detalle_entrega_profesional_profesional_vobo_id_fkey(id, nombre_completo), participante_arl:profesionales!detalle_entrega_profesional_participante_arl_id_fkey(id, nombre_completo)",
+        "*, profesional_vobo:profesionales!detalle_entrega_profesional_profesional_vobo_id_fkey(id, nombre_completo), participante_arl:participantes_arl(id, nombre_completo)",
       )
       .eq("orden_id", ordenId)
       .maybeSingle(),
@@ -177,7 +190,7 @@ export async function getInfoOrdenCompleta(ordenId: number): Promise<OrdenInfoCo
     supabase.from("cuenta_cobro").select("*").eq("orden_id", ordenId).maybeSingle(),
     supabase
       .from("acta_servicio")
-      .select("*, profesional_acta:profesionales(id, nombre_completo)")
+      .select("*, profesional_acta:participantes_arl(id, nombre_completo)")
       .eq("orden_id", ordenId)
       .maybeSingle(),
     supabase.from("radicacion_imagine").select("*").eq("orden_id", ordenId).maybeSingle(),
@@ -286,6 +299,7 @@ function normalizarCuentaCobro(ordenId: number, input: CuentaCobroFormValues) {
     orden_id: ordenId,
     radicacion_cuenta: input.radicacion_cuenta ?? null,
     fecha_radicacion: orNull(input.fecha_radicacion),
+    numero_radicado: orNull(input.numero_radicado),
     fecha_corte: orNull(input.fecha_corte),
     corte_pago: orNull(input.corte_pago),
     fecha_pago: orNull(input.fecha_pago),
