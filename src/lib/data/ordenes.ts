@@ -15,7 +15,6 @@ import {
   mockClientes,
   mockOrdenes,
   mockProfesionales,
-  mockParticipantesArl,
 } from "@/lib/mock-data/ordenes";
 import { orNull } from "@/lib/utils";
 import type {
@@ -193,38 +192,21 @@ export async function getProfesionalesParaSelect() {
   return data ?? [];
 }
 
-// Catálogo aparte de profesionales (tabla `participantes_arl` en la BD real)
-// — quién participó por la ARL en el detalle de entrega. Ver comentario en
-// src/types/index.ts.
-export async function getParticipantesArlParaSelect() {
-  if (!isSupabaseConfigured) {
-    return mockParticipantesArl
-      .filter((p) => p.activo)
-      .map((p) => ({ id: p.id, nombre_completo: p.nombre_completo }));
-  }
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("participantes_arl")
-    .select("id, nombre_completo")
-    .eq("activo", true)
-    .order("nombre_completo");
-  if (error)
-    throw new Error(
-      `No se pudieron cargar los participantes ARL: ${error.message}`,
-    );
-  return data ?? [];
-}
-
 export async function createOrdenRecord(input: OrdenServicioFormValues) {
   const normalizado = normalizarInput(input);
 
   if (!isSupabaseConfigured) {
     const nextId = Math.max(0, ...mockOrdenes.map((o) => o.id)) + 1;
     const now = new Date().toISOString();
+    const dia = now.slice(0, 10);
+    // Mismo formato y criterio (consecutivo diario) que el trigger real —
+    // ver supabase/006_ordenes_servicio_id_unico.sql.
+    const consecutivoHoy =
+      mockOrdenes.filter((o) => (o.fecha_creacion ?? "").slice(0, 10) === dia).length + 1;
     mockOrdenes.push({
       ...normalizado,
       id: nextId,
-      id_unico: `OS-MOCK-${nextId}`,
+      id_unico: `OS-${dia.replace(/-/g, "")}-${String(consecutivoHoy).padStart(4, "0")}`,
       fecha_creacion: now,
       fecha_actualizacion: now,
     });
@@ -232,6 +214,9 @@ export async function createOrdenRecord(input: OrdenServicioFormValues) {
   }
   const supabase = await createSupabaseServerClient();
 
+  // id_unico no va en el insert: lo asigna el trigger
+  // generar_id_unico_orden (supabase/006_ordenes_servicio_id_unico.sql) con
+  // formato OS-AAAAMMDD-NNNN, consecutivo por día.
   const { data, error } = await supabase
     .from("ordenes_servicio")
     .insert(normalizado)

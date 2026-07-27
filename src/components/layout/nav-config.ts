@@ -1,4 +1,4 @@
-import { ClipboardList, Home, Users, type LucideIcon } from "lucide-react";
+import { ClipboardList, /* Home, */ Users, type LucideIcon } from "lucide-react";
 import type { RolUsuario } from "@/types";
 
 export interface NavItem {
@@ -11,7 +11,7 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { href: "/", label: "Inicio", icon: Home },
+  // { href: "/", label: "Inicio", icon: Home }, // deshabilitado temporalmente
   {
     href: "/ordenes",
     label: "Orden de servicio recibida",

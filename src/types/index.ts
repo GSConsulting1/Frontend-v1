@@ -8,9 +8,9 @@ import type { Database } from "./database.types";
 
 export type Cliente = Database["public"]["Tables"]["clientes"]["Row"];
 export type Profesional = Database["public"]["Tables"]["profesionales"]["Row"];
-// Catálogo aparte de `profesionales` (misma forma, otra tabla) — quién
-// participó por la ARL en el detalle de entrega. No confundir con
-// profesional_vobo, que sí sale de `profesionales`.
+// Catálogo fijo y separado de profesionales: equipo ARL/seguridad que firma
+// el detalle de entrega y el acta de servicio (ver participante_arl_id /
+// profesional_acta_id más abajo).
 export type ParticipanteArl =
   Database["public"]["Tables"]["participantes_arl"]["Row"];
 export type OrdenServicio =
@@ -51,7 +51,11 @@ export type ValorHoraOrden =
 // supabase/002_usuarios_roles_rls.sql. Si se agrega/renombra un rol ahí, hay
 // que reflejarlo acá también.
 export type RolUsuario =
-  "administrador" | "programador" | "profesional" | "lectura" | "financiero";
+  | "administrador"
+  | "programador"
+  | "profesional"
+  | "lectura"
+  | "financiero";
 
 // Perfil de src/components/auth/auth-provider.tsx (tabla `usuarios`, PK =
 // auth.users.id). No confundir con Profesional: un usuario con rol

@@ -77,10 +77,7 @@ export function SeccionDetalleEntrega({
             {...register("detalleEntrega.fecha_cierre_orden")}
           />
         </FormField>
-        <FormField
-          label="Profesional que da VoBo"
-          htmlFor="profesional_vobo_id"
-        >
+        <FormField label="Profesional que da VoBo" htmlFor="profesional_vobo_id">
           <Controller
             name="detalleEntrega.profesional_vobo_id"
             control={control}
@@ -147,7 +144,7 @@ export function SeccionDetalleEntrega({
                 }))}
               >
                 <SelectTrigger id="participante_arl_id" className="w-full">
-                  <SelectValue placeholder="Selecciona un participante" />
+                  <SelectValue placeholder="Selecciona un participante ARL" />
                 </SelectTrigger>
                 <SelectContent>
                   {participantesArl.map((p) => (

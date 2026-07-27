@@ -29,8 +29,6 @@ export type SeccionActaServicioProps = {
   control: Control<OrdenInfoFormValues>;
   errors: FieldErrors<OrdenInfoFormValues>;
   watch: UseFormWatch<OrdenInfoFormValues>;
-  // Catálogo aparte de `profesionales` (tabla `participantes_arl` en la BD
-  // real) — quién firma el acta. Ver comentario en src/types/index.ts.
   participantesArl: SelectOption[];
   puedeVerFinanciera: boolean;
   open: boolean;
@@ -63,9 +61,7 @@ export function SeccionActaServicio({
       }
       completo={algunoLleno(actaServicio)}
       locked={!puedeVerFinanciera}
-      chipTexto={
-        puedeVerFinanciera ? undefined : "Solo administrador/financiero"
-      }
+      chipTexto={puedeVerFinanciera ? undefined : "Solo administrador/financiero"}
       open={open}
       onOpenChange={onOpenChange}
     >
@@ -123,7 +119,7 @@ export function SeccionActaServicio({
                   }))}
                 >
                   <SelectTrigger id="profesional_acta_id" className="w-full">
-                    <SelectValue placeholder="Selecciona un participante" />
+                    <SelectValue placeholder="Selecciona un participante ARL" />
                   </SelectTrigger>
                   <SelectContent>
                     {participantesArl.map((p) => (

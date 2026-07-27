@@ -5,10 +5,7 @@
 
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import {
-  mockProfesionales,
-  mockParticipantesArl,
-} from "@/lib/mock-data/ordenes";
+import { mockProfesionales } from "@/lib/mock-data/ordenes";
 import {
   mockActaServicio,
   mockChecklistProceso,
@@ -21,6 +18,7 @@ import {
   mockInfoOrdenServicio,
   mockLiquidacion,
   mockOrdenEntregablesEstandar,
+  mockParticipantesArl,
   mockRadicacionImagine,
   mockValorHoraOrden,
 } from "@/lib/mock-data/info-orden";
@@ -47,53 +45,51 @@ import type {
 export async function getCatalogosInfoOrden() {
   if (!isSupabaseConfigured) {
     return {
-      ciudades: [...mockCiudades].sort((a, b) =>
-        a.nombre.localeCompare(b.nombre),
-      ),
+      ciudades: [...mockCiudades].sort((a, b) => a.nombre.localeCompare(b.nombre)),
       estadosEjecucion: [...mockEstadosEjecucion].sort(
         (a, b) => (a.orden_visual ?? 0) - (b.orden_visual ?? 0),
       ),
       entregablesEstandar: [...mockEntregablesEstandar].sort((a, b) =>
         a.nombre.localeCompare(b.nombre),
       ),
+      participantesArl: mockParticipantesArl
+        .filter((p) => p.activo)
+        .sort((a, b) => a.nombre_completo.localeCompare(b.nombre_completo)),
     };
   }
   const supabase = await createSupabaseServerClient();
 
-  const [ciudades, estadosEjecucion, entregablesEstandar] = await Promise.all([
-    supabase
-      .from("ciudades")
-      .select("id, nombre, departamento")
-      .order("nombre"),
-    supabase
-      .from("estados_ejecucion")
-      .select("id, nombre, orden_visual")
-      .order("orden_visual"),
-    supabase.from("entregables_estandar").select("id, nombre").order("nombre"),
-  ]);
-  if (ciudades.error)
-    throw new Error(
-      `No se pudieron cargar las ciudades: ${ciudades.error.message}`,
-    );
+  const [ciudades, estadosEjecucion, entregablesEstandar, participantesArl] =
+    await Promise.all([
+      supabase.from("ciudades").select("id, nombre, departamento").order("nombre"),
+      supabase
+        .from("estados_ejecucion")
+        .select("id, nombre, orden_visual")
+        .order("orden_visual"),
+      supabase.from("entregables_estandar").select("id, nombre").order("nombre"),
+      supabase
+        .from("participantes_arl")
+        .select("id, nombre_completo")
+        .eq("activo", true)
+        .order("nombre_completo"),
+    ]);
+  if (ciudades.error) throw new Error(`No se pudieron cargar las ciudades: ${ciudades.error.message}`);
   if (estadosEjecucion.error)
-    throw new Error(
-      `No se pudieron cargar los estados de ejecución: ${estadosEjecucion.error.message}`,
-    );
+    throw new Error(`No se pudieron cargar los estados de ejecución: ${estadosEjecucion.error.message}`);
   if (entregablesEstandar.error)
-    throw new Error(
-      `No se pudieron cargar los entregables estándar: ${entregablesEstandar.error.message}`,
-    );
+    throw new Error(`No se pudieron cargar los entregables estándar: ${entregablesEstandar.error.message}`);
+  if (participantesArl.error)
+    throw new Error(`No se pudieron cargar los participantes ARL: ${participantesArl.error.message}`);
 
   return {
     ciudades: ciudades.data ?? [],
     estadosEjecucion: estadosEjecucion.data ?? [],
     entregablesEstandar: entregablesEstandar.data ?? [],
+    participantesArl: participantesArl.data ?? [],
   };
 }
 
-function enriquecerInfoOrdenServicioMock(
-  ordenId: number,
-): InfoOrdenServicioConRelaciones | null {
+function enriquecerInfoOrdenServicioMock(ordenId: number): InfoOrdenServicioConRelaciones | null {
   const fila = mockInfoOrdenServicio.find((i) => i.orden_id === ordenId);
   if (!fila) return null;
   return {
@@ -104,52 +100,39 @@ function enriquecerInfoOrdenServicioMock(
   };
 }
 
-function enriquecerDetalleEntregaMock(
-  ordenId: number,
-): DetalleEntregaProfesionalConRelaciones | null {
-  const fila = mockDetalleEntregaProfesional.find(
-    (d) => d.orden_id === ordenId,
-  );
+function enriquecerDetalleEntregaMock(ordenId: number): DetalleEntregaProfesionalConRelaciones | null {
+  const fila = mockDetalleEntregaProfesional.find((d) => d.orden_id === ordenId);
   if (!fila) return null;
   return {
     ...fila,
     profesional_vobo:
       mockProfesionales.find((p) => p.id === fila.profesional_vobo_id) ?? null,
     participante_arl:
-      mockParticipantesArl.find((p) => p.id === fila.participante_arl_id) ??
-      null,
+      mockParticipantesArl.find((p) => p.id === fila.participante_arl_id) ?? null,
   };
 }
 
-function enriquecerChecklistMock(
-  ordenId: number,
-): ChecklistProcesoConRelaciones | null {
+function enriquecerChecklistMock(ordenId: number): ChecklistProcesoConRelaciones | null {
   const fila = mockChecklistProceso.find((c) => c.orden_id === ordenId);
   if (!fila) return null;
   return {
     ...fila,
     estado_ejecucion:
-      mockEstadosEjecucion.find((e) => e.id === fila.estado_ejecucion_id) ??
-      null,
+      mockEstadosEjecucion.find((e) => e.id === fila.estado_ejecucion_id) ?? null,
   };
 }
 
-function enriquecerActaServicioMock(
-  ordenId: number,
-): ActaServicioConRelaciones | null {
+function enriquecerActaServicioMock(ordenId: number): ActaServicioConRelaciones | null {
   const fila = mockActaServicio.find((a) => a.orden_id === ordenId);
   if (!fila) return null;
   return {
     ...fila,
     profesional_acta:
-      mockParticipantesArl.find((p) => p.id === fila.profesional_acta_id) ??
-      null,
+      mockParticipantesArl.find((p) => p.id === fila.profesional_acta_id) ?? null,
   };
 }
 
-export async function getInfoOrdenCompleta(
-  ordenId: number,
-): Promise<OrdenInfoCompleta> {
+export async function getInfoOrdenCompleta(ordenId: number): Promise<OrdenInfoCompleta> {
   if (!isSupabaseConfigured) {
     return {
       infoOrdenServicio: enriquecerInfoOrdenServicioMock(ordenId),
@@ -158,13 +141,10 @@ export async function getInfoOrdenCompleta(
       entregablesSeleccionados: mockOrdenEntregablesEstandar
         .filter((e) => e.orden_id === ordenId)
         .map((e) => e.entregable_id),
-      valorHora:
-        mockValorHoraOrden.find((v) => v.orden_id === ordenId)
-          ?.valor_hora_profesional ?? null,
+      valorHora: mockValorHoraOrden.find((v) => v.orden_id === ordenId)?.valor_hora_profesional ?? null,
       cuentaCobro: mockCuentaCobro.find((c) => c.orden_id === ordenId) ?? null,
       actaServicio: enriquecerActaServicioMock(ordenId),
-      radicacionImagine:
-        mockRadicacionImagine.find((r) => r.orden_id === ordenId) ?? null,
+      radicacionImagine: mockRadicacionImagine.find((r) => r.orden_id === ordenId) ?? null,
       facturacion: mockFacturacion.find((f) => f.orden_id === ordenId) ?? null,
       liquidacion: mockLiquidacion.find((l) => l.orden_id === ordenId) ?? null,
     };
@@ -185,15 +165,13 @@ export async function getInfoOrdenCompleta(
   ] = await Promise.all([
     supabase
       .from("info_orden_servicio")
-      .select(
-        "*, ciudad:ciudades(id, nombre), profesional:profesionales(id, nombre_completo, cedula, telefono)",
-      )
+      .select("*, ciudad:ciudades(id, nombre), profesional:profesionales(id, nombre_completo, cedula, telefono)")
       .eq("orden_id", ordenId)
       .maybeSingle(),
     supabase
       .from("detalle_entrega_profesional")
       .select(
-        "*, profesional_vobo:profesionales!detalle_entrega_profesional_profesional_vobo_id_fkey(id, nombre_completo), participante_arl:participantes_arl!detalle_entrega_profesional_participante_arl_id_fkey(id, nombre_completo)",
+        "*, profesional_vobo:profesionales!detalle_entrega_profesional_profesional_vobo_id_fkey(id, nombre_completo), participante_arl:participantes_arl(id, nombre_completo)",
       )
       .eq("orden_id", ordenId)
       .maybeSingle(),
@@ -202,112 +180,60 @@ export async function getInfoOrdenCompleta(
       .select("*, estado_ejecucion:estados_ejecucion(id, nombre)")
       .eq("orden_id", ordenId)
       .maybeSingle(),
-    supabase
-      .from("orden_entregables_estandar")
-      .select("entregable_id")
-      .eq("orden_id", ordenId),
+    supabase.from("orden_entregables_estandar").select("entregable_id").eq("orden_id", ordenId),
     // Si el usuario actual no es administrador ni financiero, RLS hace que
     // esto devuelva 0 filas (no un error) — maybeSingle() lo resuelve como
     // null, que es exactamente el comportamiento que queremos (RoleGate ya
     // oculta el campo, pero aunque no lo hiciera, acá nunca llega el valor
     // real). Mismo criterio para las 5 queries financieras de abajo.
-    supabase
-      .from("valor_hora_orden")
-      .select("valor_hora_profesional")
-      .eq("orden_id", ordenId)
-      .maybeSingle(),
-    supabase
-      .from("cuenta_cobro")
-      .select("*")
-      .eq("orden_id", ordenId)
-      .maybeSingle(),
+    supabase.from("valor_hora_orden").select("valor_hora_profesional").eq("orden_id", ordenId).maybeSingle(),
+    supabase.from("cuenta_cobro").select("*").eq("orden_id", ordenId).maybeSingle(),
     supabase
       .from("acta_servicio")
       .select("*, profesional_acta:participantes_arl(id, nombre_completo)")
       .eq("orden_id", ordenId)
       .maybeSingle(),
-    supabase
-      .from("radicacion_imagine")
-      .select("*")
-      .eq("orden_id", ordenId)
-      .maybeSingle(),
-    supabase
-      .from("facturacion")
-      .select("*")
-      .eq("orden_id", ordenId)
-      .maybeSingle(),
-    supabase
-      .from("liquidacion")
-      .select("*")
-      .eq("orden_id", ordenId)
-      .maybeSingle(),
+    supabase.from("radicacion_imagine").select("*").eq("orden_id", ordenId).maybeSingle(),
+    supabase.from("facturacion").select("*").eq("orden_id", ordenId).maybeSingle(),
+    supabase.from("liquidacion").select("*").eq("orden_id", ordenId).maybeSingle(),
   ]);
 
   if (infoOrdenServicio.error)
-    throw new Error(
-      `No se pudo cargar la información de la orden: ${infoOrdenServicio.error.message}`,
-    );
+    throw new Error(`No se pudo cargar la información de la orden: ${infoOrdenServicio.error.message}`);
   if (detalleEntrega.error)
-    throw new Error(
-      `No se pudo cargar el detalle de entrega: ${detalleEntrega.error.message}`,
-    );
+    throw new Error(`No se pudo cargar el detalle de entrega: ${detalleEntrega.error.message}`);
   if (checklist.error)
-    throw new Error(
-      `No se pudo cargar el checklist: ${checklist.error.message}`,
-    );
+    throw new Error(`No se pudo cargar el checklist: ${checklist.error.message}`);
   if (entregables.error)
-    throw new Error(
-      `No se pudieron cargar los entregables estándar: ${entregables.error.message}`,
-    );
+    throw new Error(`No se pudieron cargar los entregables estándar: ${entregables.error.message}`);
   if (valorHora.error)
-    throw new Error(
-      `No se pudo cargar el valor hora: ${valorHora.error.message}`,
-    );
+    throw new Error(`No se pudo cargar el valor hora: ${valorHora.error.message}`);
   if (cuentaCobro.error)
-    throw new Error(
-      `No se pudo cargar la cuenta de cobro: ${cuentaCobro.error.message}`,
-    );
+    throw new Error(`No se pudo cargar la cuenta de cobro: ${cuentaCobro.error.message}`);
   if (actaServicio.error)
-    throw new Error(
-      `No se pudo cargar el acta de servicio: ${actaServicio.error.message}`,
-    );
+    throw new Error(`No se pudo cargar el acta de servicio: ${actaServicio.error.message}`);
   if (radicacionImagine.error)
-    throw new Error(
-      `No se pudo cargar la radicación Imagine: ${radicacionImagine.error.message}`,
-    );
+    throw new Error(`No se pudo cargar la radicación Imagine: ${radicacionImagine.error.message}`);
   if (facturacion.error)
-    throw new Error(
-      `No se pudo cargar la facturación: ${facturacion.error.message}`,
-    );
+    throw new Error(`No se pudo cargar la facturación: ${facturacion.error.message}`);
   if (liquidacion.error)
-    throw new Error(
-      `No se pudo cargar la liquidación: ${liquidacion.error.message}`,
-    );
+    throw new Error(`No se pudo cargar la liquidación: ${liquidacion.error.message}`);
 
   return {
-    infoOrdenServicio:
-      infoOrdenServicio.data as unknown as InfoOrdenServicioConRelaciones | null,
-    detalleEntrega:
-      detalleEntrega.data as unknown as DetalleEntregaProfesionalConRelaciones | null,
-    checklist:
-      checklist.data as unknown as ChecklistProcesoConRelaciones | null,
-    entregablesSeleccionados: (entregables.data ?? []).map(
-      (e) => e.entregable_id,
-    ),
+    infoOrdenServicio: infoOrdenServicio.data as unknown as InfoOrdenServicioConRelaciones | null,
+    detalleEntrega: detalleEntrega.data as unknown as DetalleEntregaProfesionalConRelaciones | null,
+    checklist: checklist.data as unknown as ChecklistProcesoConRelaciones | null,
+    entregablesSeleccionados: (entregables.data ?? []).map((e) => e.entregable_id),
     valorHora: valorHora.data?.valor_hora_profesional ?? null,
     cuentaCobro: cuentaCobro.data,
-    actaServicio:
-      actaServicio.data as unknown as ActaServicioConRelaciones | null,
+    actaServicio: actaServicio.data as unknown as ActaServicioConRelaciones | null,
     radicacionImagine: radicacionImagine.data,
     facturacion: facturacion.data,
     liquidacion: liquidacion.data,
   };
 }
 
-function normalizarInfoOrdenServicio(
-  ordenId: number,
-  input: InfoOrdenServicioFormValues,
-) {
+function normalizarInfoOrdenServicio(ordenId: number, input: InfoOrdenServicioFormValues) {
   return {
     orden_id: ordenId,
     fecha_emision_os: orNull(input.fecha_emision_os),
@@ -331,10 +257,7 @@ function normalizarInfoOrdenServicio(
   };
 }
 
-function normalizarDetalleEntrega(
-  ordenId: number,
-  input: DetalleEntregaProfesionalFormValues,
-) {
+function normalizarDetalleEntrega(ordenId: number, input: DetalleEntregaProfesionalFormValues) {
   return {
     orden_id: ordenId,
     entregables_especificos: orNull(input.entregables_especificos),
@@ -354,10 +277,7 @@ function normalizarValorHora(ordenId: number, input: ValorHoraOrdenFormValues) {
   };
 }
 
-function normalizarChecklist(
-  ordenId: number,
-  input: ChecklistProcesoFormValues,
-) {
+function normalizarChecklist(ordenId: number, input: ChecklistProcesoFormValues) {
   return {
     orden_id: ordenId,
     envio_at031: input.envio_at031 ?? null,
@@ -379,6 +299,7 @@ function normalizarCuentaCobro(ordenId: number, input: CuentaCobroFormValues) {
     orden_id: ordenId,
     radicacion_cuenta: input.radicacion_cuenta ?? null,
     fecha_radicacion: orNull(input.fecha_radicacion),
+    numero_radicado: orNull(input.numero_radicado),
     fecha_corte: orNull(input.fecha_corte),
     corte_pago: orNull(input.corte_pago),
     fecha_pago: orNull(input.fecha_pago),
@@ -387,10 +308,7 @@ function normalizarCuentaCobro(ordenId: number, input: CuentaCobroFormValues) {
   };
 }
 
-function normalizarActaServicio(
-  ordenId: number,
-  input: ActaServicioFormValues,
-) {
+function normalizarActaServicio(ordenId: number, input: ActaServicioFormValues) {
   return {
     orden_id: ordenId,
     fecha_acta: orNull(input.fecha_acta),
@@ -399,10 +317,7 @@ function normalizarActaServicio(
   };
 }
 
-function normalizarRadicacionImagine(
-  ordenId: number,
-  input: RadicacionImagineFormValues,
-) {
+function normalizarRadicacionImagine(ordenId: number, input: RadicacionImagineFormValues) {
   return {
     orden_id: ordenId,
     numero_radicado_1: orNull(input.numero_radicado_1),
@@ -458,58 +373,35 @@ export type GuardarInfoOrdenInput = {
   liquidacion?: LiquidacionFormValues;
 };
 
-export async function guardarInfoOrdenCompleta(
-  ordenId: number,
-  datos: GuardarInfoOrdenInput,
-) {
+export async function guardarInfoOrdenCompleta(ordenId: number, datos: GuardarInfoOrdenInput) {
   if (!isSupabaseConfigured) {
     if (datos.infoOrdenServicio) {
-      const normalizado = normalizarInfoOrdenServicio(
-        ordenId,
-        datos.infoOrdenServicio,
-      );
-      const index = mockInfoOrdenServicio.findIndex(
-        (i) => i.orden_id === ordenId,
-      );
+      const normalizado = normalizarInfoOrdenServicio(ordenId, datos.infoOrdenServicio);
+      const index = mockInfoOrdenServicio.findIndex((i) => i.orden_id === ordenId);
       const existente = index >= 0 ? mockInfoOrdenServicio[index] : undefined;
       const fila = {
         consecutivo_os_profesional:
-          existente?.consecutivo_os_profesional ??
-          mockInfoOrdenServicio.length + 1000 + 1,
+          existente?.consecutivo_os_profesional ?? mockInfoOrdenServicio.length + 1000 + 1,
         ...normalizado,
       };
       if (index >= 0) mockInfoOrdenServicio[index] = fila;
       else mockInfoOrdenServicio.push(fila);
     }
     if (datos.detalleEntrega) {
-      const normalizado = normalizarDetalleEntrega(
-        ordenId,
-        datos.detalleEntrega,
-      );
-      const index = mockDetalleEntregaProfesional.findIndex(
-        (d) => d.orden_id === ordenId,
-      );
+      const normalizado = normalizarDetalleEntrega(ordenId, datos.detalleEntrega);
+      const index = mockDetalleEntregaProfesional.findIndex((d) => d.orden_id === ordenId);
       if (index >= 0) mockDetalleEntregaProfesional[index] = normalizado;
       else mockDetalleEntregaProfesional.push(normalizado);
     }
     if (datos.checklist) {
       const normalizado = normalizarChecklist(ordenId, datos.checklist);
-      const index = mockChecklistProceso.findIndex(
-        (c) => c.orden_id === ordenId,
-      );
+      const index = mockChecklistProceso.findIndex((c) => c.orden_id === ordenId);
       if (index >= 0) mockChecklistProceso[index] = normalizado;
       else mockChecklistProceso.push(normalizado);
     }
     if (datos.entregablesIds) {
-      const restantes = mockOrdenEntregablesEstandar.filter(
-        (e) => e.orden_id !== ordenId,
-      );
-      restantes.push(
-        ...datos.entregablesIds.map((entregable_id) => ({
-          orden_id: ordenId,
-          entregable_id,
-        })),
-      );
+      const restantes = mockOrdenEntregablesEstandar.filter((e) => e.orden_id !== ordenId);
+      restantes.push(...datos.entregablesIds.map((entregable_id) => ({ orden_id: ordenId, entregable_id })));
       mockOrdenEntregablesEstandar.length = 0;
       mockOrdenEntregablesEstandar.push(...restantes);
     }
@@ -532,13 +424,8 @@ export async function guardarInfoOrdenCompleta(
       else mockActaServicio.push(normalizado);
     }
     if (datos.radicacionImagine) {
-      const normalizado = normalizarRadicacionImagine(
-        ordenId,
-        datos.radicacionImagine,
-      );
-      const index = mockRadicacionImagine.findIndex(
-        (r) => r.orden_id === ordenId,
-      );
+      const normalizado = normalizarRadicacionImagine(ordenId, datos.radicacionImagine);
+      const index = mockRadicacionImagine.findIndex((r) => r.orden_id === ordenId);
       if (index >= 0) mockRadicacionImagine[index] = normalizado;
       else mockRadicacionImagine.push(normalizado);
     }
@@ -561,31 +448,20 @@ export async function guardarInfoOrdenCompleta(
   if (datos.infoOrdenServicio) {
     const { error } = await supabase
       .from("info_orden_servicio")
-      .upsert(normalizarInfoOrdenServicio(ordenId, datos.infoOrdenServicio), {
-        onConflict: "orden_id",
-      });
-    if (error)
-      throw new Error(`No se pudo guardar la actividad: ${error.message}`);
+      .upsert(normalizarInfoOrdenServicio(ordenId, datos.infoOrdenServicio), { onConflict: "orden_id" });
+    if (error) throw new Error(`No se pudo guardar la actividad: ${error.message}`);
   }
   if (datos.detalleEntrega) {
     const { error } = await supabase
       .from("detalle_entrega_profesional")
-      .upsert(normalizarDetalleEntrega(ordenId, datos.detalleEntrega), {
-        onConflict: "orden_id",
-      });
-    if (error)
-      throw new Error(
-        `No se pudo guardar el detalle de entrega: ${error.message}`,
-      );
+      .upsert(normalizarDetalleEntrega(ordenId, datos.detalleEntrega), { onConflict: "orden_id" });
+    if (error) throw new Error(`No se pudo guardar el detalle de entrega: ${error.message}`);
   }
   if (datos.checklist) {
     const { error } = await supabase
       .from("checklist_proceso")
-      .upsert(normalizarChecklist(ordenId, datos.checklist), {
-        onConflict: "orden_id",
-      });
-    if (error)
-      throw new Error(`No se pudo guardar el checklist: ${error.message}`);
+      .upsert(normalizarChecklist(ordenId, datos.checklist), { onConflict: "orden_id" });
+    if (error) throw new Error(`No se pudo guardar el checklist: ${error.message}`);
   }
   if (datos.entregablesIds) {
     const { error: deleteError } = await supabase
@@ -593,84 +469,51 @@ export async function guardarInfoOrdenCompleta(
       .delete()
       .eq("orden_id", ordenId);
     if (deleteError)
-      throw new Error(
-        `No se pudieron actualizar los entregables estándar: ${deleteError.message}`,
-      );
+      throw new Error(`No se pudieron actualizar los entregables estándar: ${deleteError.message}`);
 
     if (datos.entregablesIds.length > 0) {
       const { error: insertError } = await supabase
         .from("orden_entregables_estandar")
-        .insert(
-          datos.entregablesIds.map((entregable_id) => ({
-            orden_id: ordenId,
-            entregable_id,
-          })),
-        );
+        .insert(datos.entregablesIds.map((entregable_id) => ({ orden_id: ordenId, entregable_id })));
       if (insertError)
-        throw new Error(
-          `No se pudieron actualizar los entregables estándar: ${insertError.message}`,
-        );
+        throw new Error(`No se pudieron actualizar los entregables estándar: ${insertError.message}`);
     }
   }
   if (datos.valorHora) {
     const { error } = await supabase
       .from("valor_hora_orden")
-      .upsert(normalizarValorHora(ordenId, datos.valorHora), {
-        onConflict: "orden_id",
-      });
-    if (error)
-      throw new Error(`No se pudo guardar el valor hora: ${error.message}`);
+      .upsert(normalizarValorHora(ordenId, datos.valorHora), { onConflict: "orden_id" });
+    if (error) throw new Error(`No se pudo guardar el valor hora: ${error.message}`);
   }
   if (datos.cuentaCobro) {
     const { error } = await supabase
       .from("cuenta_cobro")
-      .upsert(normalizarCuentaCobro(ordenId, datos.cuentaCobro), {
-        onConflict: "orden_id",
-      });
-    if (error)
-      throw new Error(
-        `No se pudo guardar la cuenta de cobro: ${error.message}`,
-      );
+      .upsert(normalizarCuentaCobro(ordenId, datos.cuentaCobro), { onConflict: "orden_id" });
+    if (error) throw new Error(`No se pudo guardar la cuenta de cobro: ${error.message}`);
   }
   if (datos.actaServicio) {
     const { error } = await supabase
       .from("acta_servicio")
-      .upsert(normalizarActaServicio(ordenId, datos.actaServicio), {
-        onConflict: "orden_id",
-      });
-    if (error)
-      throw new Error(
-        `No se pudo guardar el acta de servicio: ${error.message}`,
-      );
+      .upsert(normalizarActaServicio(ordenId, datos.actaServicio), { onConflict: "orden_id" });
+    if (error) throw new Error(`No se pudo guardar el acta de servicio: ${error.message}`);
   }
   if (datos.radicacionImagine) {
     const { error } = await supabase
       .from("radicacion_imagine")
-      .upsert(normalizarRadicacionImagine(ordenId, datos.radicacionImagine), {
-        onConflict: "orden_id",
-      });
-    if (error)
-      throw new Error(
-        `No se pudo guardar la radicación Imagine: ${error.message}`,
-      );
+      .upsert(normalizarRadicacionImagine(ordenId, datos.radicacionImagine), { onConflict: "orden_id" });
+    if (error) throw new Error(`No se pudo guardar la radicación Imagine: ${error.message}`);
   }
   if (datos.facturacion) {
     const { error } = await supabase
       .from("facturacion")
-      .upsert(normalizarFacturacion(ordenId, datos.facturacion), {
-        onConflict: "orden_id",
-      });
-    if (error)
-      throw new Error(`No se pudo guardar la facturación: ${error.message}`);
+      .upsert(normalizarFacturacion(ordenId, datos.facturacion), { onConflict: "orden_id" });
+    if (error) throw new Error(`No se pudo guardar la facturación: ${error.message}`);
   }
   if (datos.liquidacion) {
     const { error } = await supabase
       .from("liquidacion")
-      .upsert(normalizarLiquidacion(ordenId, datos.liquidacion), {
-        onConflict: "orden_id",
-      });
-    if (error)
-      throw new Error(`No se pudo guardar la liquidación: ${error.message}`);
+      .upsert(normalizarLiquidacion(ordenId, datos.liquidacion), { onConflict: "orden_id" });
+    if (error) throw new Error(`No se pudo guardar la liquidación: ${error.message}`);
   }
 }
 
@@ -697,9 +540,7 @@ export async function eliminarInfoOrdenCompleta(ordenId: number) {
       const index = arr.findIndex((f) => f.orden_id === ordenId);
       if (index >= 0) arr.splice(index, 1);
     }
-    const restantes = mockOrdenEntregablesEstandar.filter(
-      (e) => e.orden_id !== ordenId,
-    );
+    const restantes = mockOrdenEntregablesEstandar.filter((e) => e.orden_id !== ordenId);
     mockOrdenEntregablesEstandar.length = 0;
     mockOrdenEntregablesEstandar.push(...restantes);
     return;
@@ -718,18 +559,12 @@ export async function eliminarInfoOrdenCompleta(ordenId: number) {
     "facturacion",
     "liquidacion",
   ] as const) {
-    const { error } = await supabase
-      .from(tabla)
-      .delete()
-      .eq("orden_id", ordenId);
+    const { error } = await supabase.from(tabla).delete().eq("orden_id", ordenId);
     // Si el usuario actual no es administrador ni financiero, RLS bloquea el
     // DELETE en valor_hora_orden y en las 5 tablas financieras — eso es
     // correcto (no debería poder borrar ese dato), pero entonces
     // eliminarOrden tampoco puede completarse: borrar una orden completa
     // queda reservado a quien además pueda limpiar esas tablas.
-    if (error)
-      throw new Error(
-        `No se pudo borrar "${tabla}" de la orden: ${error.message}`,
-      );
+    if (error) throw new Error(`No se pudo borrar "${tabla}" de la orden: ${error.message}`);
   }
 }

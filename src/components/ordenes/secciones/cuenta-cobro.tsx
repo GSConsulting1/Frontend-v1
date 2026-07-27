@@ -85,6 +85,12 @@ export function SeccionCuentaCobro({
               {...register("cuentaCobro.fecha_radicacion")}
             />
           </FormField>
+          <FormField label="Número de radicado" htmlFor="numero_radicado">
+            <Input
+              id="numero_radicado"
+              {...register("cuentaCobro.numero_radicado")}
+            />
+          </FormField>
           <FormField label="Fecha de corte" htmlFor="fecha_corte">
             <Input
               id="fecha_corte"
