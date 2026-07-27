@@ -24,6 +24,13 @@ function formatFecha(iso: string | null): string {
   return `${day}/${month}/${year}`;
 }
 
+function formatFechaHoy(): string {
+  const hoy = new Date();
+  const day = String(hoy.getDate()).padStart(2, "0");
+  const month = String(hoy.getMonth() + 1).padStart(2, "0");
+  return `${day}/${month}/${hoy.getFullYear()}`;
+}
+
 function formatHora(hora: string | null): string {
   if (!hora) return "";
   return hora.slice(0, 5);
@@ -108,10 +115,12 @@ export async function GET(
     return NextResponse.json({ error: entregables.error.message }, { status: 500 });
   }
 
-  const horasAsignadas = info.data?.horas_asignadas ?? 0;
+  const horasAsignadas = info.data?.horas_asignadas ?? null;
   const valorHoraProfesional = valorHora.data?.valor_hora_profesional ?? null;
   const costoTotal =
-    valorHoraProfesional != null ? valorHoraProfesional * horasAsignadas : null;
+    valorHoraProfesional != null && horasAsignadas != null
+      ? valorHoraProfesional * horasAsignadas
+      : null;
 
   const contacto = info.data
     ? [
@@ -137,14 +146,14 @@ export async function GET(
       .join(", ") ?? "";
 
   const data: OrdenServicioData = {
-    encabezadoFecha: "3/01/2025",
+    encabezadoFecha: formatFechaHoy(),
     encabezadoCodigo: "GS-FIN-FT-001",
     encabezadoVersion: "2",
     fechaEmision: formatFecha(info.data?.fecha_emision_os ?? null),
     profesionalNombre: info.data?.profesional?.nombre_completo ?? "",
     profesionalCedula: info.data?.profesional?.cedula ?? "",
     ciudad: info.data?.ciudad?.nombre ?? "",
-    numeroOrden: orden.data.id_unico ?? `#${orden.data.id}`,
+    numeroOrden: orden.data.id_unico ?? "",
     nombreEmpresaCliente: orden.data.cliente?.nombre_cliente ?? "",
     nombreActividad: info.data?.nombre_actividad ?? "",
     descripcionActividad: info.data?.descripcion_actividad ?? "",
@@ -165,10 +174,12 @@ export async function GET(
 
   const buffer = await renderToBuffer(<OrdenServicioDocument data={data} />);
 
+  const nombreArchivo = orden.data.id_unico ?? `${orden.data.id}`;
+
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="orden-servicio-${data.numeroOrden}.pdf"`,
+      "Content-Disposition": `inline; filename="orden-servicio-${nombreArchivo}.pdf"`,
     },
   });
 }

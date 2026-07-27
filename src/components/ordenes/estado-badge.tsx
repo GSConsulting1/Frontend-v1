@@ -12,6 +12,9 @@ function variantParaEstado(nombre: string): "default" | "secondary" | "destructi
   return "secondary";
 }
 
+// `estado` es un string con CHECK directo en `ordenes_servicio` (ver
+// ESTADO_ORDEN_OPCIONES en lib/validations/orden.schema.ts) — no hay
+// tabla de catálogo que unir.
 export function EstadoBadge({ estado }: { estado: string | null }) {
   if (!estado) return <Badge variant="secondary">Sin estado</Badge>;
   return <Badge variant={variantParaEstado(estado)}>{estado}</Badge>;

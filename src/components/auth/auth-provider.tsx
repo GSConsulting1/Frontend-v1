@@ -29,6 +29,8 @@ type AuthContextValue = {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
+  updatePassword: (newPassword: string) => Promise<{ error: string | null }>;
+  sendPasswordResetEmail: (email: string) => Promise<{ error: string | null }>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -96,8 +98,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push("/login");
   }
 
+  // Requiere sesión activa (cambio de contraseña logueado) o una sesión de
+  // recovery (tras clickear el link de "olvidé mi contraseña" — ver
+  // sendPasswordResetEmail): en ambos casos Supabase ya considera al usuario
+  // identificado, así que updateUser no vuelve a pedir la contraseña actual.
+  async function updatePassword(newPassword: string) {
+    if (!supabaseBrowser) {
+      return { error: "Supabase todavía no está configurado (faltan las env vars)." };
+    }
+    const { error } = await supabaseBrowser.auth.updateUser({ password: newPassword });
+    return { error: error ? error.message : null };
+  }
+
+  // redirectTo debe estar en la lista de Redirect URLs del proyecto de
+  // Supabase (Authentication > URL Configuration) o el link del correo no
+  // funciona. Se arma con window.location.origin (no una env var) para que
+  // funcione igual en local y en cada deploy sin configurar nada extra acá.
+  async function sendPasswordResetEmail(email: string) {
+    if (!supabaseBrowser) {
+      return { error: "Supabase todavía no está configurado (faltan las env vars)." };
+    }
+    const { error } = await supabaseBrowser.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/actualizar-password`,
+    });
+    return { error: error ? error.message : null };
+  }
+
   return (
-    <AuthContext.Provider value={{ session, perfil, loading, signIn, signOut }}>
+    <AuthContext.Provider
+      value={{
+        session,
+        perfil,
+        loading,
+        signIn,
+        signOut,
+        updatePassword,
+        sendPasswordResetEmail,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

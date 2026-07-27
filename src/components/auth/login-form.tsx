@@ -9,10 +9,11 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff } from "lucide-react";
+// import Link from "next/link"; // deshabilitado junto con el enlace de recuperar contraseña
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { PasswordInput } from "@/components/forms/password-input";
 import { useAuth } from "@/components/auth/auth-provider";
 
 export function LoginForm() {
@@ -20,7 +21,6 @@ export function LoginForm() {
   const { signIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -74,32 +74,15 @@ export function LoginForm() {
           <Label htmlFor="password" className="sr-only">
             Contraseña
           </Label>
-          <div className="relative">
-            <Input
-              id="password"
-              type={showPassword ? "text" : "password"}
-              placeholder="Contraseña"
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="h-auto rounded-lg border-[#E4E2DF] px-3.5 py-3 pr-10 text-sm text-[#1F2023]"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword((v) => !v)}
-              aria-label={
-                showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
-              }
-              className="absolute inset-y-0 right-0 flex items-center px-3 text-[#87858F] hover:text-[#1F2023]"
-            >
-              {showPassword ? (
-                <EyeOff className="size-4" />
-              ) : (
-                <Eye className="size-4" />
-              )}
-            </button>
-          </div>
+          <PasswordInput
+            id="password"
+            placeholder="Contraseña"
+            autoComplete="current-password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="h-auto rounded-lg border-[#E4E2DF] px-3.5 py-3 text-sm text-[#1F2023]"
+          />
         </div>
       </div>
 
@@ -115,10 +98,14 @@ export function LoginForm() {
         {pending ? "Ingresando…" : "Ingresar"}
       </Button>
 
-      {/* TODO: agregar esta funcionalidad en un futuro <p className="text-xs text-[#ABA9A4]">
+      {/* Recuperar contraseña deshabilitado temporalmente — no eliminar, ver CLAUDE/feedback.
+      <p className="text-xs text-[#ABA9A4]">
         ¿Olvidaste tu contraseña?{" "}
-        <span className="font-semibold text-[#A23E8C]">Recupérala aquí</span>
-      </p> */}
+        <Link href="/recuperar-password" className="font-semibold text-[#A23E8C]">
+          Recupérala aquí
+        </Link>
+      </p>
+      */}
     </form>
   );
 }

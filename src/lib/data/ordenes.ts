@@ -27,6 +27,10 @@ export type OrdenesFiltros = {
   clienteId?: number;
   desde?: string;
   hasta?: string;
+  numeroOs?: string;
+  tipoServicio?: string;
+  estado?: string;
+  secuencia?: string;
 };
 
 // Normaliza los campos opcionales de texto ("" -> null) del formulario antes
@@ -34,7 +38,7 @@ export type OrdenesFiltros = {
 function normalizarInput(input: OrdenServicioFormValues) {
   return {
     cliente_id: input.cliente_id,
-    estado: input.estado ?? null,
+    estado: orNull(input.estado),
     numero_os_cliente: orNull(input.numero_os_cliente),
     fecha_recepcion_os: orNull(input.fecha_recepcion_os),
     nombre_empresa_usuaria: orNull(input.nombre_empresa_usuaria),
@@ -47,14 +51,9 @@ function normalizarInput(input: OrdenServicioFormValues) {
     fecha_sipab: orNull(input.fecha_sipab),
     asesor_gestion_riesgos: orNull(input.asesor_gestion_riesgos),
     observaciones_iniciales: orNull(input.observaciones_iniciales),
-    // Columna numeric en la DB, tipada como string por el generador de
-    // Supabase (ver src/types/database.types.ts) — se convierte acá, en el
-    // único borde entre el form (number) y Supabase.
-    tarifa_valor_transporte:
-      input.tarifa_valor_transporte != null
-        ? String(input.tarifa_valor_transporte)
-        : null,
-    responsable_os: input.responsable_os ?? null,
+    tarifa_valor_transporte: orNull(input.tarifa_valor_transporte),
+    responsable_os: orNull(input.responsable_os),
+    observaciones_responsable_sec: orNull(input.observaciones_responsable_sec),
     link_archivo_orden: orNull(input.link_archivo_orden),
   };
 }
@@ -85,6 +84,24 @@ export async function getOrdenes(
         (o) => (o.fecha_recepcion_os ?? "") <= filtros.hasta!,
       );
     }
+    if (filtros.numeroOs) {
+      const needle = filtros.numeroOs.toLowerCase();
+      ordenes = ordenes.filter((o) =>
+        (o.numero_os_cliente ?? "").toLowerCase().includes(needle),
+      );
+    }
+    if (filtros.tipoServicio) {
+      ordenes = ordenes.filter((o) => o.tipo_servicio === filtros.tipoServicio);
+    }
+    if (filtros.estado) {
+      ordenes = ordenes.filter((o) => o.estado === filtros.estado);
+    }
+    if (filtros.secuencia) {
+      const needle = filtros.secuencia.toLowerCase();
+      ordenes = ordenes.filter((o) =>
+        (o.secuencia ?? "").toLowerCase().includes(needle),
+      );
+    }
     return ordenes.sort((a, b) => b.id - a.id);
   }
   const supabase = await createSupabaseServerClient();
@@ -97,6 +114,14 @@ export async function getOrdenes(
   if (filtros.clienteId) query = query.eq("cliente_id", filtros.clienteId);
   if (filtros.desde) query = query.gte("fecha_recepcion_os", filtros.desde);
   if (filtros.hasta) query = query.lte("fecha_recepcion_os", filtros.hasta);
+  if (filtros.numeroOs) {
+    query = query.ilike("numero_os_cliente", `%${filtros.numeroOs}%`);
+  }
+  if (filtros.tipoServicio) query = query.eq("tipo_servicio", filtros.tipoServicio);
+  if (filtros.estado) query = query.eq("estado", filtros.estado);
+  if (filtros.secuencia) {
+    query = query.ilike("secuencia", `%${filtros.secuencia}%`);
+  }
 
   const { data, error } = await query;
   if (error) throw new Error(`No se pudieron cargar las órdenes: ${error.message}`);
@@ -165,10 +190,6 @@ export async function createOrdenRecord(input: OrdenServicioFormValues) {
       id_unico: `OS-MOCK-${nextId}`,
       fecha_creacion: now,
       fecha_actualizacion: now,
-      // Columnas en migración (ver structure.md / plan_mvp): Persona A
-      // todavía no consolidó tipo_servicio con estas dos, el mock no las usa.
-      tipo_servicio_id: null,
-      tipo_servicio_nuevo: null,
     });
     return nextId;
   }

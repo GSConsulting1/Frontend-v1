@@ -57,18 +57,14 @@ export default async function EditarOrdenPage({
     secuencia: orden.secuencia ?? undefined,
     nombre_servicio: orden.nombre_servicio ?? "",
     horas_cargadas: orden.horas_cargadas ?? undefined,
-    tipo_servicio: orden.tipo_servicio ?? undefined,
+    tipo_servicio: (orden.tipo_servicio ?? undefined) as OrdenInfoFormValues["tipo_servicio"],
     fecha_sipab: orden.fecha_sipab ?? undefined,
     asesor_gestion_riesgos: orden.asesor_gestion_riesgos ?? undefined,
     observaciones_iniciales: orden.observaciones_iniciales ?? undefined,
-    // Columna numeric en la DB (tipada como string por Supabase, ver
-    // src/lib/data/ordenes.ts#normalizarInput) — se convierte a number acá
-    // para el <input type="number"> del form.
-    tarifa_valor_transporte:
-      orden.tarifa_valor_transporte != null
-        ? Number(orden.tarifa_valor_transporte)
-        : undefined,
+    tarifa_valor_transporte: orden.tarifa_valor_transporte ?? undefined,
     responsable_os: (orden.responsable_os as ResponsableOs) ?? undefined,
+    observaciones_responsable_sec:
+      orden.observaciones_responsable_sec ?? undefined,
     link_archivo_orden: orden.link_archivo_orden ?? undefined,
     infoOrdenServicio: infoOrdenServicio
       ? {

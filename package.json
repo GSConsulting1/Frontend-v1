@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "db:types": "supabase gen types typescript --project-id tvveelfjazwlinhlbcjd --schema public > src/types/database.types.ts"
+    "db:types": "node scripts/gen-db-types.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
