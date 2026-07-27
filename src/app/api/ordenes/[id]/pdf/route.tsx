@@ -115,11 +115,14 @@ export async function GET(
     return NextResponse.json({ error: entregables.error.message }, { status: 500 });
   }
 
-  const horasAsignadas = info.data?.horas_asignadas ?? null;
+  // horas_cargadas (Datos generales / ordenes_servicio) y no
+  // horas_asignadas (Datos de la actividad / info_orden_servicio): son las
+  // horas reales a cobrar, no el estimado inicial de la actividad.
+  const horasCargadas = orden.data.horas_cargadas ?? null;
   const valorHoraProfesional = valorHora.data?.valor_hora_profesional ?? null;
   const costoTotal =
-    valorHoraProfesional != null && horasAsignadas != null
-      ? valorHoraProfesional * horasAsignadas
+    valorHoraProfesional != null && horasCargadas != null
+      ? valorHoraProfesional * horasCargadas
       : null;
 
   const contacto = info.data
@@ -157,7 +160,7 @@ export async function GET(
     nombreEmpresaCliente: orden.data.cliente?.nombre_cliente ?? "",
     nombreActividad: info.data?.nombre_actividad ?? "",
     descripcionActividad: info.data?.descripcion_actividad ?? "",
-    numeroHoras: horasAsignadas,
+    numeroHoras: horasCargadas,
     fechaEjecucionInicio: formatFecha(info.data?.fecha_inicio_ejecucion ?? null),
     fechaFinalizacionEjecucion: formatFecha(info.data?.fecha_fin_ejecucion ?? null),
     direccionEmpresaAVisitar,
