@@ -31,9 +31,10 @@
 // Las 7 secciones (Datos generales + las 6 de OrdenInfoSecciones) son un
 // único acordeón: `seccionAbierta` guarda el id de la que está
 // descolapsada (o null) y se lo pasa a cada una — al abrir una se cierran
-// las demás. Arranca en la primera sección habilitada (para admin: "Datos
-// generales"; si no, la primera de las 6 salvo que mode === "nueva", donde
-// esas 6 están deshabilitadas hasta guardar).
+// las demás. Arranca en la primera sección habilitada (para
+// administrador/financiero: "Datos generales"; si no, la primera de las 6
+// salvo que mode === "nueva", donde esas 6 están deshabilitadas hasta
+// guardar).
 
 "use client";
 
@@ -115,14 +116,15 @@ export function OrdenForm({
 }: OrdenFormProps) {
   const { perfil } = useAuth();
   const esAdmin = perfil?.rol === "administrador";
-  // "Valor hora profesional" + las 5 tablas de la sección financiera están
-  // gateadas a administrador y financiero (ver RLS "admin_fin_valor_hora" /
-  // "fin_all") — mismo criterio que datosBase de abajo, pero con un rol más.
+  // Datos generales + "Valor hora profesional" + las 5 tablas de la sección
+  // financiera están gateadas a administrador y financiero (ver RLS
+  // "admin_fin_valor_hora" / "fin_all") — mismo criterio que datosBase de
+  // abajo.
   const puedeVerFinanciera = esAdmin || perfil?.rol === "financiero";
   const [serverError, setServerError] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [seccionAbierta, setSeccionAbierta] = useState<SeccionId | null>(
-    esAdmin ? "datos-generales" : mode !== "nueva" ? "datos-actividad" : null,
+    puedeVerFinanciera ? "datos-generales" : mode !== "nueva" ? "datos-actividad" : null,
   );
   const {
     register,
@@ -183,14 +185,11 @@ export function OrdenForm({
       return;
     }
 
-    // Si no es administrador, los datos generales (ordenes_servicio) no se
-    // mandan: RLS los rechazaría igual (ver
-    // supabase/004_ordenes_servicio_rls.sql), pero tumbaría el guardado de
-    // TODAS las secciones en vez de solo la parte restringida — OrdenCampos
-    // ya está deshabilitado en pantalla para estos roles, así que `values`
-    // trae los datos generales sin cambios de todas formas. Mismo criterio
-    // para valorHora y la sección financiera, pero gateadas a
-    // administrador + financiero (puedeVerFinanciera).
+    // Si no puede ver la sección financiera (no es administrador ni
+    // financiero), los datos generales (ordenes_servicio) no se mandan:
+    // SeccionDatosGenerales ya está deshabilitada en pantalla para los demás
+    // roles, así que `values` trae esos datos sin cambios de todas formas.
+    // Mismo criterio para valorHora y el resto de la sección financiera.
     const datosExtendidos: OrdenInfoFormValues = puedeVerFinanciera
       ? values
       : {
@@ -205,7 +204,7 @@ export function OrdenForm({
 
     const result = await guardarInformacionOrden(
       ordenId!,
-      esAdmin ? values : null,
+      puedeVerFinanciera ? values : null,
       datosExtendidos,
     );
     if (!result.ok) {
@@ -255,7 +254,7 @@ export function OrdenForm({
           errors={errors}
           watch={watch}
           clientes={clientes}
-          disabled={!esAdmin}
+          disabled={!puedeVerFinanciera}
           open={seccionAbierta === "datos-generales"}
           onOpenChange={(open) => toggleSeccion("datos-generales", open)}
         />

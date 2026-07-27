@@ -73,11 +73,10 @@ export type MutacionResult = { ok: true } | { ok: false; error: string };
 
 export async function guardarInformacionOrden(
   ordenId: number,
-  // null cuando el usuario no es administrador (ver OrdenForm.onSubmit):
-  // OrdenCampos ya está deshabilitado en pantalla para esos roles, así que
-  // ni se intenta el update — RLS lo rechazaría igual (ver
-  // supabase/004_ordenes_servicio_rls.sql), pero tumbaría el guardado de
-  // las demás secciones también.
+  // null cuando el usuario no es administrador ni financiero (ver
+  // OrdenForm.onSubmit): SeccionDatosGenerales ya está deshabilitada en
+  // pantalla para esos roles, así que ni se intenta el update — de lo
+  // contrario tumbaría el guardado de las demás secciones también.
   datosBase: unknown | null,
   datosExtendidos: unknown,
 ): Promise<MutacionResult> {
