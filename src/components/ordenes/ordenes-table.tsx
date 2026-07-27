@@ -7,6 +7,12 @@
 //
 // El único estado de cliente que queda es el de "eliminando" para dar
 // feedback mientras corre el Server Action de borrado.
+//
+// selectionMode (gobernado por OrdenesListado, prendido por
+// ExportarExcelButton): mientras está activo aparece la columna de
+// checkboxes y se bloquean los controles que modifican una orden — celdas
+// editables inline y el menú "..." (Editar/PDF/Eliminar) — para que elegir
+// filas a exportar no se confunda con editar/borrar la orden.
 
 "use client";
 
@@ -40,15 +46,29 @@ import {
 } from "@/lib/validations/orden.schema";
 import type { OrdenServicioConRelaciones, RolUsuario } from "@/types";
 
-const COLUMNAS = 8;
+const COLUMNAS_BASE = 8;
 const ROLES_EDITAN_INLINE: RolUsuario[] = ["administrador", "financiero"];
 const OPCIONES_ESTADO = ESTADOS_ORDEN.map((e) => ({ id: e, label: e }));
 
 type OrdenesTableProps = {
   ordenes: OrdenServicioConRelaciones[];
+  // Selección de filas para exportar a Excel — la gobierna OrdenesListado
+  // (el estado se sube ahí porque el botón de exportar vive en el header).
+  selectionMode: boolean;
+  selectedIds: Set<number>;
+  onToggle: (id: number) => void;
+  onToggleAll: () => void;
+  exportError?: string | null;
 };
 
-export function OrdenesTable({ ordenes }: OrdenesTableProps) {
+export function OrdenesTable({
+  ordenes,
+  selectionMode,
+  selectedIds,
+  onToggle,
+  onToggleAll,
+  exportError,
+}: OrdenesTableProps) {
   const [deletingIds, setDeletingIds] = useState<Set<number>>(new Set());
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [downloadingIds, setDownloadingIds] = useState<Set<number>>(new Set());
@@ -111,6 +131,10 @@ export function OrdenesTable({ ordenes }: OrdenesTableProps) {
     }
   }
 
+  const todasSeleccionadas =
+    ordenes.length > 0 && ordenes.every((o) => selectedIds.has(o.id));
+  const algunaSeleccionada = ordenes.some((o) => selectedIds.has(o.id));
+
   return (
     <div className="space-y-3">
       {deleteError && (
@@ -128,10 +152,30 @@ export function OrdenesTable({ ordenes }: OrdenesTableProps) {
           {editError}
         </p>
       )}
+      {exportError && (
+        <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {exportError}
+        </p>
+      )}
 
       <Table>
         <TableHeader>
           <TableRow>
+            {selectionMode && (
+              <TableHead className="w-8">
+                <input
+                  type="checkbox"
+                  className="size-4 rounded border-input accent-foreground"
+                  aria-label="Seleccionar todas las órdenes"
+                  checked={todasSeleccionadas}
+                  ref={(el) => {
+                    if (el) el.indeterminate = algunaSeleccionada && !todasSeleccionadas;
+                  }}
+                  onChange={onToggleAll}
+                  disabled={ordenes.length === 0}
+                />
+              </TableHead>
+            )}
             <TableHead className="whitespace-normal">Cliente</TableHead>
             <TableHead>Número de OS</TableHead>
             <TableHead>Fecha recepción</TableHead>
@@ -146,7 +190,7 @@ export function OrdenesTable({ ordenes }: OrdenesTableProps) {
           {ordenes.length === 0 && (
             <TableRow>
               <TableCell
-                colSpan={COLUMNAS}
+                colSpan={selectionMode ? COLUMNAS_BASE + 1 : COLUMNAS_BASE}
                 className="py-10 text-center text-sm text-muted-foreground"
               >
                 No hay órdenes que coincidan con los filtros.
@@ -163,6 +207,19 @@ export function OrdenesTable({ ordenes }: OrdenesTableProps) {
                 key={orden.id}
                 className={cn(isDeleting && "opacity-50")}
               >
+                {selectionMode && (
+                  <TableCell className="w-8">
+                    <input
+                      type="checkbox"
+                      className="size-4 rounded border-input accent-foreground"
+                      aria-label={`Seleccionar la orden ${
+                        orden.cliente?.nombre_cliente ?? orden.id_unico ?? orden.id
+                      }`}
+                      checked={selectedIds.has(orden.id)}
+                      onChange={() => onToggle(orden.id)}
+                    />
+                  </TableCell>
+                )}
                 <TableCell className="whitespace-normal font-medium">
                   {orden.cliente?.nombre_cliente ?? "—"}
                 </TableCell>
@@ -172,53 +229,65 @@ export function OrdenesTable({ ordenes }: OrdenesTableProps) {
                   {orden.tipo_servicio ?? "—"}
                 </TableCell>
                 <TableCell>
-                  <RoleGate
-                    allow={ROLES_EDITAN_INLINE}
-                    fallback={<EstadoBadge estado={orden.estado} />}
-                  >
-                    <EditableCell
-                      type="select"
-                      value={orden.estado}
-                      options={OPCIONES_ESTADO}
-                      renderValue={() => <EstadoBadge estado={orden.estado} />}
-                      onSave={(value) =>
-                        actualizarCampoOrden(orden.id, {
-                          estado: value as EstadoOrden | null,
-                        })
-                      }
-                      onError={setEditError}
-                    />
-                  </RoleGate>
+                  {selectionMode ? (
+                    <EstadoBadge estado={orden.estado} />
+                  ) : (
+                    <RoleGate
+                      allow={ROLES_EDITAN_INLINE}
+                      fallback={<EstadoBadge estado={orden.estado} />}
+                    >
+                      <EditableCell
+                        type="select"
+                        value={orden.estado}
+                        options={OPCIONES_ESTADO}
+                        renderValue={() => <EstadoBadge estado={orden.estado} />}
+                        onSave={(value) =>
+                          actualizarCampoOrden(orden.id, {
+                            estado: value as EstadoOrden | null,
+                          })
+                        }
+                        onError={setEditError}
+                      />
+                    </RoleGate>
+                  )}
                 </TableCell>
                 <TableCell>
-                  <RoleGate
-                    allow={ROLES_EDITAN_INLINE}
-                    fallback={<span>{orden.cronograma ?? "—"}</span>}
-                  >
-                    <EditableCell
-                      type="number"
-                      value={orden.cronograma}
-                      onSave={(value) =>
-                        actualizarCampoOrden(orden.id, { cronograma: value })
-                      }
-                      onError={setEditError}
-                    />
-                  </RoleGate>
+                  {selectionMode ? (
+                    <span>{orden.cronograma ?? "—"}</span>
+                  ) : (
+                    <RoleGate
+                      allow={ROLES_EDITAN_INLINE}
+                      fallback={<span>{orden.cronograma ?? "—"}</span>}
+                    >
+                      <EditableCell
+                        type="number"
+                        value={orden.cronograma}
+                        onSave={(value) =>
+                          actualizarCampoOrden(orden.id, { cronograma: value })
+                        }
+                        onError={setEditError}
+                      />
+                    </RoleGate>
+                  )}
                 </TableCell>
                 <TableCell>
-                  <RoleGate
-                    allow={ROLES_EDITAN_INLINE}
-                    fallback={<span>{orden.secuencia ?? "—"}</span>}
-                  >
-                    <EditableCell
-                      type="text"
-                      value={orden.secuencia}
-                      onSave={(value) =>
-                        actualizarCampoOrden(orden.id, { secuencia: value })
-                      }
-                      onError={setEditError}
-                    />
-                  </RoleGate>
+                  {selectionMode ? (
+                    <span>{orden.secuencia ?? "—"}</span>
+                  ) : (
+                    <RoleGate
+                      allow={ROLES_EDITAN_INLINE}
+                      fallback={<span>{orden.secuencia ?? "—"}</span>}
+                    >
+                      <EditableCell
+                        type="text"
+                        value={orden.secuencia}
+                        onSave={(value) =>
+                          actualizarCampoOrden(orden.id, { secuencia: value })
+                        }
+                        onError={setEditError}
+                      />
+                    </RoleGate>
+                  )}
                 </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
@@ -228,6 +297,7 @@ export function OrdenesTable({ ordenes }: OrdenesTableProps) {
                           variant="ghost"
                           size="icon-sm"
                           aria-label="Acciones de la orden"
+                          disabled={selectionMode}
                         >
                           <MoreHorizontal className="size-4" />
                         </Button>

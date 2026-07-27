@@ -9,7 +9,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+// import Link from "next/link"; // deshabilitado junto con el enlace de recuperar contraseña
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -98,12 +98,14 @@ export function LoginForm() {
         {pending ? "Ingresando…" : "Ingresar"}
       </Button>
 
+      {/* Recuperar contraseña deshabilitado temporalmente — no eliminar, ver CLAUDE/feedback.
       <p className="text-xs text-[#ABA9A4]">
         ¿Olvidaste tu contraseña?{" "}
         <Link href="/recuperar-password" className="font-semibold text-[#A23E8C]">
           Recupérala aquí
         </Link>
       </p>
+      */}
     </form>
   );
 }

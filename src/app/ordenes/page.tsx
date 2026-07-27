@@ -5,10 +5,7 @@
 // hay estado de "guardar cambios" que gobernar en un Client Component
 // intermedio, así que no hace falta OrdenesManager.
 
-import { PageHeader } from "@/components/layout/page-header";
-import { OrdenesTable } from "@/components/ordenes/ordenes-table";
-import { OrdenesFiltros } from "@/components/ordenes/ordenes-filtros";
-import { NuevaOrdenButton } from "@/components/ordenes/nueva-orden-button";
+import { OrdenesListado } from "@/components/ordenes/ordenes-listado";
 import { getOrdenes, getClientesParaSelect } from "@/lib/data/ordenes";
 
 export default async function OrdenesPage({
@@ -26,12 +23,12 @@ export default async function OrdenesPage({
 }) {
   const params = await searchParams;
   const filtros = {
-    clienteId: params.clienteId ? Number(params.clienteId) : undefined,
+    clienteIds: params.clienteId?.split(",").filter(Boolean).map(Number),
     desde: params.desde || undefined,
     hasta: params.hasta || undefined,
     numeroOs: params.numeroOs || undefined,
-    tipoServicio: params.tipoServicio || undefined,
-    estado: params.estado || undefined,
+    tiposServicio: params.tipoServicio?.split(",").filter(Boolean),
+    estados: params.estado?.split(",").filter(Boolean),
     secuencia: params.secuencia || undefined,
   };
 
@@ -42,15 +39,7 @@ export default async function OrdenesPage({
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-10">
-      <PageHeader
-        title="Orden de servicio recibida del cliente"
-        description="Registra y consulta las OS de cada cliente"
-        actions={<NuevaOrdenButton />}
-      />
-
-      <OrdenesFiltros clientes={clientes} />
-
-      <OrdenesTable ordenes={ordenes} />
+      <OrdenesListado ordenes={ordenes} clientes={clientes} />
     </div>
   );
 }
