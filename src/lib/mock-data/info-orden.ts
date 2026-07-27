@@ -18,6 +18,7 @@ import type {
   Facturacion,
   InfoOrdenServicio,
   Liquidacion,
+  ParticipanteArl,
   RadicacionImagine,
   ValorHoraOrden,
 } from "@/types";
@@ -90,6 +91,26 @@ export const mockInfoOrdenServicio: InfoOrdenServicio[] = [
     contacto_cargo: "Coordinador HSEQ",
     contacto_celular: "3005551234",
     contacto_email: "j.rojas@bolivarseguros.com",
+  },
+];
+
+// Catálogo fijo y separado de mockProfesionales (equipo ARL/seguridad) —
+// referenciado por detalleEntrega.participante_arl_id y
+// actaServicio.profesional_acta_id.
+export const mockParticipantesArl: ParticipanteArl[] = [
+  {
+    id: 1,
+    nombre_completo: "Andrés Felipe Castro",
+    cedula: "1012345678",
+    activo: true,
+    fecha_creacion: "2026-01-05T08:00:00Z",
+  },
+  {
+    id: 3,
+    nombre_completo: "Marcela Duarte",
+    cedula: "1023456789",
+    activo: true,
+    fecha_creacion: "2026-01-10T08:00:00Z",
   },
 ];
 
