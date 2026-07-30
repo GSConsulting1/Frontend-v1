@@ -256,7 +256,7 @@ export type Database = {
             foreignKeyName: "detalle_entrega_profesional_profesional_vobo_id_fkey"
             columns: ["profesional_vobo_id"]
             isOneToOne: false
-            referencedRelation: "profesionales"
+            referencedRelation: "vobo"
             referencedColumns: ["id"]
           },
         ]

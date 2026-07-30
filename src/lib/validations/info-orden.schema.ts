@@ -108,7 +108,6 @@ export const cuentaCobroSchema = z.object({
   fecha_radicacion: z.string().optional(),
   numero_radicado: z.string().optional(),
   fecha_corte: z.string().optional(),
-  corte_pago: z.string().optional(),
   fecha_pago: z.string().optional(),
   documento_soporte: z.string().optional(),
   valor_cuenta_cobro: z.number().nonnegative("Debe ser un número positivo").optional(),

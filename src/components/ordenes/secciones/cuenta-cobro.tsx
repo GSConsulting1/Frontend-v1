@@ -74,9 +74,6 @@ export function SeccionCuentaCobro({
             {...register("cuentaCobro.fecha_corte")}
           />
         </FormField>
-        <FormField label="Corte de pago" htmlFor="corte_pago">
-          <Input id="corte_pago" {...register("cuentaCobro.corte_pago")} />
-        </FormField>
         <FormField label="Fecha de pago" htmlFor="fecha_pago">
           <Input
             id="fecha_pago"

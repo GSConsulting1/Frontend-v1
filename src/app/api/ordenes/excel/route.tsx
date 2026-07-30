@@ -96,7 +96,7 @@ export async function POST(request: Request) {
     supabaseAdmin
       .from("detalle_entrega_profesional")
       .select(
-        "*, profesional_vobo:profesionales!detalle_entrega_profesional_profesional_vobo_id_fkey(nombre_completo), participante_arl:participantes_arl!detalle_entrega_profesional_participante_arl_id_fkey(nombre_completo)",
+        "*, profesional_vobo:vobo!detalle_entrega_profesional_profesional_vobo_id_fkey(nombre_completo), participante_arl:participantes_arl!detalle_entrega_profesional_participante_arl_id_fkey(nombre_completo)",
       )
       .in("orden_id", ids),
     supabaseAdmin

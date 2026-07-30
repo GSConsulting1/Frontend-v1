@@ -96,7 +96,7 @@ export async function GET(
   const detalleQuery = supabaseAdmin
     .from("detalle_entrega_profesional")
     .select(
-      "*, profesional_vobo:profesionales!detalle_entrega_profesional_profesional_vobo_id_fkey(nombre_completo)",
+      "*, profesional_vobo:vobo!detalle_entrega_profesional_profesional_vobo_id_fkey(nombre_completo)",
     )
     .eq("orden_id", ordenId)
     .maybeSingle();
