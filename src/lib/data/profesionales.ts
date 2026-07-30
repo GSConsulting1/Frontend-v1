@@ -1,9 +1,15 @@
 // Capa de acceso a datos para "profesionales" — administración completa
-// (listado + alta), distinta de getProfesionalesParaSelect() en
-// lib/data/ordenes.ts (esa es solo el catálogo id/nombre para el <Select>
-// del formulario de órdenes, activos únicamente). Reusa el mismo mock
-// (mockProfesionales de lib/mock-data/ordenes.ts) para no duplicar datos de
-// prueba.
+// (listado + alta + edición + activo/inactivo), distinta de
+// getProfesionalesParaSelect() en lib/data/ordenes.ts (esa es solo el
+// catálogo id/nombre para el <Select> del formulario de órdenes, activos
+// únicamente). Reusa el mismo mock (mockProfesionales de
+// lib/mock-data/ordenes.ts) para no duplicar datos de prueba.
+//
+// A propósito sin eliminarProfesionalRecord: un profesional puede tener
+// órdenes asociadas (info_orden_servicio, detalle_entrega_profesional) por
+// FK, así que borrar rompería ese historial. "Marcar inactivo"
+// (activo/actualizarActivoProfesionalRecord) es la única baja — reversible,
+// sin ese riesgo.
 
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -61,4 +67,53 @@ export async function crearProfesionalRecord(
   if (error)
     throw new Error(`No se pudo crear el profesional: ${error.message}`);
   return data as unknown as Profesional;
+}
+
+export async function actualizarProfesionalRecord(
+  id: number,
+  input: ProfesionalFormValues,
+): Promise<void> {
+  const normalizado = {
+    nombre_completo: input.nombre_completo,
+    cedula: input.cedula || null,
+    email: input.email || null,
+    telefono: input.telefono || null,
+  };
+
+  if (!isSupabaseConfigured) {
+    const index = mockProfesionales.findIndex((p) => p.id === id);
+    if (index === -1) throw new Error("Profesional no encontrado");
+    mockProfesionales[index] = { ...mockProfesionales[index], ...normalizado };
+    return;
+  }
+  const supabase = await createSupabaseServerClient();
+
+  const { error } = await supabase
+    .from("profesionales")
+    .update(normalizado)
+    .eq("id", id);
+
+  if (error)
+    throw new Error(`No se pudo actualizar el profesional: ${error.message}`);
+}
+
+export async function actualizarActivoProfesionalRecord(
+  id: number,
+  activo: boolean,
+): Promise<void> {
+  if (!isSupabaseConfigured) {
+    const index = mockProfesionales.findIndex((p) => p.id === id);
+    if (index === -1) throw new Error("Profesional no encontrado");
+    mockProfesionales[index] = { ...mockProfesionales[index], activo };
+    return;
+  }
+  const supabase = await createSupabaseServerClient();
+
+  const { error } = await supabase
+    .from("profesionales")
+    .update({ activo })
+    .eq("id", id);
+
+  if (error)
+    throw new Error(`No se pudo actualizar el estado: ${error.message}`);
 }
