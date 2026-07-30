@@ -365,12 +365,16 @@ src/
   órdenes) — un botón "⋮" (`MoreVertical`) que abre un `DropdownMenu`,
   mismo patrón que el menú de acciones por fila de `ordenes-table.tsx`
   (`DropdownMenuItem render={<Link .../>}` para navegación). No usa
-  `<RoleGate>` por ítem: calcula `esAdmin`/`puedeExportar` una sola vez
-  vía `useAuth()` (mismo criterio que `puedeVerFinanciera` en
+  `<RoleGate>` por ítem: calcula `esAdmin`/`puedeExportar`/`puedeImportar`
+  una sola vez vía `useAuth()` (mismo criterio que `puedeVerFinanciera` en
   `orden-form.tsx`) y no renderiza nada si el rol no tiene ningún permiso
-  — evita un botón "⋮" que abre un menú vacío. "Nueva orden", "Importar
-  desde Excel" y "Eliminar órdenes" solo para `administrador`; "Exportar
-  Excel" para `administrador`+`financiero`.
+  — evita un botón "⋮" que abre un menú vacío. "Nueva orden" y "Eliminar
+  órdenes" solo para `administrador`; "Exportar Excel" para
+  `administrador`+`financiero` (protección real en
+  `app/api/ordenes/excel/route.tsx`, `ROLES_PERMITIDOS`); "Importar desde
+  Excel" para `administrador`+`financiero`+`talento` — sin protección real
+  del lado del servidor (mismo hueco que "Datos generales", ver
+  `mvp_open_access` más abajo), solo se oculta el ítem del menú.
   `exportar-excel-button.tsx`/`eliminar-ordenes-button.tsx` no son el
   botón disparador: cada uno renderiza sus propios controles
   ("Descargar (N)"/"Cancelar", o "Eliminar (N)"/"Cancelar") solo mientras
