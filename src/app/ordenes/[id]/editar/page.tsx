@@ -121,7 +121,6 @@ export default async function EditarOrdenPage({
           fecha_radicacion: cuentaCobro.fecha_radicacion ?? undefined,
           numero_radicado: cuentaCobro.numero_radicado ?? undefined,
           fecha_corte: cuentaCobro.fecha_corte ?? undefined,
-          corte_pago: cuentaCobro.corte_pago ?? undefined,
           fecha_pago: cuentaCobro.fecha_pago ?? undefined,
           documento_soporte: cuentaCobro.documento_soporte ?? undefined,
           valor_cuenta_cobro: cuentaCobro.valor_cuenta_cobro ?? undefined,

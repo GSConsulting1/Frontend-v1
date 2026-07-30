@@ -314,7 +314,6 @@ function normalizarCuentaCobro(ordenId: number, input: CuentaCobroFormValues) {
     fecha_radicacion: orNull(input.fecha_radicacion),
     numero_radicado: orNull(input.numero_radicado),
     fecha_corte: orNull(input.fecha_corte),
-    corte_pago: orNull(input.corte_pago),
     fecha_pago: orNull(input.fecha_pago),
     documento_soporte: orNull(input.documento_soporte),
     valor_cuenta_cobro: input.valor_cuenta_cobro ?? null,
@@ -427,8 +426,15 @@ export async function guardarInfoOrdenCompleta(ordenId: number, datos: GuardarIn
     if (datos.cuentaCobro) {
       const normalizado = normalizarCuentaCobro(ordenId, datos.cuentaCobro);
       const index = mockCuentaCobro.findIndex((c) => c.orden_id === ordenId);
-      if (index >= 0) mockCuentaCobro[index] = normalizado;
-      else mockCuentaCobro.push(normalizado);
+      // corte_pago ya no se edita desde el form (campo eliminado) — se deja
+      // tal cual estaba, mismo comportamiento que el upsert real de abajo,
+      // que al no mandar la clave no toca esa columna.
+      const conCortePago = {
+        ...normalizado,
+        corte_pago: index >= 0 ? mockCuentaCobro[index].corte_pago : null,
+      };
+      if (index >= 0) mockCuentaCobro[index] = conCortePago;
+      else mockCuentaCobro.push(conCortePago);
     }
     if (datos.actaServicio) {
       const normalizado = normalizarActaServicio(ordenId, datos.actaServicio);
