@@ -18,7 +18,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useForm, type FieldErrors, type UseFormRegister } from "react-hook-form";
+import {
+  useForm,
+  type FieldErrors,
+  type UseFormRegister,
+} from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { MoreHorizontal, Pencil, Plus, Power, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -78,7 +82,10 @@ function CamposProfesional({
         required
         error={errors.nombre_completo?.message}
       >
-        <Input id={`${idPrefix}-nombre_completo`} {...register("nombre_completo")} />
+        <Input
+          id={`${idPrefix}-nombre_completo`}
+          {...register("nombre_completo")}
+        />
       </FormField>
       <FormField
         label="Cédula"
@@ -87,7 +94,11 @@ function CamposProfesional({
       >
         <Input id={`${idPrefix}-cedula`} {...register("cedula")} />
       </FormField>
-      <FormField label="Email" htmlFor={`${idPrefix}-email`} error={errors.email?.message}>
+      <FormField
+        label="Email"
+        htmlFor={`${idPrefix}-email`}
+        error={errors.email?.message}
+      >
         <Input id={`${idPrefix}-email`} type="email" {...register("email")} />
       </FormField>
       <FormField
@@ -108,7 +119,8 @@ function CamposProfesional({
           step="0.01"
           min="0"
           {...register("valor_hora", {
-            setValueAs: (v) => (v === "" || v === undefined ? undefined : Number(v)),
+            setValueAs: (v) =>
+              v === "" || v === undefined ? undefined : Number(v),
           })}
         />
       </FormField>
@@ -120,7 +132,9 @@ type ProfesionalesListadoProps = {
   profesionales: Profesional[];
 };
 
-export function ProfesionalesListado({ profesionales }: ProfesionalesListadoProps) {
+export function ProfesionalesListado({
+  profesionales,
+}: ProfesionalesListadoProps) {
   const [formAbierto, setFormAbierto] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
@@ -225,7 +239,11 @@ export function ProfesionalesListado({ profesionales }: ProfesionalesListadoProp
           className="grid gap-4 rounded-lg border border-border bg-card p-4 sm:grid-cols-2"
           noValidate
         >
-          <CamposProfesional idPrefix="nuevo" register={register} errors={errors} />
+          <CamposProfesional
+            idPrefix="nuevo"
+            register={register}
+            errors={errors}
+          />
 
           {serverError && (
             <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive sm:col-span-2">
@@ -328,9 +346,13 @@ export function ProfesionalesListado({ profesionales }: ProfesionalesListadoProp
                         <Pencil className="size-4" />
                         Editar
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => toggleActivo(profesional)}>
+                      <DropdownMenuItem
+                        onClick={() => toggleActivo(profesional)}
+                      >
                         <Power className="size-4" />
-                        {profesional.activo ? "Marcar inactivo" : "Marcar activo"}
+                        {profesional.activo
+                          ? "Marcar inactivo"
+                          : "Marcar activo"}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>

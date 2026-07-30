@@ -15,7 +15,11 @@ import { getPerfilActual } from "@/lib/data/usuarios";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import type { RolUsuario } from "@/types";
 
-const ROLES_PERMITIDOS: RolUsuario[] = ["administrador", "financiero", "talento"];
+const ROLES_PERMITIDOS: RolUsuario[] = [
+  "administrador",
+  "financiero",
+  "talento",
+];
 
 export default async function ProfesionalesPage() {
   if (isSupabaseConfigured) {
@@ -26,7 +30,7 @@ export default async function ProfesionalesPage() {
   const profesionales = await getProfesionales();
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-6 py-10">
+    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-10">
       <PageHeader
         title="Profesionales"
         description="Equipo de profesionales que ejecuta las órdenes de servicio"
