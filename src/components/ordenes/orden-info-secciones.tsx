@@ -20,6 +20,7 @@ import type {
   UseFormRegister,
   UseFormWatch,
 } from "react-hook-form";
+import { Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth/auth-provider";
 import type {
@@ -70,17 +71,37 @@ export function OrdenInfoSecciones({
   onToggleSeccion,
 }: OrdenInfoSeccionesProps) {
   const { perfil } = useAuth();
-  // Valor hora profesional + la sección financiera (cuenta de cobro, acta de
-  // servicio, radicación Imagine, facturación, liquidación) están gateadas a
-  // administrador y financiero — ver RLS "admin_fin_valor_hora" / "fin_all".
+  // La sección financiera (cuenta de cobro, acta de servicio, radicación
+  // Imagine, facturación, liquidación) está gateada a administrador y
+  // financiero únicamente — ver RLS "fin_all".
   const puedeVerFinanciera =
     perfil?.rol === "administrador" || perfil?.rol === "financiero";
+  // Valor hora profesional suma también a talento — ver RLS
+  // "admin_fin_valor_hora".
+  const puedeVerValorHora = puedeVerFinanciera || perfil?.rol === "talento";
+  // profesional y lectura ven las secciones operativas (Datos actividad,
+  // Profesional/contacto, Detalle entrega, Entregables estándar, Checklist)
+  // pero no las editan — a diferencia de la sección financiera, acá no se
+  // ocultan: solo quedan deshabilitadas, mismo <fieldset disabled> que ya
+  // se usa para el modo "nueva sin guardar" de abajo.
+  const soloLecturaOperativas =
+    perfil?.rol === "profesional" || perfil?.rol === "lectura";
+  const fieldsetDisabled = disabled || soloLecturaOperativas;
 
   return (
     <fieldset
-      disabled={disabled}
-      className={cn("space-y-3", disabled && "pointer-events-none opacity-50")}
+      disabled={fieldsetDisabled}
+      className={cn(
+        "space-y-3",
+        fieldsetDisabled && "pointer-events-none opacity-50",
+      )}
     >
+      {soloLecturaOperativas && !disabled && (
+        <p className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+          <Info className="size-4 shrink-0" aria-hidden />
+          Tu rol solo puede ver estas secciones, no editarlas.
+        </p>
+      )}
       <SeccionDatosActividad
         register={register}
         control={control}
@@ -124,7 +145,7 @@ export function OrdenInfoSecciones({
         control={control}
         errors={errors}
         watch={watch}
-        puedeVerFinanciera={puedeVerFinanciera}
+        puedeVer={puedeVerValorHora}
         open={seccionAbierta === "valor-hora"}
         onOpenChange={(open) => onToggleSeccion("valor-hora", open)}
       />

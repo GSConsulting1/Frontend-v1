@@ -15,6 +15,7 @@ export const rolUsuarioSchema = z.enum([
   "profesional",
   "lectura",
   "financiero",
+  "talento",
 ]);
 
 export type RolUsuarioFormValues = z.infer<typeof rolUsuarioSchema>;

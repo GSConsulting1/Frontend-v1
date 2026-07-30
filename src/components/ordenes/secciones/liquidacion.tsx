@@ -6,11 +6,9 @@ import {
   type UseFormRegister,
   type UseFormWatch,
 } from "react-hook-form";
-import { Lock } from "lucide-react";
 import { FormField } from "@/components/forms/form-field";
 import { Input } from "@/components/ui/input";
 import { SeccionAcordeon } from "@/components/ui/seccion-acordeon";
-import { RoleGate } from "@/components/auth/role-gate";
 import { algunoLleno } from "@/lib/utils";
 import type { OrdenInfoFormValues } from "@/components/ordenes/orden-form";
 
@@ -38,7 +36,8 @@ const CAMPOS_MONEDA = [
 ] as const;
 
 // "Liquidación" vive en su propia tabla (liquidacion), gateada por rol
-// administrador o financiero — mismo criterio que valor-hora.tsx.
+// administrador o financiero — mismo criterio que valor-hora.tsx. Si el rol
+// no puede verla, la sección ni se renderiza.
 export function SeccionLiquidacion({
   register,
   errors,
@@ -49,60 +48,36 @@ export function SeccionLiquidacion({
 }: SeccionLiquidacionProps) {
   const liquidacion = watch(["liquidacion.valor_total_cotizado", "liquidacion.total"]);
 
+  if (!puedeVerFinanciera) return null;
+
   return (
     <SeccionAcordeon
       titulo="Liquidación"
-      resumen={
-        puedeVerFinanciera
-          ? "Desglose de valores, retenciones y ganancia de la orden"
-          : "Visible solo para los roles administrador y financiero"
-      }
+      resumen="Desglose de valores, retenciones y ganancia de la orden"
       completo={algunoLleno(liquidacion)}
-      locked={!puedeVerFinanciera}
-      chipTexto={puedeVerFinanciera ? undefined : "Solo administrador/financiero"}
       open={open}
       onOpenChange={onOpenChange}
     >
-      <RoleGate
-        allow={["administrador", "financiero"]}
-        fallback={
-          <div className="flex items-center gap-3 py-2 text-sm text-muted-foreground">
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted">
-              <Lock className="size-4" aria-hidden />
-            </span>
-            <div>
-              <p className="font-medium text-foreground">
-                Bloqueado por tu rol
-              </p>
-              <p className="text-xs">
-                Solo los usuarios con rol de administrador o financiero pueden
-                ver y editar la liquidación.
-              </p>
-            </div>
-          </div>
-        }
-      >
-        <div className="grid gap-4 sm:grid-cols-2">
-          {CAMPOS_MONEDA.map(({ name, label }) => (
-            <FormField
-              key={name}
-              label={label}
-              htmlFor={name}
-              error={errors.liquidacion?.[name]?.message}
-            >
-              <Input
-                id={name}
-                type="number"
-                step="0.01"
-                {...register(`liquidacion.${name}`, {
-                  setValueAs: (v) =>
-                    v === "" || v === undefined ? undefined : Number(v),
-                })}
-              />
-            </FormField>
-          ))}
-        </div>
-      </RoleGate>
+      <div className="grid gap-4 sm:grid-cols-2">
+        {CAMPOS_MONEDA.map(({ name, label }) => (
+          <FormField
+            key={name}
+            label={label}
+            htmlFor={name}
+            error={errors.liquidacion?.[name]?.message}
+          >
+            <Input
+              id={name}
+              type="number"
+              step="0.01"
+              {...register(`liquidacion.${name}`, {
+                setValueAs: (v) =>
+                  v === "" || v === undefined ? undefined : Number(v),
+              })}
+            />
+          </FormField>
+        ))}
+      </div>
     </SeccionAcordeon>
   );
 }

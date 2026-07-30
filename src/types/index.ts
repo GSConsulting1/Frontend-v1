@@ -55,7 +55,8 @@ export type RolUsuario =
   | "programador"
   | "profesional"
   | "lectura"
-  | "financiero";
+  | "financiero"
+  | "talento";
 
 // Perfil de src/components/auth/auth-provider.tsx (tabla `usuarios`, PK =
 // auth.users.id). No confundir con Profesional: un usuario con rol
