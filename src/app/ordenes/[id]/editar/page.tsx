@@ -182,6 +182,8 @@ export default async function EditarOrdenPage({
           id: p.id,
           label: p.nombre_completo,
           valorHora: p.valor_hora,
+          cedula: p.cedula,
+          telefono: p.telefono,
         }))}
         participantesArl={catalogos.participantesArl.map((p) => ({ id: p.id, label: p.nombre_completo }))}
         ciudades={catalogos.ciudades.map((c) => ({ id: c.id, label: c.nombre }))}

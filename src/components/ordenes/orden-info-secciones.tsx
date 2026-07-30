@@ -50,7 +50,11 @@ export type OrdenInfoSeccionesProps = {
   setValue: UseFormSetValue<OrdenInfoFormValues>;
   ciudades: SelectOption[];
   estadosEjecucion: SelectOption[];
-  profesionales: (SelectOption & { valorHora: number | null })[];
+  profesionales: (SelectOption & {
+    valorHora: number | null;
+    cedula: string | null;
+    telefono: string | null;
+  })[];
   participantesArl: SelectOption[];
   entregablesEstandar: SelectOption[];
   disabled: boolean;

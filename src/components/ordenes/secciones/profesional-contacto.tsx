@@ -21,13 +21,17 @@ import { algunoLleno } from "@/lib/utils";
 import type { OrdenInfoFormValues } from "@/components/ordenes/orden-form";
 
 type SelectOption = { id: number; label: string };
+type ProfesionalConContacto = SelectOption & {
+  cedula: string | null;
+  telefono: string | null;
+};
 
 export type SeccionProfesionalContactoProps = {
   register: UseFormRegister<OrdenInfoFormValues>;
   control: Control<OrdenInfoFormValues>;
   errors: FieldErrors<OrdenInfoFormValues>;
   watch: UseFormWatch<OrdenInfoFormValues>;
-  profesionales: SelectOption[];
+  profesionales: ProfesionalConContacto[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
@@ -45,6 +49,13 @@ export function SeccionProfesionalContacto({
     "infoOrdenServicio.profesional_id",
     "infoOrdenServicio.contacto_nombre",
   ]);
+  const profesionalId = profesionalContacto[0];
+  // Cédula/celular del profesional: de solo lectura acá — son datos de su
+  // ficha (se editan en /profesionales), no de esta orden puntual.
+  const profesionalSeleccionado =
+    profesionalId != null
+      ? profesionales.find((p) => p.id === profesionalId)
+      : undefined;
 
   return (
     <SeccionAcordeon
@@ -88,26 +99,46 @@ export function SeccionProfesionalContacto({
             )}
           />
         </FormField>
-        <FormField label="Nombre del contacto" htmlFor="contacto_nombre">
+        <FormField label="Cédula del profesional" htmlFor="profesional_cedula">
+          <Input
+            id="profesional_cedula"
+            value={profesionalSeleccionado?.cedula ?? ""}
+            placeholder="—"
+            disabled
+          />
+        </FormField>
+        <FormField label="Celular del profesional" htmlFor="profesional_telefono">
+          <Input
+            id="profesional_telefono"
+            value={profesionalSeleccionado?.telefono ?? ""}
+            placeholder="—"
+            disabled
+          />
+        </FormField>
+        <FormField
+          label="Nombre del contacto en la empresa"
+          htmlFor="contacto_nombre"
+          className="sm:col-span-2"
+        >
           <Input
             id="contacto_nombre"
             {...register("infoOrdenServicio.contacto_nombre")}
           />
         </FormField>
-        <FormField label="Cargo" htmlFor="contacto_cargo">
+        <FormField label="Cargo del contacto en la empresa" htmlFor="contacto_cargo">
           <Input
             id="contacto_cargo"
             {...register("infoOrdenServicio.contacto_cargo")}
           />
         </FormField>
-        <FormField label="Celular" htmlFor="contacto_celular">
+        <FormField label="Celular del contacto en la empresa" htmlFor="contacto_celular">
           <Input
             id="contacto_celular"
             {...register("infoOrdenServicio.contacto_celular")}
           />
         </FormField>
         <FormField
-          label="Email"
+          label="Email del contacto en la empresa"
           htmlFor="contacto_email"
           error={errors.infoOrdenServicio?.contacto_email?.message}
         >

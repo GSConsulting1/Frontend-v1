@@ -95,9 +95,14 @@ type OrdenFormProps = {
   ordenId?: number;
   defaultValues?: Partial<OrdenInfoFormValues>;
   clientes: SelectOption[];
-  // valorHora viaja acá para precargar "Valor hora profesional" con la
-  // tarifa base del profesional elegido — ver SeccionValorHora.
-  profesionales: (SelectOption & { valorHora: number | null })[];
+  // valorHora/cedula/telefono viajan acá para precargar "Valor hora
+  // profesional" y mostrar cédula/celular de solo lectura en "Profesional y
+  // contacto en sitio" — ver SeccionValorHora / SeccionProfesionalContacto.
+  profesionales: (SelectOption & {
+    valorHora: number | null;
+    cedula: string | null;
+    telefono: string | null;
+  })[];
   participantesArl: SelectOption[];
   ciudades: SelectOption[];
   estadosEjecucion: SelectOption[];
