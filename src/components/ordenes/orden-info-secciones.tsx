@@ -18,6 +18,7 @@ import type {
   Control,
   FieldErrors,
   UseFormRegister,
+  UseFormSetValue,
   UseFormWatch,
 } from "react-hook-form";
 import { Info } from "lucide-react";
@@ -46,9 +47,10 @@ export type OrdenInfoSeccionesProps = {
   control: Control<OrdenInfoFormValues>;
   errors: FieldErrors<OrdenInfoFormValues>;
   watch: UseFormWatch<OrdenInfoFormValues>;
+  setValue: UseFormSetValue<OrdenInfoFormValues>;
   ciudades: SelectOption[];
   estadosEjecucion: SelectOption[];
-  profesionales: SelectOption[];
+  profesionales: (SelectOption & { valorHora: number | null })[];
   participantesArl: SelectOption[];
   entregablesEstandar: SelectOption[];
   disabled: boolean;
@@ -61,6 +63,7 @@ export function OrdenInfoSecciones({
   control,
   errors,
   watch,
+  setValue,
   ciudades,
   estadosEjecucion,
   profesionales,
@@ -145,6 +148,8 @@ export function OrdenInfoSecciones({
         control={control}
         errors={errors}
         watch={watch}
+        setValue={setValue}
+        profesionales={profesionales}
         puedeVer={puedeVerValorHora}
         open={seccionAbierta === "valor-hora"}
         onOpenChange={(open) => onToggleSeccion("valor-hora", open)}

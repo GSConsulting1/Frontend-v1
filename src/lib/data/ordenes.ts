@@ -189,16 +189,24 @@ export async function getClientesParaSelect() {
   return data ?? [];
 }
 
+// valor_hora viaja acá además de id/nombre_completo para precargar "Valor
+// hora profesional" (ver SeccionValorHora) con la tarifa base del
+// profesional elegido — sigue siendo editable por orden, esto solo evita
+// tener que volver a escribirla cada vez.
 export async function getProfesionalesParaSelect() {
   if (!isSupabaseConfigured) {
     return mockProfesionales
       .filter((p) => p.activo)
-      .map((p) => ({ id: p.id, nombre_completo: p.nombre_completo }));
+      .map((p) => ({
+        id: p.id,
+        nombre_completo: p.nombre_completo,
+        valor_hora: p.valor_hora,
+      }));
   }
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("profesionales")
-    .select("id, nombre_completo")
+    .select("id, nombre_completo, valor_hora")
     .eq("activo", true)
     .order("nombre_completo");
   if (error)

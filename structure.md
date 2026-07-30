@@ -494,7 +494,21 @@ src/
   `<RoleGate allow={[...]}>` con la lista correspondiente. `OrdenForm` ya
   no recibe ni reenvía `rol` como prop, pero sí calcula sus propios
   `puedeVerFinanciera`/`puedeEditarGeneral` para el `onSubmit` (ver
-  abajo). Si el usuario no puede editar general, se manda
+  abajo).
+  `valor_hora_profesional` se precarga desde `profesionales.valor_hora`
+  (la tarifa base del profesional, administrable en `/profesionales` —
+  ver más abajo) cuando se elige el profesional en "Profesional y
+  contacto": `SeccionValorHora` recibe `profesionales` (con `valorHora`
+  incluido, no el `SelectOption` genérico) + `setValue`, y un checkbox
+  "Ingresar valor manual" decide si el campo se resincroniza con la
+  tarifa base al cambiar de profesional o si queda congelado en lo que
+  se escribió a mano. A propósito el valor queda GUARDADO en
+  `valor_hora_orden` (no es una referencia en vivo a `profesionales`): si
+  más adelante cambia la tarifa base de alguien, las órdenes ya cerradas
+  no deben recalcularse solas. `getProfesionalesParaSelect()`
+  (`lib/data/ordenes.ts`) trae `valor_hora` además de `id`/
+  `nombre_completo` para esto.
+  Si el usuario no puede editar general, se manda
   `valorHora: undefined`; si además no puede ver la financiera, también
   `cuentaCobro`/`actaServicio`/`radicacionImagine`/`facturacion`/
   `liquidacion: undefined` al Server Action — si se mandaran igual, RLS

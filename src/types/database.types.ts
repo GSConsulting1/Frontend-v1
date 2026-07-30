@@ -613,6 +613,7 @@ export type Database = {
           id: number
           nombre_completo: string
           telefono: string | null
+          valor_hora: number | null
         }
         Insert: {
           activo?: boolean | null
@@ -622,6 +623,7 @@ export type Database = {
           id?: number
           nombre_completo: string
           telefono?: string | null
+          valor_hora?: number | null
         }
         Update: {
           activo?: boolean | null
@@ -631,6 +633,7 @@ export type Database = {
           id?: number
           nombre_completo?: string
           telefono?: string | null
+          valor_hora?: number | null
         }
         Relationships: []
       }

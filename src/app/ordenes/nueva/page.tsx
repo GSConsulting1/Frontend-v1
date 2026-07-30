@@ -24,7 +24,11 @@ export default async function NuevaOrdenPage() {
         mode="nueva"
         titulo="Nueva orden"
         clientes={clientes.map((c) => ({ id: c.id, label: c.nombre_cliente }))}
-        profesionales={profesionales.map((p) => ({ id: p.id, label: p.nombre_completo }))}
+        profesionales={profesionales.map((p) => ({
+          id: p.id,
+          label: p.nombre_completo,
+          valorHora: p.valor_hora,
+        }))}
         participantesArl={catalogos.participantesArl.map((p) => ({ id: p.id, label: p.nombre_completo }))}
         ciudades={catalogos.ciudades.map((c) => ({ id: c.id, label: c.nombre }))}
         estadosEjecucion={catalogos.estadosEjecucion.map((e) => ({ id: e.id, label: e.nombre }))}

@@ -12,6 +12,11 @@ export const profesionalSchema = z.object({
     .union([z.literal(""), z.string().trim().email("Debe ser un email válido")])
     .optional(),
   telefono: z.string().trim().optional(),
+  // Tarifa base del profesional (distinta de valor_hora_orden.valor_hora_profesional,
+  // que es el valor pactado por orden puntual) — igual que el resto del
+  // formulario, llega ya normalizado a number | undefined (setValueAs en el
+  // <Input>, no acá).
+  valor_hora: z.number().nonnegative("Debe ser un número positivo").optional(),
 });
 
 export type ProfesionalFormValues = z.infer<typeof profesionalSchema>;

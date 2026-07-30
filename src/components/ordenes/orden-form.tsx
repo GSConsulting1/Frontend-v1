@@ -95,7 +95,9 @@ type OrdenFormProps = {
   ordenId?: number;
   defaultValues?: Partial<OrdenInfoFormValues>;
   clientes: SelectOption[];
-  profesionales: SelectOption[];
+  // valorHora viaja acá para precargar "Valor hora profesional" con la
+  // tarifa base del profesional elegido — ver SeccionValorHora.
+  profesionales: (SelectOption & { valorHora: number | null })[];
   participantesArl: SelectOption[];
   ciudades: SelectOption[];
   estadosEjecucion: SelectOption[];
@@ -133,6 +135,7 @@ export function OrdenForm({
     register,
     control,
     watch,
+    setValue,
     handleSubmit,
     setError,
     reset,
@@ -282,6 +285,7 @@ export function OrdenForm({
           control={control}
           errors={errors}
           watch={watch}
+          setValue={setValue}
           ciudades={ciudades}
           estadosEjecucion={estadosEjecucion}
           profesionales={profesionales}

@@ -50,7 +50,13 @@ import {
 } from "@/app/profesionales/actions";
 import type { Profesional } from "@/types";
 
-const COLUMNAS = 5;
+const COLUMNAS = 6;
+
+const formatoValorHora = new Intl.NumberFormat("es-CO", {
+  style: "currency",
+  currency: "COP",
+  maximumFractionDigits: 0,
+});
 
 // Los 4 campos del alta se reusan tal cual para la edición — mismo schema,
 // solo cambia qué Server Action se llama al enviar (ver ProfesionalesListado
@@ -90,6 +96,21 @@ function CamposProfesional({
         error={errors.telefono?.message}
       >
         <Input id={`${idPrefix}-telefono`} {...register("telefono")} />
+      </FormField>
+      <FormField
+        label="Valor hora"
+        htmlFor={`${idPrefix}-valor_hora`}
+        error={errors.valor_hora?.message}
+      >
+        <Input
+          id={`${idPrefix}-valor_hora`}
+          type="number"
+          step="0.01"
+          min="0"
+          {...register("valor_hora", {
+            setValueAs: (v) => (v === "" || v === undefined ? undefined : Number(v)),
+          })}
+        />
       </FormField>
     </>
   );
@@ -232,6 +253,7 @@ export function ProfesionalesListado({ profesionales }: ProfesionalesListadoProp
             <TableHead>Nombre</TableHead>
             <TableHead>Cédula</TableHead>
             <TableHead>Contacto</TableHead>
+            <TableHead className="text-right">Valor hora</TableHead>
             <TableHead className="text-right">Estado</TableHead>
             <TableHead className="text-right">Acciones</TableHead>
           </TableRow>
@@ -271,6 +293,11 @@ export function ProfesionalesListado({ profesionales }: ProfesionalesListadoProp
                       {profesional.telefono ?? "—"}
                     </span>
                   </div>
+                </TableCell>
+                <TableCell className="text-right">
+                  {profesional.valor_hora != null
+                    ? formatoValorHora.format(profesional.valor_hora)
+                    : "—"}
                 </TableCell>
                 <TableCell className="text-right">
                   <Badge variant={profesional.activo ? "secondary" : "outline"}>
@@ -341,6 +368,7 @@ function EditarProfesionalRow({
       cedula: profesional.cedula ?? "",
       email: profesional.email ?? "",
       telefono: profesional.telefono ?? "",
+      valor_hora: profesional.valor_hora ?? undefined,
     },
   });
 

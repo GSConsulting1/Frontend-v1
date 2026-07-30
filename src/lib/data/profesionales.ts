@@ -43,6 +43,7 @@ export async function crearProfesionalRecord(
     cedula: input.cedula || null,
     email: input.email || null,
     telefono: input.telefono || null,
+    valor_hora: input.valor_hora ?? null,
   };
 
   if (!isSupabaseConfigured) {
@@ -78,6 +79,7 @@ export async function actualizarProfesionalRecord(
     cedula: input.cedula || null,
     email: input.email || null,
     telefono: input.telefono || null,
+    valor_hora: input.valor_hora ?? null,
   };
 
   if (!isSupabaseConfigured) {
