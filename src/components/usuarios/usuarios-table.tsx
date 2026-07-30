@@ -56,6 +56,7 @@ const ROLES: { value: RolUsuario; label: string }[] = [
   { value: "profesional", label: "Profesional" },
   { value: "lectura", label: "Lectura" },
   { value: "financiero", label: "Financiero" },
+  { value: "talento", label: "Talento" },
 ];
 
 type CambioPendiente = { usuario: Usuario; rol: RolUsuario };

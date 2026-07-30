@@ -32,8 +32,8 @@
 // único acordeón: `seccionAbierta` guarda el id de la que está
 // descolapsada (o null) y se lo pasa a cada una — al abrir una se cierran
 // las demás. Arranca en la primera sección habilitada (para
-// administrador/financiero: "Datos generales"; si no, la primera de las 6
-// salvo que mode === "nueva", donde esas 6 están deshabilitadas hasta
+// administrador/financiero/talento: "Datos generales"; si no, la primera de
+// las 6 salvo que mode === "nueva", donde esas 6 están deshabilitadas hasta
 // guardar).
 
 "use client";
@@ -95,8 +95,18 @@ type OrdenFormProps = {
   ordenId?: number;
   defaultValues?: Partial<OrdenInfoFormValues>;
   clientes: SelectOption[];
-  profesionales: SelectOption[];
+  // valorHora/cedula/telefono viajan acá para precargar "Valor hora
+  // profesional" y mostrar cédula/celular de solo lectura en "Profesional y
+  // contacto en sitio" — ver SeccionValorHora / SeccionProfesionalContacto.
+  profesionales: (SelectOption & {
+    valorHora: number | null;
+    cedula: string | null;
+    telefono: string | null;
+  })[];
   participantesArl: SelectOption[];
+  // Personal interno de GS Group que da el "VoBo" en Detalle de entrega —
+  // catálogo propio, no son profesionales de campo (ver detalle-entrega.tsx).
+  vobo: SelectOption[];
   ciudades: SelectOption[];
   estadosEjecucion: SelectOption[];
   entregablesEstandar: SelectOption[];
@@ -110,26 +120,31 @@ export function OrdenForm({
   clientes,
   profesionales,
   participantesArl,
+  vobo,
   ciudades,
   estadosEjecucion,
   entregablesEstandar,
 }: OrdenFormProps) {
   const { perfil } = useAuth();
   const esAdmin = perfil?.rol === "administrador";
-  // Datos generales + "Valor hora profesional" + las 5 tablas de la sección
-  // financiera están gateadas a administrador y financiero (ver RLS
-  // "admin_fin_valor_hora" / "fin_all") — mismo criterio que datosBase de
-  // abajo.
+  // Las 5 tablas de la sección financiera (cuenta de cobro, acta de
+  // servicio, radicación Imagine, facturación, liquidación) están gateadas
+  // a administrador y financiero únicamente (ver RLS "fin_all").
   const puedeVerFinanciera = esAdmin || perfil?.rol === "financiero";
+  // Datos generales + "Valor hora profesional" suman también a talento —
+  // ve/edita todo salvo la sección financiera de arriba (ver RLS
+  // "admin_fin_valor_hora").
+  const puedeEditarGeneral = puedeVerFinanciera || perfil?.rol === "talento";
   const [serverError, setServerError] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [seccionAbierta, setSeccionAbierta] = useState<SeccionId | null>(
-    puedeVerFinanciera ? "datos-generales" : mode !== "nueva" ? "datos-actividad" : null,
+    puedeEditarGeneral ? "datos-generales" : mode !== "nueva" ? "datos-actividad" : null,
   );
   const {
     register,
     control,
     watch,
+    setValue,
     handleSubmit,
     setError,
     reset,
@@ -185,26 +200,29 @@ export function OrdenForm({
       return;
     }
 
-    // Si no puede ver la sección financiera (no es administrador ni
-    // financiero), los datos generales (ordenes_servicio) no se mandan:
+    // Si no puede editar datos generales (no es administrador, financiero
+    // ni talento), esos datos (ordenes_servicio) no se mandan:
     // SeccionDatosGenerales ya está deshabilitada en pantalla para los demás
     // roles, así que `values` trae esos datos sin cambios de todas formas.
-    // Mismo criterio para valorHora y el resto de la sección financiera.
-    const datosExtendidos: OrdenInfoFormValues = puedeVerFinanciera
-      ? values
-      : {
-          ...values,
-          valorHora: undefined,
-          cuentaCobro: undefined,
-          actaServicio: undefined,
-          radicacionImagine: undefined,
-          facturacion: undefined,
-          liquidacion: undefined,
-        };
+    // Mismo criterio para valorHora; la sección financiera de 5 tablas usa
+    // el flag más angosto (puedeVerFinanciera) porque talento no la ve.
+    const datosExtendidos: OrdenInfoFormValues = {
+      ...values,
+      ...(puedeEditarGeneral ? {} : { valorHora: undefined }),
+      ...(puedeVerFinanciera
+        ? {}
+        : {
+            cuentaCobro: undefined,
+            actaServicio: undefined,
+            radicacionImagine: undefined,
+            facturacion: undefined,
+            liquidacion: undefined,
+          }),
+    };
 
     const result = await guardarInformacionOrden(
       ordenId!,
-      puedeVerFinanciera ? values : null,
+      puedeEditarGeneral ? values : null,
       datosExtendidos,
     );
     if (!result.ok) {
@@ -254,7 +272,7 @@ export function OrdenForm({
           errors={errors}
           watch={watch}
           clientes={clientes}
-          disabled={!puedeVerFinanciera}
+          disabled={!puedeEditarGeneral}
           open={seccionAbierta === "datos-generales"}
           onOpenChange={(open) => toggleSeccion("datos-generales", open)}
         />
@@ -276,10 +294,12 @@ export function OrdenForm({
           control={control}
           errors={errors}
           watch={watch}
+          setValue={setValue}
           ciudades={ciudades}
           estadosEjecucion={estadosEjecucion}
           profesionales={profesionales}
           participantesArl={participantesArl}
+          vobo={vobo}
           entregablesEstandar={entregablesEstandar}
           disabled={mode === "nueva"}
           seccionAbierta={seccionAbierta}

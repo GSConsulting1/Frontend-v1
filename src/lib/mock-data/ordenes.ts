@@ -38,6 +38,7 @@ export const mockProfesionales: Profesional[] = [
     telefono: "3001234567",
     activo: true,
     fecha_creacion: "2026-01-05T08:00:00Z",
+    valor_hora: 45000,
   },
   {
     id: 2,
@@ -47,6 +48,7 @@ export const mockProfesionales: Profesional[] = [
     telefono: "3009876543",
     activo: true,
     fecha_creacion: "2026-01-05T08:00:00Z",
+    valor_hora: 45000,
   },
   {
     id: 3,
@@ -56,6 +58,7 @@ export const mockProfesionales: Profesional[] = [
     telefono: "3012345678",
     activo: true,
     fecha_creacion: "2026-01-06T08:00:00Z",
+    valor_hora: null,
   },
 ];
 

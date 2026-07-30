@@ -21,6 +21,7 @@ import type {
   ParticipanteArl,
   RadicacionImagine,
   ValorHoraOrden,
+  Vobo,
 } from "@/types";
 
 export const mockCiudades: Ciudad[] = [
@@ -111,6 +112,68 @@ export const mockParticipantesArl: ParticipanteArl[] = [
     cedula: "1023456789",
     activo: true,
     fecha_creacion: "2026-01-10T08:00:00Z",
+  },
+];
+
+// Catálogo de personal interno de GS Group que da el "VoBo" — distinto de
+// mockProfesionales (equipo de campo) y de mockParticipantesArl (equipo
+// ARL/seguridad). Referenciado por detalleEntrega.profesional_vobo_id.
+export const mockVobo: Vobo[] = [
+  {
+    id: 1,
+    nombre_completo: "Bibiana Sarmiento",
+    email: "gerencia@gsgroupsas.com",
+    celular: "3116262903",
+    activo: true,
+    fecha_creacion: "2026-01-05T08:00:00Z",
+  },
+  {
+    id: 2,
+    nombre_completo: "Johanna Reyes",
+    email: "Fisioterapia@gsgroupsas.com",
+    celular: "3214338961",
+    activo: true,
+    fecha_creacion: "2026-01-05T08:00:00Z",
+  },
+  {
+    id: 3,
+    nombre_completo: "Lucia Bejarano Moncada",
+    email: "administrativo@gsgroupsas.com",
+    celular: "3506283556",
+    activo: true,
+    fecha_creacion: "2026-01-05T08:00:00Z",
+  },
+  {
+    id: 4,
+    nombre_completo: "Yulieth Amell",
+    email: "consultoria@gsgroupsas.com",
+    celular: "3107220381",
+    activo: true,
+    fecha_creacion: "2026-01-05T08:00:00Z",
+  },
+  {
+    id: 5,
+    nombre_completo: "Abigail Dorado",
+    email: "psicologia@gsgroupsas.com",
+    celular: "3008825524",
+    activo: true,
+    fecha_creacion: "2026-01-05T08:00:00Z",
+  },
+  {
+    id: 6,
+    nombre_completo: "Rocio Velandia",
+    email: "seguridadindustrial@gsgroupsas.com",
+    celular: "3222707215",
+    activo: true,
+    fecha_creacion: "2026-01-05T08:00:00Z",
+  },
+  {
+    id: 7,
+    nombre_completo: "Lina Amell",
+    email: "administrativo@gsgroupsas.com",
+    celular: "3042583780",
+    activo: true,
+    fecha_creacion: "2026-01-05T08:00:00Z",
   },
 ];
 

@@ -207,6 +207,15 @@ src/
   `administrador`. Ocultar el link es UX, no seguridad — igual que
   `RoleGate`, no reemplaza la protección real de la página (ver
   `components/usuarios/` abajo).
+- Esqueletos de carga genéricos para los `loading.tsx` de Next.js:
+  `table-skeleton.tsx` (tabla: cada `loading.tsx` pasa sus `columnas`
+  con el mismo header/ancho/alto que la tabla real) y
+  `toolbar-skeleton.tsx` (la barra de controles de arriba: buscador,
+  botón "Filtros", botón de alta). La regla es que el esqueleto
+  reserve **todo** lo que el componente real va a mostrar — si falta
+  una columna o la barra de arriba, ese trozo aparece de golpe al
+  terminar de cargar y empuja el resto. Pantalla nueva = su
+  `loading.tsx` reusando estos dos, no una tabla copiada a mano.
 - No conoce el dominio (nada de "orden", "cliente", Supabase). Si un
   componente de layout necesita datos de negocio, se los pasan por
   props desde `page.tsx`/`layout.tsx`, no hace fetch propio.
@@ -365,12 +374,16 @@ src/
   órdenes) — un botón "⋮" (`MoreVertical`) que abre un `DropdownMenu`,
   mismo patrón que el menú de acciones por fila de `ordenes-table.tsx`
   (`DropdownMenuItem render={<Link .../>}` para navegación). No usa
-  `<RoleGate>` por ítem: calcula `esAdmin`/`puedeExportar` una sola vez
-  vía `useAuth()` (mismo criterio que `puedeVerFinanciera` en
+  `<RoleGate>` por ítem: calcula `esAdmin`/`puedeExportar`/`puedeImportar`
+  una sola vez vía `useAuth()` (mismo criterio que `puedeVerFinanciera` en
   `orden-form.tsx`) y no renderiza nada si el rol no tiene ningún permiso
-  — evita un botón "⋮" que abre un menú vacío. "Nueva orden", "Importar
-  desde Excel" y "Eliminar órdenes" solo para `administrador`; "Exportar
-  Excel" para `administrador`+`financiero`.
+  — evita un botón "⋮" que abre un menú vacío. "Nueva orden" y "Eliminar
+  órdenes" solo para `administrador`; "Exportar Excel" para
+  `administrador`+`financiero` (protección real en
+  `app/api/ordenes/excel/route.tsx`, `ROLES_PERMITIDOS`); "Importar desde
+  Excel" para `administrador`+`financiero`+`talento` — sin protección real
+  del lado del servidor (mismo hueco que "Datos generales", ver
+  `mvp_open_access` más abajo), solo se oculta el ítem del menú.
   `exportar-excel-button.tsx`/`eliminar-ordenes-button.tsx` no son el
   botón disparador: cada uno renderiza sus propios controles
   ("Descargar (N)"/"Cancelar", o "Eliminar (N)"/"Cancelar") solo mientras
@@ -407,9 +420,10 @@ src/
   no en un `actions.ts` aparte.
 - `orden-campos.tsx` ("Datos generales", TODOS los campos de
   `ordenes_servicio`) recibe `disabled` — `true` para cualquier rol que
-  no sea `administrador` (ver `supabase/004_ordenes_servicio_rls.sql`):
-  se ve pero no se puede tocar, mismo patrón `<fieldset disabled>` que ya
-  usaba `orden-info-secciones.tsx`. `orden-info-secciones.tsx` es un
+  no sea `administrador`, `financiero` o `talento` (ver
+  `supabase/004_ordenes_servicio_rls.sql`): se ve pero no se puede tocar,
+  mismo patrón `<fieldset disabled>` que ya usaba
+  `orden-info-secciones.tsx`. `orden-info-secciones.tsx` es un
   orquestador delgado: mete en un mismo `<fieldset disabled>` las 11
   secciones extendidas, cada una en su propio archivo bajo
   `components/ordenes/secciones/` (`datos-actividad.tsx`,
@@ -421,12 +435,24 @@ src/
   `algunoLleno` de `lib/utils.ts`) vía `watch` y se envuelve en
   `<SeccionAcordeon>` (`components/ui/`) — mismo criterio que
   `orden-campos.tsx`: un componente por grupo de campos, reusado donde
-  haga falta. De esas 11 secciones, solo Valor hora y las 5 de la sección
-  financiera (Cuenta de cobro, Acta de servicio, Radicación Imagine,
-  Facturación, Liquidación) están gateadas por rol
-  (`administrador`/`financiero`, ver más abajo); el resto sigue editable
-  por cualquier rol — el gate de `administrador` solo es para Datos
-  generales.
+  haga falta. De esas 11 secciones, Valor hora está gateada a
+  `administrador`/`financiero`/`talento`, y las 5 de la sección financiera
+  (Cuenta de cobro, Acta de servicio, Radicación Imagine, Facturación,
+  Liquidación) están gateadas a `administrador`/`financiero` únicamente
+  (ver más abajo) — para el resto de roles esas 6 secciones ni se
+  renderizan (`return null`), no solo se deshabilitan. El gate de Datos
+  generales es el mismo que el de Valor hora (`puedeEditarGeneral`), pero
+  ahí sí se renderiza deshabilitada (ver `datos-generales.tsx`). Las 5
+  secciones operativas restantes (Datos actividad, Profesional/contacto,
+  Detalle entrega, Entregables estándar, Checklist) son editables por
+  cualquier rol salvo `profesional` y `lectura`: para esos dos,
+  `OrdenInfoSecciones` calcula `soloLecturaOperativas` y envuelve esas 6
+  secciones (más Valor hora, que igual no se renderiza para ellos) en un
+  `<fieldset disabled>` adicional — mismo patrón que ya usaba para el modo
+  "nueva sin guardar", con un banner propio explicando el motivo.
+  `programador` no está en `soloLecturaOperativas`: sigue editando esas 5
+  secciones sin restricción, solo pierde Datos generales/financiera como
+  cualquier no-administrador/financiero/talento.
 - `components/ordenes/secciones/`: todas tipan `register`/`control`/
   `errors`/`watch` contra el mismo `OrdenInfoFormValues` de
   `orden-form.tsx` (un solo `useForm` para todo el formulario, ver abajo)
@@ -446,11 +472,12 @@ src/
   tener fila hasta que la orden misma tenga `id`.
   `app/ordenes/nueva/page.tsx` y `app/ordenes/[id]/editar/page.tsx` son
   ambos wrappers delgados sobre `OrdenForm`, no reimplementan nada. En
-  `onSubmit`, si el usuario no es administrador se manda `datosBase: null`
-  a `guardarInformacionOrden` (que entonces se salta `updateOrdenRecord`
-  por completo) — mismo motivo que `valorHora`/sección financiera
-  `undefined` más abajo: RLS igual lo rechazaría, pero tumbaría el
-  guardado de las secciones que ese rol sí puede editar.
+  `onSubmit`, si el usuario no puede editar general (no es administrador,
+  financiero ni talento) se manda `datosBase: null` a
+  `guardarInformacionOrden` (que entonces se salta `updateOrdenRecord` por
+  completo) — mismo motivo que `valorHora`/sección financiera `undefined`
+  más abajo: RLS igual lo rechazaría, pero tumbaría el guardado de las
+  secciones que ese rol sí puede editar.
 - "Valor hora profesional" vive en su propia tabla (`valor_hora_orden`,
   1-a-1 con `ordenes_servicio` vía `orden_id`), separada de
   `detalle_entrega_profesional` desde
@@ -459,27 +486,49 @@ src/
   `liquidacion`, todas 1-a-1 con `ordenes_servicio` vía `orden_id`) se
   agregó en una migración posterior junto con las policies
   "admin_fin_valor_hora" / "fin_all" — RLS ahí permite leer/escribir
-  `valor_hora_orden` y las 5 tablas financieras solo a `administrador` y
-  al rol nuevo `financiero` (agregado a `RolUsuario` en `types/index.ts`
-  para esto). En el form son las claves `valorHora`, `cuentaCobro`,
+  `valor_hora_orden` a `administrador`, `financiero` y `talento` (rol
+  agregado a `RolUsuario` en `types/index.ts` para esto, ve/edita Datos
+  generales y Valor hora pero no la sección financiera de 5 tablas, que
+  sigue solo `administrador`/`financiero`). **La extensión de la policy de
+  `valor_hora_orden` para incluir `talento` a nivel de base de datos aún
+  no tiene migración committeada en `supabase/` — el front ya lo permite,
+  pero falta el SQL real (ver aviso al usuario en el chat que agregó el
+  rol).** En el form son las claves `valorHora`, `cuentaCobro`,
   `actaServicio`, `radicacionImagine`, `facturacion`, `liquidacion`
   (schemas en `lib/validations/info-orden.schema.ts`).
-  `OrdenInfoSecciones` calcula `puedeVerFinanciera = rol === "administrador" || rol === "financiero"`
-  (llama a `useAuth()` directo, es Client Component) y envuelve esas 6
-  secciones en `<RoleGate allow={["administrador", "financiero"]}>` —
-  `OrdenForm` ya no recibe ni reenvía `rol` como prop, pero sí calcula su
-  propio `puedeVerFinanciera` para el `onSubmit` (ver abajo). En
-  `onSubmit` de `OrdenForm`, si el usuario no es administrador ni
-  financiero se manda `valorHora`/`cuentaCobro`/`actaServicio`/
-  `radicacionImagine`/`facturacion`/`liquidacion: undefined` al Server
-  Action — si se mandaran igual, RLS los rechazaría, pero tumbaría el
-  guardado de TODAS las secciones en vez de solo esas 6
-  (`guardarInfoOrdenCompleta` hace un `if (datos.X)` por sección, todo en
-  la misma llamada). Por la misma razón, `eliminarInfoOrdenCompleta`
-  puede fallarle a alguien sin esos roles si la orden ya tiene fila en
-  cualquiera de las 6 tablas (el DELETE ahí también está restringido) —
-  ver el comentario en `lib/data/info-orden.ts`; no hay solución del lado
-  del front, es una decisión de política que le toca a Persona A. El
+  `OrdenInfoSecciones` calcula dos flags (llama a `useAuth()` directo, es
+  Client Component): `puedeVerFinanciera = rol === "administrador" || rol === "financiero"`
+  para las 5 tablas financieras, y `puedeVerValorHora = puedeVerFinanciera || rol === "talento"`
+  para Valor hora — cada sección se envuelve en su propio
+  `<RoleGate allow={[...]}>` con la lista correspondiente. `OrdenForm` ya
+  no recibe ni reenvía `rol` como prop, pero sí calcula sus propios
+  `puedeVerFinanciera`/`puedeEditarGeneral` para el `onSubmit` (ver
+  abajo).
+  `valor_hora_profesional` se precarga desde `profesionales.valor_hora`
+  (la tarifa base del profesional, administrable en `/profesionales` —
+  ver más abajo) cuando se elige el profesional en "Profesional y
+  contacto": `SeccionValorHora` recibe `profesionales` (con `valorHora`
+  incluido, no el `SelectOption` genérico) + `setValue`, y un checkbox
+  "Ingresar valor manual" decide si el campo se resincroniza con la
+  tarifa base al cambiar de profesional o si queda congelado en lo que
+  se escribió a mano. A propósito el valor queda GUARDADO en
+  `valor_hora_orden` (no es una referencia en vivo a `profesionales`): si
+  más adelante cambia la tarifa base de alguien, las órdenes ya cerradas
+  no deben recalcularse solas. `getProfesionalesParaSelect()`
+  (`lib/data/ordenes.ts`) trae `valor_hora` además de `id`/
+  `nombre_completo` para esto.
+  Si el usuario no puede editar general, se manda
+  `valorHora: undefined`; si además no puede ver la financiera, también
+  `cuentaCobro`/`actaServicio`/`radicacionImagine`/`facturacion`/
+  `liquidacion: undefined` al Server Action — si se mandaran igual, RLS
+  los rechazaría, pero tumbaría el guardado de TODAS las secciones en vez
+  de solo esas (`guardarInfoOrdenCompleta` hace un `if (datos.X)` por
+  sección, todo en la misma llamada). Por la misma razón,
+  `eliminarInfoOrdenCompleta` puede fallarle a alguien sin esos roles si
+  la orden ya tiene fila en cualquiera de esas tablas (el DELETE ahí
+  también está restringido) — ver el comentario en
+  `lib/data/info-orden.ts`; no hay solución del lado del front, es una
+  decisión de política que le toca a Persona A. El
   viejo `ordenes-manager.tsx` de "guardar cambios en lote" ya no existe
   (el listado pasó a solo lectura); el único Client Component que hoy
   envuelve el listado es `ordenes-listado.tsx`, y solo para compartir la

@@ -9,6 +9,14 @@
 // una sola vez (mismo criterio que puedeVerFinanciera en orden-form.tsx) y,
 // si el usuario no tiene ningún permiso, el componente no renderiza nada —
 // así no queda un botón "⋮" que abre un menú vacío.
+//
+// "Importar desde Excel" es administrador/financiero/talento; "Exportar
+// Excel" es administrador/financiero únicamente (talento no exporta) —
+// coincide con ROLES_PERMITIDOS de app/api/ordenes/excel/route.tsx, que sí
+// es la protección real para el export. El import no tiene chequeo de rol
+// del lado del servidor (mismo hueco que datos generales, ver structure.md:
+// "mvp_open_access" tumba la RLS real de ordenes_servicio hoy), así que acá
+// también es solo UX.
 
 "use client";
 
@@ -41,8 +49,11 @@ export function OrdenesAccionesMenu({
   const { perfil } = useAuth();
   const esAdmin = perfil?.rol === "administrador";
   const puedeExportar = esAdmin || perfil?.rol === "financiero";
+  const puedeImportar = puedeExportar || perfil?.rol === "talento";
 
-  if (!esAdmin && !puedeExportar) return null;
+  const grupoNavegacion = esAdmin || puedeImportar;
+
+  if (!grupoNavegacion && !puedeExportar) return null;
 
   return (
     <DropdownMenu>
@@ -60,24 +71,20 @@ export function OrdenesAccionesMenu({
             Nueva orden
           </DropdownMenuItem>
         )}
-        {esAdmin && (
+        {puedeImportar && (
           <DropdownMenuItem render={<Link href="/ordenes/importar" />}>
             <Upload className="size-4" />
             Importar desde Excel
           </DropdownMenuItem>
         )}
-        {/* Los dos separadores solo tienen sentido si hay algo de los dos
-            lados — esAdmin implica puedeExportar (ver arriba), así que
-            cuando esAdmin es true siempre hay un grupo de navegación
-            arriba, "Exportar Excel" en medio y "Eliminar órdenes" abajo. */}
-        {esAdmin && <DropdownMenuSeparator />}
+        {grupoNavegacion && puedeExportar && <DropdownMenuSeparator />}
         {puedeExportar && (
           <DropdownMenuItem onClick={() => onExportar?.()}>
             <Download className="size-4" />
             Exportar Excel
           </DropdownMenuItem>
         )}
-        {esAdmin && <DropdownMenuSeparator />}
+        {(grupoNavegacion || puedeExportar) && esAdmin && <DropdownMenuSeparator />}
         {esAdmin && (
           <DropdownMenuItem
             variant="destructive"

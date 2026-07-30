@@ -9,9 +9,16 @@
 // tabla ni estado de selección todavía, getOrdenes() sigue resolviendo, y
 // de todas formas una función no se puede pasar desde este Server
 // Component a un Client Component).
+//
+// El ToolbarSkeleton reserva la barra de OrdenesFiltros (el botón "Filtros"
+// colapsado, size="sm" → h-7): antes no estaba y la barra aparecía de golpe
+// al cargar, empujando la tabla hacia abajo. Los chips de filtros activos no
+// se pueden reservar acá (loading.tsx no recibe searchParams) y de todas
+// formas comparten fila con el botón.
 
 import { PageHeader } from "@/components/layout/page-header";
 import { TableSkeleton } from "@/components/layout/table-skeleton";
+import { ToolbarSkeleton } from "@/components/layout/toolbar-skeleton";
 import { OrdenesAccionesMenu } from "@/components/ordenes/ordenes-acciones-menu";
 
 export default function OrdenesLoading() {
@@ -23,16 +30,18 @@ export default function OrdenesLoading() {
         actions={<OrdenesAccionesMenu />}
       />
 
+      <ToolbarSkeleton izquierda={["h-7 w-24"]} />
+
       <TableSkeleton
         columnas={[
           { header: "Cliente", width: "w-40" },
           { header: "Número de OS", width: "w-24" },
           { header: "Fecha recepción", width: "w-24" },
           { header: "Tipo servicio", width: "w-28" },
-          { header: "Estado", width: "w-32" },
+          { header: "Estado", width: "w-24", alto: "h-5" },
           { header: "Cronograma", width: "w-16" },
           { header: "Secuencia", width: "w-16" },
-          { header: "Acciones", align: "right", width: "w-8" },
+          { header: "Acciones", align: "right", width: "w-7", alto: "h-7" },
         ]}
       />
     </div>

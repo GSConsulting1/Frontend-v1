@@ -604,6 +604,33 @@ export type Database = {
         }
         Relationships: []
       }
+      vobo: {
+        Row: {
+          activo: boolean | null
+          celular: string | null
+          email: string | null
+          fecha_creacion: string | null
+          id: number
+          nombre_completo: string
+        }
+        Insert: {
+          activo?: boolean | null
+          celular?: string | null
+          email?: string | null
+          fecha_creacion?: string | null
+          id?: number
+          nombre_completo: string
+        }
+        Update: {
+          activo?: boolean | null
+          celular?: string | null
+          email?: string | null
+          fecha_creacion?: string | null
+          id?: number
+          nombre_completo?: string
+        }
+        Relationships: []
+      }
       profesionales: {
         Row: {
           activo: boolean | null
@@ -613,6 +640,7 @@ export type Database = {
           id: number
           nombre_completo: string
           telefono: string | null
+          valor_hora: number | null
         }
         Insert: {
           activo?: boolean | null
@@ -622,6 +650,7 @@ export type Database = {
           id?: number
           nombre_completo: string
           telefono?: string | null
+          valor_hora?: number | null
         }
         Update: {
           activo?: boolean | null
@@ -631,6 +660,7 @@ export type Database = {
           id?: number
           nombre_completo?: string
           telefono?: string | null
+          valor_hora?: number | null
         }
         Relationships: []
       }
