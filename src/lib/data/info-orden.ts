@@ -1,5 +1,6 @@
 // Capa de acceso a datos para la sección "Información orden del servicio"
-// (Plan MVP semana 2): los 3 catálogos + las 5 tablas 1-a-1 con
+// (Plan MVP semana 2): los catálogos (ciudades, estados de ejecución,
+// entregables estándar, participantes ARL, VoBo) + las 5 tablas 1-a-1 con
 // ordenes_servicio. Mismo patrón mock/real que src/lib/data/ordenes.ts —
 // único lugar que le pega a estas tablas en Supabase.
 
@@ -21,6 +22,7 @@ import {
   mockParticipantesArl,
   mockRadicacionImagine,
   mockValorHoraOrden,
+  mockVobo,
 } from "@/lib/mock-data/info-orden";
 import { orNull } from "@/lib/utils";
 import type {
@@ -55,11 +57,14 @@ export async function getCatalogosInfoOrden() {
       participantesArl: mockParticipantesArl
         .filter((p) => p.activo)
         .sort((a, b) => a.nombre_completo.localeCompare(b.nombre_completo)),
+      vobo: mockVobo
+        .filter((v) => v.activo)
+        .sort((a, b) => a.nombre_completo.localeCompare(b.nombre_completo)),
     };
   }
   const supabase = await createSupabaseServerClient();
 
-  const [ciudades, estadosEjecucion, entregablesEstandar, participantesArl] =
+  const [ciudades, estadosEjecucion, entregablesEstandar, participantesArl, vobo] =
     await Promise.all([
       supabase.from("ciudades").select("id, nombre, departamento").order("nombre"),
       supabase
@@ -72,6 +77,11 @@ export async function getCatalogosInfoOrden() {
         .select("id, nombre_completo")
         .eq("activo", true)
         .order("nombre_completo"),
+      supabase
+        .from("vobo")
+        .select("id, nombre_completo")
+        .eq("activo", true)
+        .order("nombre_completo"),
     ]);
   if (ciudades.error) throw new Error(`No se pudieron cargar las ciudades: ${ciudades.error.message}`);
   if (estadosEjecucion.error)
@@ -80,12 +90,15 @@ export async function getCatalogosInfoOrden() {
     throw new Error(`No se pudieron cargar los entregables estándar: ${entregablesEstandar.error.message}`);
   if (participantesArl.error)
     throw new Error(`No se pudieron cargar los participantes ARL: ${participantesArl.error.message}`);
+  if (vobo.error)
+    throw new Error(`No se pudieron cargar las personas de VoBo: ${vobo.error.message}`);
 
   return {
     ciudades: ciudades.data ?? [],
     estadosEjecucion: estadosEjecucion.data ?? [],
     entregablesEstandar: entregablesEstandar.data ?? [],
     participantesArl: participantesArl.data ?? [],
+    vobo: vobo.data ?? [],
   };
 }
 
@@ -106,7 +119,7 @@ function enriquecerDetalleEntregaMock(ordenId: number): DetalleEntregaProfesiona
   return {
     ...fila,
     profesional_vobo:
-      mockProfesionales.find((p) => p.id === fila.profesional_vobo_id) ?? null,
+      mockVobo.find((v) => v.id === fila.profesional_vobo_id) ?? null,
     participante_arl:
       mockParticipantesArl.find((p) => p.id === fila.participante_arl_id) ?? null,
   };
@@ -171,7 +184,7 @@ export async function getInfoOrdenCompleta(ordenId: number): Promise<OrdenInfoCo
     supabase
       .from("detalle_entrega_profesional")
       .select(
-        "*, profesional_vobo:profesionales!detalle_entrega_profesional_profesional_vobo_id_fkey(id, nombre_completo), participante_arl:participantes_arl(id, nombre_completo)",
+        "*, profesional_vobo:vobo!detalle_entrega_profesional_profesional_vobo_id_fkey(id, nombre_completo), participante_arl:participantes_arl(id, nombre_completo)",
       )
       .eq("orden_id", ordenId)
       .maybeSingle(),

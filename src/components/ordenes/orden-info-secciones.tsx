@@ -56,6 +56,7 @@ export type OrdenInfoSeccionesProps = {
     telefono: string | null;
   })[];
   participantesArl: SelectOption[];
+  vobo: SelectOption[];
   entregablesEstandar: SelectOption[];
   disabled: boolean;
   seccionAbierta: SeccionId | null;
@@ -72,6 +73,7 @@ export function OrdenInfoSecciones({
   estadosEjecucion,
   profesionales,
   participantesArl,
+  vobo,
   entregablesEstandar,
   disabled,
   seccionAbierta,
@@ -133,7 +135,7 @@ export function OrdenInfoSecciones({
         register={register}
         control={control}
         watch={watch}
-        profesionales={profesionales}
+        vobo={vobo}
         participantesArl={participantesArl}
         open={seccionAbierta === "detalle-entrega"}
         onOpenChange={(open) => onToggleSeccion("detalle-entrega", open)}

@@ -104,6 +104,9 @@ type OrdenFormProps = {
     telefono: string | null;
   })[];
   participantesArl: SelectOption[];
+  // Personal interno de GS Group que da el "VoBo" en Detalle de entrega —
+  // catálogo propio, no son profesionales de campo (ver detalle-entrega.tsx).
+  vobo: SelectOption[];
   ciudades: SelectOption[];
   estadosEjecucion: SelectOption[];
   entregablesEstandar: SelectOption[];
@@ -117,6 +120,7 @@ export function OrdenForm({
   clientes,
   profesionales,
   participantesArl,
+  vobo,
   ciudades,
   estadosEjecucion,
   entregablesEstandar,
@@ -295,6 +299,7 @@ export function OrdenForm({
           estadosEjecucion={estadosEjecucion}
           profesionales={profesionales}
           participantesArl={participantesArl}
+          vobo={vobo}
           entregablesEstandar={entregablesEstandar}
           disabled={mode === "nueva"}
           seccionAbierta={seccionAbierta}

@@ -13,6 +13,12 @@ export type Profesional = Database["public"]["Tables"]["profesionales"]["Row"];
 // profesional_acta_id más abajo).
 export type ParticipanteArl =
   Database["public"]["Tables"]["participantes_arl"]["Row"];
+// Catálogo de personal interno de GS Group que firma el "VoBo" en Detalle de
+// entrega (detalle_entrega_profesional.profesional_vobo_id) — antes esa FK
+// apuntaba por error a `profesionales` (equipo de campo), se migró a esta
+// tabla propia porque son personas distintas (staff administrativo, no
+// quien ejecuta la orden).
+export type Vobo = Database["public"]["Tables"]["vobo"]["Row"];
 export type OrdenServicio =
   Database["public"]["Tables"]["ordenes_servicio"]["Row"];
 
@@ -76,7 +82,7 @@ export type InfoOrdenServicioConRelaciones = InfoOrdenServicio & {
 
 export type DetalleEntregaProfesionalConRelaciones =
   DetalleEntregaProfesional & {
-    profesional_vobo: Pick<Profesional, "id" | "nombre_completo"> | null;
+    profesional_vobo: Pick<Vobo, "id" | "nombre_completo"> | null;
     participante_arl: Pick<ParticipanteArl, "id" | "nombre_completo"> | null;
   };
 
