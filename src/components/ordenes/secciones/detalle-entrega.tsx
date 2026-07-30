@@ -27,7 +27,7 @@ export type SeccionDetalleEntregaProps = {
   register: UseFormRegister<OrdenInfoFormValues>;
   control: Control<OrdenInfoFormValues>;
   watch: UseFormWatch<OrdenInfoFormValues>;
-  profesionales: SelectOption[];
+  vobo: SelectOption[];
   participantesArl: SelectOption[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -37,7 +37,7 @@ export function SeccionDetalleEntrega({
   register,
   control,
   watch,
-  profesionales,
+  vobo,
   participantesArl,
   open,
   onOpenChange,
@@ -51,7 +51,7 @@ export function SeccionDetalleEntrega({
   return (
     <SeccionAcordeon
       titulo="Detalle de entrega"
-      resumen="Cierre de la orden y visto bueno del profesional"
+      resumen="Cierre de la orden y VoBo interno"
       completo={algunoLleno(detalleEntrega)}
       open={open}
       onOpenChange={onOpenChange}
@@ -77,7 +77,7 @@ export function SeccionDetalleEntrega({
             {...register("detalleEntrega.fecha_cierre_orden")}
           />
         </FormField>
-        <FormField label="Profesional que da VoBo" htmlFor="profesional_vobo_id">
+        <FormField label="Quién da el VoBo" htmlFor="profesional_vobo_id">
           <Controller
             name="detalleEntrega.profesional_vobo_id"
             control={control}
@@ -87,18 +87,18 @@ export function SeccionDetalleEntrega({
                 onValueChange={(v: string | null) =>
                   field.onChange(v ? Number(v) : undefined)
                 }
-                items={profesionales.map((p) => ({
-                  label: p.label,
-                  value: String(p.id),
+                items={vobo.map((v) => ({
+                  label: v.label,
+                  value: String(v.id),
                 }))}
               >
                 <SelectTrigger id="profesional_vobo_id" className="w-full">
-                  <SelectValue placeholder="Selecciona un profesional" />
+                  <SelectValue placeholder="Selecciona quién da el VoBo" />
                 </SelectTrigger>
                 <SelectContent>
-                  {profesionales.map((p) => (
-                    <SelectItem key={p.id} value={String(p.id)}>
-                      {p.label}
+                  {vobo.map((v) => (
+                    <SelectItem key={v.id} value={String(v.id)}>
+                      {v.label}
                     </SelectItem>
                   ))}
                 </SelectContent>

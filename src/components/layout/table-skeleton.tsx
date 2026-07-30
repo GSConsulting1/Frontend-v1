@@ -25,6 +25,14 @@ export type ColumnaSkeleton = {
   // Clase de ancho de Tailwind para la barra gris de esa columna (ej.
   // "w-40") — no el ancho de la celda en sí.
   width?: string;
+  // Alto de la barra, solo si la celda real no es una línea de texto: el
+  // default "h-4" imita un texto, pero una columna con un Badge mide h-5 y
+  // una con un botón de ícono (size="icon-sm") mide h-7 — sin esto la fila
+  // del esqueleto queda más baja que la real y la tabla salta al cargar.
+  alto?: string;
+  // Barras apiladas para celdas de más de una línea (ej. la columna
+  // "Contacto" de profesionales: email arriba, teléfono abajo).
+  lineas?: number;
 };
 
 type TableSkeletonProps = {
@@ -55,13 +63,22 @@ export function TableSkeleton({ columnas, filas = 5 }: TableSkeletonProps) {
                 key={indice}
                 className={columna.align === "right" ? "text-right" : undefined}
               >
-                <Skeleton
+                <div
                   className={cn(
-                    "h-4",
-                    columna.width ?? "w-32",
-                    columna.align === "right" && "ml-auto",
+                    "flex flex-col gap-1.5",
+                    columna.align === "right" && "items-end",
                   )}
-                />
+                >
+                  {Array.from({ length: columna.lineas ?? 1 }).map((_, linea) => (
+                    <Skeleton
+                      key={linea}
+                      className={cn(
+                        columna.alto ?? "h-4",
+                        columna.width ?? "w-32",
+                      )}
+                    />
+                  ))}
+                </div>
               </TableCell>
             ))}
           </TableRow>
