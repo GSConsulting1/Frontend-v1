@@ -207,6 +207,15 @@ src/
   `administrador`. Ocultar el link es UX, no seguridad — igual que
   `RoleGate`, no reemplaza la protección real de la página (ver
   `components/usuarios/` abajo).
+- Esqueletos de carga genéricos para los `loading.tsx` de Next.js:
+  `table-skeleton.tsx` (tabla: cada `loading.tsx` pasa sus `columnas`
+  con el mismo header/ancho/alto que la tabla real) y
+  `toolbar-skeleton.tsx` (la barra de controles de arriba: buscador,
+  botón "Filtros", botón de alta). La regla es que el esqueleto
+  reserve **todo** lo que el componente real va a mostrar — si falta
+  una columna o la barra de arriba, ese trozo aparece de golpe al
+  terminar de cargar y empuja el resto. Pantalla nueva = su
+  `loading.tsx` reusando estos dos, no una tabla copiada a mano.
 - No conoce el dominio (nada de "orden", "cliente", Supabase). Si un
   componente de layout necesita datos de negocio, se los pasan por
   props desde `page.tsx`/`layout.tsx`, no hace fetch propio.
