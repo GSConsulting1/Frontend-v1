@@ -16,8 +16,11 @@ export default async function OrdenesPage({
     desde?: string;
     hasta?: string;
     numeroOs?: string;
+    nombreEmpresa?: string;
+    asesorGestionRiesgos?: string;
     tipoServicio?: string;
     estado?: string;
+    responsableOs?: string;
     secuencia?: string;
   }>;
 }) {
@@ -27,8 +30,11 @@ export default async function OrdenesPage({
     desde: params.desde || undefined,
     hasta: params.hasta || undefined,
     numeroOs: params.numeroOs || undefined,
+    nombreEmpresa: params.nombreEmpresa || undefined,
+    asesorGestionRiesgos: params.asesorGestionRiesgos || undefined,
     tiposServicio: params.tipoServicio?.split(",").filter(Boolean),
     estados: params.estado?.split(",").filter(Boolean),
+    responsablesOs: params.responsableOs?.split(",").filter(Boolean),
     secuencia: params.secuencia || undefined,
   };
 

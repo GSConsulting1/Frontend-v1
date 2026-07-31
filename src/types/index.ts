@@ -30,6 +30,12 @@ export type OrdenServicio =
 // una FK real.
 export type OrdenServicioConRelaciones = OrdenServicio & {
   cliente: Pick<Cliente, "id" | "nombre_cliente"> | null;
+  // Solo lectura acá: la fuente de verdad es checklist_proceso.estado_ejecucion_id,
+  // editable desde "Checklist del proceso" (ver checklist.tsx) — el listado
+  // solo lo muestra para dar contexto, no permite editarlo.
+  checklist: {
+    estado_ejecucion: Pick<EstadoEjecucion, "id" | "nombre"> | null;
+  } | null;
 };
 
 // Sección "Información orden del servicio" (Plan MVP semana 2): catálogos +
