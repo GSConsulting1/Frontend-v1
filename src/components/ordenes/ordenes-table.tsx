@@ -28,6 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,6 +49,7 @@ import {
 import { EstadoBadge } from "@/components/ordenes/estado-badge";
 import { EditableCell } from "@/components/ordenes/editable-cell";
 import { RoleGate } from "@/components/auth/role-gate";
+import { useAuth } from "@/components/auth/auth-provider";
 import { eliminarOrden, actualizarCampoOrden } from "@/app/ordenes/actions";
 import { cn } from "@/lib/utils";
 import {
@@ -55,8 +57,6 @@ import {
   type EstadoOrden,
 } from "@/lib/validations/orden.schema";
 import type { OrdenServicioConRelaciones, RolUsuario } from "@/types";
-
-const COLUMNAS_BASE = 8;
 const ROLES_EDITAN_INLINE: RolUsuario[] = ["administrador", "financiero"];
 const OPCIONES_ESTADO = ESTADOS_ORDEN.map((e) => ({ id: e, label: e }));
 
@@ -80,6 +80,11 @@ export function OrdenesTable({
   onToggleAll,
   accionError,
 }: OrdenesTableProps) {
+  const { perfil } = useAuth();
+  // Financiero es el único rol que ve "Cliente" + "Número de OS"; el resto ve
+  // el nombre de la empresa usuaria en su lugar y no ve el número de OS.
+  const esFinanciero = perfil?.rol === "financiero";
+  const columnasBase = esFinanciero ? 9 : 8;
   const [deletingIds, setDeletingIds] = useState<Set<number>>(new Set());
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [ordenPendienteEliminar, setOrdenPendienteEliminar] =
@@ -184,11 +189,14 @@ export function OrdenesTable({
                 />
               </TableHead>
             )}
-            <TableHead className="whitespace-normal">Cliente</TableHead>
-            <TableHead>Número de OS</TableHead>
+            <TableHead className="whitespace-normal">
+              {esFinanciero ? "Cliente" : "Nombre Empresa usuaria del cliente"}
+            </TableHead>
+            {esFinanciero && <TableHead>Número de OS</TableHead>}
             <TableHead>Fecha recepción</TableHead>
             <TableHead className="whitespace-normal">Tipo servicio</TableHead>
-            <TableHead>Estado</TableHead>
+            <TableHead>Estado Gerencia</TableHead>
+            <TableHead>Estado de ejecución</TableHead>
             <TableHead>Cronograma</TableHead>
             <TableHead>Secuencia</TableHead>
             <TableHead className="text-right">Acciones</TableHead>
@@ -198,7 +206,7 @@ export function OrdenesTable({
           {ordenes.length === 0 && (
             <TableRow>
               <TableCell
-                colSpan={selectionMode ? COLUMNAS_BASE + 1 : COLUMNAS_BASE}
+                colSpan={selectionMode ? columnasBase + 1 : columnasBase}
                 className="py-10 text-center text-sm text-muted-foreground"
               >
                 No hay órdenes que coincidan con los filtros.
@@ -229,9 +237,13 @@ export function OrdenesTable({
                   </TableCell>
                 )}
                 <TableCell className="whitespace-normal font-medium">
-                  {orden.cliente?.nombre_cliente ?? "—"}
+                  {esFinanciero
+                    ? (orden.cliente?.nombre_cliente ?? "—")
+                    : (orden.nombre_empresa_usuaria ?? "—")}
                 </TableCell>
-                <TableCell>{orden.numero_os_cliente ?? "—"}</TableCell>
+                {esFinanciero && (
+                  <TableCell>{orden.numero_os_cliente ?? "—"}</TableCell>
+                )}
                 <TableCell>{orden.fecha_recepcion_os ?? "—"}</TableCell>
                 <TableCell className="whitespace-normal">
                   {orden.tipo_servicio ?? "—"}
@@ -258,6 +270,11 @@ export function OrdenesTable({
                       />
                     </RoleGate>
                   )}
+                </TableCell>
+                <TableCell>
+                  <Badge variant="secondary">
+                    {orden.checklist?.estado_ejecucion?.nombre ?? "Sin definir"}
+                  </Badge>
                 </TableCell>
                 <TableCell>
                   {selectionMode ? (

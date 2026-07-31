@@ -16,6 +16,10 @@ import {
   mockOrdenes,
   mockProfesionales,
 } from "@/lib/mock-data/ordenes";
+import {
+  mockChecklistProceso,
+  mockEstadosEjecucion,
+} from "@/lib/mock-data/info-orden";
 import { orNull } from "@/lib/utils";
 import type {
   CampoOrdenInlinePatch,
@@ -28,8 +32,11 @@ export type OrdenesFiltros = {
   desde?: string;
   hasta?: string;
   numeroOs?: string;
+  nombreEmpresa?: string;
+  asesorGestionRiesgos?: string;
   tiposServicio?: string[];
   estados?: string[];
+  responsablesOs?: string[];
   secuencia?: string;
 };
 
@@ -75,10 +82,23 @@ function normalizarInput(input: OrdenServicioFormValues) {
 }
 
 function enriquecerMock(): OrdenServicioConRelaciones[] {
-  return mockOrdenes.map((orden) => ({
-    ...orden,
-    cliente: mockClientes.find((c) => c.id === orden.cliente_id) ?? null,
-  }));
+  return mockOrdenes.map((orden) => {
+    const checklist = mockChecklistProceso.find(
+      (c) => c.orden_id === orden.id,
+    );
+    const estadoEjecucion = checklist
+      ? (mockEstadosEjecucion.find(
+          (e) => e.id === checklist.estado_ejecucion_id,
+        ) ?? null)
+      : null;
+    return {
+      ...orden,
+      cliente: mockClientes.find((c) => c.id === orden.cliente_id) ?? null,
+      checklist: checklist
+        ? { estado_ejecucion: estadoEjecucion }
+        : null,
+    };
+  });
 }
 
 export async function getOrdenes(
@@ -107,6 +127,18 @@ export async function getOrdenes(
         (o.numero_os_cliente ?? "").toLowerCase().includes(needle),
       );
     }
+    if (filtros.nombreEmpresa) {
+      const needle = filtros.nombreEmpresa.toLowerCase();
+      ordenes = ordenes.filter((o) =>
+        (o.nombre_empresa_usuaria ?? "").toLowerCase().includes(needle),
+      );
+    }
+    if (filtros.asesorGestionRiesgos) {
+      const needle = filtros.asesorGestionRiesgos.toLowerCase();
+      ordenes = ordenes.filter((o) =>
+        (o.asesor_gestion_riesgos ?? "").toLowerCase().includes(needle),
+      );
+    }
     if (filtros.tiposServicio?.length) {
       ordenes = ordenes.filter(
         (o) =>
@@ -116,6 +148,12 @@ export async function getOrdenes(
     if (filtros.estados?.length) {
       ordenes = ordenes.filter(
         (o) => o.estado && filtros.estados!.includes(o.estado),
+      );
+    }
+    if (filtros.responsablesOs?.length) {
+      ordenes = ordenes.filter(
+        (o) =>
+          o.responsable_os && filtros.responsablesOs!.includes(o.responsable_os),
       );
     }
     if (filtros.secuencia) {
@@ -130,7 +168,9 @@ export async function getOrdenes(
 
   let query = supabase
     .from("ordenes_servicio")
-    .select("*, cliente:clientes(id, nombre_cliente)")
+    .select(
+      "*, cliente:clientes(id, nombre_cliente), checklist:checklist_proceso(estado_ejecucion:estados_ejecucion(id, nombre))",
+    )
     .order("id", { ascending: false });
 
   if (filtros.clienteIds?.length)
@@ -140,10 +180,22 @@ export async function getOrdenes(
   if (filtros.numeroOs) {
     query = query.ilike("numero_os_cliente", `%${filtros.numeroOs}%`);
   }
+  if (filtros.nombreEmpresa) {
+    query = query.ilike("nombre_empresa_usuaria", `%${filtros.nombreEmpresa}%`);
+  }
+  if (filtros.asesorGestionRiesgos) {
+    query = query.ilike(
+      "asesor_gestion_riesgos",
+      `%${filtros.asesorGestionRiesgos}%`,
+    );
+  }
   if (filtros.tiposServicio?.length) {
     query = query.in("tipo_servicio", filtros.tiposServicio);
   }
   if (filtros.estados?.length) query = query.in("estado", filtros.estados);
+  if (filtros.responsablesOs?.length) {
+    query = query.in("responsable_os", filtros.responsablesOs);
+  }
   if (filtros.secuencia) {
     query = query.ilike("secuencia", `%${filtros.secuencia}%`);
   }
@@ -164,7 +216,9 @@ export async function getOrdenById(
 
   const { data, error } = await supabase
     .from("ordenes_servicio")
-    .select("*, cliente:clientes(id, nombre_cliente)")
+    .select(
+      "*, cliente:clientes(id, nombre_cliente), checklist:checklist_proceso(estado_ejecucion:estados_ejecucion(id, nombre))",
+    )
     .eq("id", id)
     .maybeSingle();
 
