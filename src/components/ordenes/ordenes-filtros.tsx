@@ -45,6 +45,7 @@ import {
 } from "@/components/ui/select";
 import {
   ESTADOS_ORDEN,
+  RESPONSABLES_OS,
   TIPO_SERVICIO_OPCIONES,
 } from "@/lib/validations/orden.schema";
 
@@ -57,8 +58,11 @@ type OrdenesFiltrosProps = {
 type FiltrosValues = {
   clienteIds: string[];
   numeroOs: string;
+  nombreEmpresa: string;
+  asesorGestionRiesgos: string;
   tiposServicio: string[];
   estados: string[];
+  responsablesOs: string[];
   secuencia: string;
 };
 
@@ -90,8 +94,11 @@ export function OrdenesFiltros({ clientes }: OrdenesFiltrosProps) {
   const initial: FiltrosValues = {
     clienteIds: parseLista(searchParams.get("clienteId")),
     numeroOs: searchParams.get("numeroOs") ?? "",
+    nombreEmpresa: searchParams.get("nombreEmpresa") ?? "",
+    asesorGestionRiesgos: searchParams.get("asesorGestionRiesgos") ?? "",
     tiposServicio: parseLista(searchParams.get("tipoServicio")),
     estados: parseLista(searchParams.get("estado")),
+    responsablesOs: parseLista(searchParams.get("responsableOs")),
     secuencia: searchParams.get("secuencia") ?? "",
   };
 
@@ -109,7 +116,22 @@ export function OrdenesFiltros({ clientes }: OrdenesFiltrosProps) {
       texto: initial.tiposServicio.join(", "),
     },
     { key: "estado", label: "Estado", texto: initial.estados.join(", ") },
+    {
+      key: "responsableOs",
+      label: "Responsable SEC",
+      texto: initial.responsablesOs.join(", "),
+    },
     { key: "numeroOs", label: "Número de OS", texto: initial.numeroOs },
+    {
+      key: "nombreEmpresa",
+      label: "Empresa usuaria",
+      texto: initial.nombreEmpresa,
+    },
+    {
+      key: "asesorGestionRiesgos",
+      label: "Asesor gestión riesgos",
+      texto: initial.asesorGestionRiesgos,
+    },
     { key: "secuencia", label: "Secuencia", texto: initial.secuencia },
   ].filter((f) => f.texto.length > 0);
 
@@ -118,9 +140,15 @@ export function OrdenesFiltros({ clientes }: OrdenesFiltrosProps) {
     if (values.clienteIds.length)
       params.set("clienteId", values.clienteIds.join(","));
     if (values.numeroOs.trim()) params.set("numeroOs", values.numeroOs.trim());
+    if (values.nombreEmpresa.trim())
+      params.set("nombreEmpresa", values.nombreEmpresa.trim());
+    if (values.asesorGestionRiesgos.trim())
+      params.set("asesorGestionRiesgos", values.asesorGestionRiesgos.trim());
     if (values.tiposServicio.length)
       params.set("tipoServicio", values.tiposServicio.join(","));
     if (values.estados.length) params.set("estado", values.estados.join(","));
+    if (values.responsablesOs.length)
+      params.set("responsableOs", values.responsablesOs.join(","));
     if (values.secuencia.trim())
       params.set("secuencia", values.secuencia.trim());
 
@@ -212,8 +240,15 @@ function FiltrosCampos({
 }) {
   const [clienteIds, setClienteIds] = useState(initial.clienteIds);
   const [numeroOs, setNumeroOs] = useState(initial.numeroOs);
+  const [nombreEmpresa, setNombreEmpresa] = useState(initial.nombreEmpresa);
+  const [asesorGestionRiesgos, setAsesorGestionRiesgos] = useState(
+    initial.asesorGestionRiesgos,
+  );
   const [tiposServicio, setTiposServicio] = useState(initial.tiposServicio);
   const [estados, setEstados] = useState(initial.estados);
+  const [responsablesOs, setResponsablesOs] = useState(
+    initial.responsablesOs,
+  );
   const [secuencia, setSecuencia] = useState(initial.secuencia);
 
   const clienteLabelPorId = new Map(
@@ -221,10 +256,20 @@ function FiltrosCampos({
   );
   const tipoServicioLabels = new Map(TIPO_SERVICIO_OPCIONES.map((t) => [t, t]));
   const estadoLabels = new Map(ESTADOS_ORDEN.map((e) => [e, e]));
+  const responsableOsLabels = new Map(RESPONSABLES_OS.map((r) => [r, r]));
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    onAplicar({ clienteIds, numeroOs, tiposServicio, estados, secuencia });
+    onAplicar({
+      clienteIds,
+      numeroOs,
+      nombreEmpresa,
+      asesorGestionRiesgos,
+      tiposServicio,
+      estados,
+      responsablesOs,
+      secuencia,
+    });
   }
 
   return (
@@ -266,6 +311,27 @@ function FiltrosCampos({
         />
       </FormField>
 
+      <FormField label="Empresa usuaria" htmlFor="filtro-nombre-empresa">
+        <Input
+          id="filtro-nombre-empresa"
+          value={nombreEmpresa}
+          onChange={(e) => setNombreEmpresa(e.target.value)}
+          placeholder="Buscar por nombre de la empresa"
+        />
+      </FormField>
+
+      <FormField
+        label="Asesor gestión riesgos"
+        htmlFor="filtro-asesor-gestion-riesgos"
+      >
+        <Input
+          id="filtro-asesor-gestion-riesgos"
+          value={asesorGestionRiesgos}
+          onChange={(e) => setAsesorGestionRiesgos(e.target.value)}
+          placeholder="Buscar por asesor"
+        />
+      </FormField>
+
       <FormField label="Tipo de servicio" htmlFor="filtro-tipo-servicio">
         <Select
           multiple
@@ -304,6 +370,30 @@ function FiltrosCampos({
             {ESTADOS_ORDEN.map((e) => (
               <SelectItem key={e} value={e}>
                 {e}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </FormField>
+
+      <FormField label="Responsable SEC" htmlFor="filtro-responsable-os">
+        <Select
+          multiple
+          value={responsablesOs}
+          onValueChange={(v: string[]) => setResponsablesOs(v)}
+          items={RESPONSABLES_OS.map((r) => ({ label: r, value: r }))}
+        >
+          <SelectTrigger id="filtro-responsable-os" className="w-full">
+            <SelectValue>
+              {(value: string[]) =>
+                resumenSeleccion(value, responsableOsLabels)
+              }
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {RESPONSABLES_OS.map((r) => (
+              <SelectItem key={r} value={r}>
+                {r}
               </SelectItem>
             ))}
           </SelectContent>

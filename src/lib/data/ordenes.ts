@@ -32,8 +32,11 @@ export type OrdenesFiltros = {
   desde?: string;
   hasta?: string;
   numeroOs?: string;
+  nombreEmpresa?: string;
+  asesorGestionRiesgos?: string;
   tiposServicio?: string[];
   estados?: string[];
+  responsablesOs?: string[];
   secuencia?: string;
 };
 
@@ -124,6 +127,18 @@ export async function getOrdenes(
         (o.numero_os_cliente ?? "").toLowerCase().includes(needle),
       );
     }
+    if (filtros.nombreEmpresa) {
+      const needle = filtros.nombreEmpresa.toLowerCase();
+      ordenes = ordenes.filter((o) =>
+        (o.nombre_empresa_usuaria ?? "").toLowerCase().includes(needle),
+      );
+    }
+    if (filtros.asesorGestionRiesgos) {
+      const needle = filtros.asesorGestionRiesgos.toLowerCase();
+      ordenes = ordenes.filter((o) =>
+        (o.asesor_gestion_riesgos ?? "").toLowerCase().includes(needle),
+      );
+    }
     if (filtros.tiposServicio?.length) {
       ordenes = ordenes.filter(
         (o) =>
@@ -133,6 +148,12 @@ export async function getOrdenes(
     if (filtros.estados?.length) {
       ordenes = ordenes.filter(
         (o) => o.estado && filtros.estados!.includes(o.estado),
+      );
+    }
+    if (filtros.responsablesOs?.length) {
+      ordenes = ordenes.filter(
+        (o) =>
+          o.responsable_os && filtros.responsablesOs!.includes(o.responsable_os),
       );
     }
     if (filtros.secuencia) {
@@ -159,10 +180,22 @@ export async function getOrdenes(
   if (filtros.numeroOs) {
     query = query.ilike("numero_os_cliente", `%${filtros.numeroOs}%`);
   }
+  if (filtros.nombreEmpresa) {
+    query = query.ilike("nombre_empresa_usuaria", `%${filtros.nombreEmpresa}%`);
+  }
+  if (filtros.asesorGestionRiesgos) {
+    query = query.ilike(
+      "asesor_gestion_riesgos",
+      `%${filtros.asesorGestionRiesgos}%`,
+    );
+  }
   if (filtros.tiposServicio?.length) {
     query = query.in("tipo_servicio", filtros.tiposServicio);
   }
   if (filtros.estados?.length) query = query.in("estado", filtros.estados);
+  if (filtros.responsablesOs?.length) {
+    query = query.in("responsable_os", filtros.responsablesOs);
+  }
   if (filtros.secuencia) {
     query = query.ilike("secuencia", `%${filtros.secuencia}%`);
   }
