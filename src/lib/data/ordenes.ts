@@ -16,6 +16,10 @@ import {
   mockOrdenes,
   mockProfesionales,
 } from "@/lib/mock-data/ordenes";
+import {
+  mockChecklistProceso,
+  mockEstadosEjecucion,
+} from "@/lib/mock-data/info-orden";
 import { orNull } from "@/lib/utils";
 import type {
   CampoOrdenInlinePatch,
@@ -75,10 +79,23 @@ function normalizarInput(input: OrdenServicioFormValues) {
 }
 
 function enriquecerMock(): OrdenServicioConRelaciones[] {
-  return mockOrdenes.map((orden) => ({
-    ...orden,
-    cliente: mockClientes.find((c) => c.id === orden.cliente_id) ?? null,
-  }));
+  return mockOrdenes.map((orden) => {
+    const checklist = mockChecklistProceso.find(
+      (c) => c.orden_id === orden.id,
+    );
+    const estadoEjecucion = checklist
+      ? (mockEstadosEjecucion.find(
+          (e) => e.id === checklist.estado_ejecucion_id,
+        ) ?? null)
+      : null;
+    return {
+      ...orden,
+      cliente: mockClientes.find((c) => c.id === orden.cliente_id) ?? null,
+      checklist: checklist
+        ? { estado_ejecucion: estadoEjecucion }
+        : null,
+    };
+  });
 }
 
 export async function getOrdenes(
@@ -130,7 +147,9 @@ export async function getOrdenes(
 
   let query = supabase
     .from("ordenes_servicio")
-    .select("*, cliente:clientes(id, nombre_cliente)")
+    .select(
+      "*, cliente:clientes(id, nombre_cliente), checklist:checklist_proceso(estado_ejecucion:estados_ejecucion(id, nombre))",
+    )
     .order("id", { ascending: false });
 
   if (filtros.clienteIds?.length)
@@ -164,7 +183,9 @@ export async function getOrdenById(
 
   const { data, error } = await supabase
     .from("ordenes_servicio")
-    .select("*, cliente:clientes(id, nombre_cliente)")
+    .select(
+      "*, cliente:clientes(id, nombre_cliente), checklist:checklist_proceso(estado_ejecucion:estados_ejecucion(id, nombre))",
+    )
     .eq("id", id)
     .maybeSingle();
 

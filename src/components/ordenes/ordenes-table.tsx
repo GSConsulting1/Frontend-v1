@@ -28,6 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -56,7 +57,7 @@ import {
 } from "@/lib/validations/orden.schema";
 import type { OrdenServicioConRelaciones, RolUsuario } from "@/types";
 
-const COLUMNAS_BASE = 8;
+const COLUMNAS_BASE = 9;
 const ROLES_EDITAN_INLINE: RolUsuario[] = ["administrador", "financiero"];
 const OPCIONES_ESTADO = ESTADOS_ORDEN.map((e) => ({ id: e, label: e }));
 
@@ -188,7 +189,8 @@ export function OrdenesTable({
             <TableHead>Número de OS</TableHead>
             <TableHead>Fecha recepción</TableHead>
             <TableHead className="whitespace-normal">Tipo servicio</TableHead>
-            <TableHead>Estado</TableHead>
+            <TableHead>Estado Gerencia</TableHead>
+            <TableHead>Estado de ejecución</TableHead>
             <TableHead>Cronograma</TableHead>
             <TableHead>Secuencia</TableHead>
             <TableHead className="text-right">Acciones</TableHead>
@@ -258,6 +260,11 @@ export function OrdenesTable({
                       />
                     </RoleGate>
                   )}
+                </TableCell>
+                <TableCell>
+                  <Badge variant="secondary">
+                    {orden.checklist?.estado_ejecucion?.nombre ?? "Sin definir"}
+                  </Badge>
                 </TableCell>
                 <TableCell>
                   {selectionMode ? (
