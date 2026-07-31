@@ -59,8 +59,8 @@ export function SeccionDatosGenerales({
         <p className="mb-3 flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
           <Info className="size-4 shrink-0" aria-hidden />
           Solo los roles administrador, financiero y talento pueden editar los
-          datos generales — los ves, pero no se pueden modificar desde tu
-          cuenta.
+          datos generales — puedes verlos y copiarlos, pero no modificarlos
+          desde tu cuenta.
         </p>
       )}
       <OrdenCamposInfo />

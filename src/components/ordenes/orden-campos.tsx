@@ -27,7 +27,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
 import {
   ESTADOS_ORDEN,
   RESPONSABLES_OS,
@@ -56,10 +55,7 @@ export function OrdenCampos({
   disabled,
 }: OrdenCamposProps) {
   return (
-    <fieldset
-      disabled={disabled}
-      className={cn("grid gap-4 sm:grid-cols-2", disabled && "pointer-events-none opacity-50")}
-    >
+    <div className="grid gap-4 sm:grid-cols-2">
       <FormField
         label="Cliente"
         htmlFor="cliente_id"
@@ -69,29 +65,39 @@ export function OrdenCampos({
         <Controller
           name="cliente_id"
           control={control}
-          render={({ field }) => (
-            <Select
-              value={field.value != null ? String(field.value) : null}
-              onValueChange={(v: string | null) =>
-                field.onChange(v ? Number(v) : undefined)
-              }
-              items={clientes.map((c) => ({
-                label: c.label,
-                value: String(c.id),
-              }))}
-            >
-              <SelectTrigger id="cliente_id" className="w-full">
-                <SelectValue placeholder="Selecciona un cliente" />
-              </SelectTrigger>
-              <SelectContent>
-                {clientes.map((c) => (
-                  <SelectItem key={c.id} value={String(c.id)}>
-                    {c.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+          render={({ field }) =>
+            disabled ? (
+              <Input
+                id="cliente_id"
+                readOnly
+                value={
+                  clientes.find((c) => c.id === field.value)?.label ?? ""
+                }
+              />
+            ) : (
+              <Select
+                value={field.value != null ? String(field.value) : null}
+                onValueChange={(v: string | null) =>
+                  field.onChange(v ? Number(v) : undefined)
+                }
+                items={clientes.map((c) => ({
+                  label: c.label,
+                  value: String(c.id),
+                }))}
+              >
+                <SelectTrigger id="cliente_id" className="w-full">
+                  <SelectValue placeholder="Selecciona un cliente" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clientes.map((c) => (
+                    <SelectItem key={c.id} value={String(c.id)}>
+                      {c.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )
+          }
         />
       </FormField>
 
@@ -99,7 +105,11 @@ export function OrdenCampos({
         label="Número de OS del cliente"
         htmlFor="numero_os_cliente"
       >
-        <Input id="numero_os_cliente" {...register("numero_os_cliente")} />
+        <Input
+          id="numero_os_cliente"
+          readOnly={disabled}
+          {...register("numero_os_cliente")}
+        />
       </FormField>
 
       <FormField
@@ -109,6 +119,7 @@ export function OrdenCampos({
         <Input
           id="fecha_recepcion_os"
           type="date"
+          readOnly={disabled}
           {...register("fecha_recepcion_os")}
         />
       </FormField>
@@ -119,6 +130,7 @@ export function OrdenCampos({
       >
         <Input
           id="nombre_empresa_usuaria"
+          readOnly={disabled}
           {...register("nombre_empresa_usuaria")}
         />
       </FormField>
@@ -127,7 +139,11 @@ export function OrdenCampos({
         label="Nit Empresa usuaria del cliente"
         htmlFor="nit_empresa_usuaria"
       >
-        <Input id="nit_empresa_usuaria" {...register("nit_empresa_usuaria")} />
+        <Input
+          id="nit_empresa_usuaria"
+          readOnly={disabled}
+          {...register("nit_empresa_usuaria")}
+        />
       </FormField>
 
       <FormField
@@ -140,6 +156,7 @@ export function OrdenCampos({
           type="number"
           step="1"
           min="0"
+          readOnly={disabled}
           {...register("cronograma", {
             setValueAs: (v) =>
               v === "" || v === undefined ? undefined : Number(v),
@@ -148,7 +165,11 @@ export function OrdenCampos({
       </FormField>
 
       <FormField label="Secuencia" htmlFor="secuencia">
-        <Input id="secuencia" {...register("secuencia")} />
+        <Input
+          id="secuencia"
+          readOnly={disabled}
+          {...register("secuencia")}
+        />
       </FormField>
 
       <FormField
@@ -157,7 +178,11 @@ export function OrdenCampos({
         required
         error={errors.nombre_servicio?.message}
       >
-        <Input id="nombre_servicio" {...register("nombre_servicio")} />
+        <Input
+          id="nombre_servicio"
+          readOnly={disabled}
+          {...register("nombre_servicio")}
+        />
       </FormField>
 
       <FormField
@@ -170,6 +195,7 @@ export function OrdenCampos({
           type="number"
           step="0.5"
           min="0"
+          readOnly={disabled}
           {...register("horas_cargadas", {
             setValueAs: (v) =>
               v === "" || v === undefined ? undefined : Number(v),
@@ -181,33 +207,45 @@ export function OrdenCampos({
         <Controller
           name="tipo_servicio"
           control={control}
-          render={({ field }) => (
-            <Select
-              value={field.value ?? null}
-              onValueChange={(v: string | null) =>
-                field.onChange(
-                  v as (typeof TIPO_SERVICIO_OPCIONES)[number] | undefined,
-                )
-              }
-              items={TIPO_SERVICIO_OPCIONES.map((o) => ({ label: o, value: o }))}
-            >
-              <SelectTrigger id="tipo_servicio" className="w-full">
-                <SelectValue placeholder="Selecciona un tipo de servicio" />
-              </SelectTrigger>
-              <SelectContent>
-                {TIPO_SERVICIO_OPCIONES.map((o) => (
-                  <SelectItem key={o} value={o}>
-                    {o}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+          render={({ field }) =>
+            disabled ? (
+              <Input id="tipo_servicio" readOnly value={field.value ?? ""} />
+            ) : (
+              <Select
+                value={field.value ?? null}
+                onValueChange={(v: string | null) =>
+                  field.onChange(
+                    v as (typeof TIPO_SERVICIO_OPCIONES)[number] | undefined,
+                  )
+                }
+                items={TIPO_SERVICIO_OPCIONES.map((o) => ({
+                  label: o,
+                  value: o,
+                }))}
+              >
+                <SelectTrigger id="tipo_servicio" className="w-full">
+                  <SelectValue placeholder="Selecciona un tipo de servicio" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIPO_SERVICIO_OPCIONES.map((o) => (
+                    <SelectItem key={o} value={o}>
+                      {o}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )
+          }
         />
       </FormField>
 
       <FormField label="Fecha SIPAB" htmlFor="fecha_sipab">
-        <Input id="fecha_sipab" type="date" {...register("fecha_sipab")} />
+        <Input
+          id="fecha_sipab"
+          type="date"
+          readOnly={disabled}
+          {...register("fecha_sipab")}
+        />
       </FormField>
 
       <FormField
@@ -216,6 +254,7 @@ export function OrdenCampos({
       >
         <Input
           id="asesor_gestion_riesgos"
+          readOnly={disabled}
           {...register("asesor_gestion_riesgos")}
         />
       </FormField>
@@ -227,6 +266,7 @@ export function OrdenCampos({
         >
           <Textarea
             id="observaciones_iniciales"
+            readOnly={disabled}
             {...register("observaciones_iniciales")}
           />
         </FormField>
@@ -239,6 +279,7 @@ export function OrdenCampos({
       >
         <Input
           id="tarifa_valor_transporte"
+          readOnly={disabled}
           {...register("tarifa_valor_transporte")}
         />
       </FormField>
@@ -247,28 +288,32 @@ export function OrdenCampos({
         <Controller
           name="responsable_os"
           control={control}
-          render={({ field }) => (
-            <Select
-              value={field.value ?? null}
-              onValueChange={(v: string | null) =>
-                field.onChange(
-                  v as (typeof RESPONSABLES_OS)[number] | undefined,
-                )
-              }
-              items={RESPONSABLES_OS.map((r) => ({ label: r, value: r }))}
-            >
-              <SelectTrigger id="responsable_os" className="w-full">
-                <SelectValue placeholder="Selecciona un responsable" />
-              </SelectTrigger>
-              <SelectContent>
-                {RESPONSABLES_OS.map((r) => (
-                  <SelectItem key={r} value={r}>
-                    {r}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+          render={({ field }) =>
+            disabled ? (
+              <Input id="responsable_os" readOnly value={field.value ?? ""} />
+            ) : (
+              <Select
+                value={field.value ?? null}
+                onValueChange={(v: string | null) =>
+                  field.onChange(
+                    v as (typeof RESPONSABLES_OS)[number] | undefined,
+                  )
+                }
+                items={RESPONSABLES_OS.map((r) => ({ label: r, value: r }))}
+              >
+                <SelectTrigger id="responsable_os" className="w-full">
+                  <SelectValue placeholder="Selecciona un responsable" />
+                </SelectTrigger>
+                <SelectContent>
+                  {RESPONSABLES_OS.map((r) => (
+                    <SelectItem key={r} value={r}>
+                      {r}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )
+          }
         />
       </FormField>
 
@@ -279,6 +324,7 @@ export function OrdenCampos({
         >
           <Textarea
             id="observaciones_responsable_sec"
+            readOnly={disabled}
             {...register("observaciones_responsable_sec")}
           />
         </FormField>
@@ -294,28 +340,32 @@ export function OrdenCampos({
         <Controller
           name="estado"
           control={control}
-          render={({ field }) => (
-            <Select
-              value={field.value ?? null}
-              onValueChange={(v: string | null) =>
-                field.onChange(
-                  v as (typeof ESTADOS_ORDEN)[number] | undefined,
-                )
-              }
-              items={ESTADOS_ORDEN.map((e) => ({ label: e, value: e }))}
-            >
-              <SelectTrigger id="estado" className="w-full">
-                <SelectValue placeholder="Selecciona un estado" />
-              </SelectTrigger>
-              <SelectContent>
-                {ESTADOS_ORDEN.map((e) => (
-                  <SelectItem key={e} value={e}>
-                    {e}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+          render={({ field }) =>
+            disabled ? (
+              <Input id="estado" readOnly value={field.value ?? ""} />
+            ) : (
+              <Select
+                value={field.value ?? null}
+                onValueChange={(v: string | null) =>
+                  field.onChange(
+                    v as (typeof ESTADOS_ORDEN)[number] | undefined,
+                  )
+                }
+                items={ESTADOS_ORDEN.map((e) => ({ label: e, value: e }))}
+              >
+                <SelectTrigger id="estado" className="w-full">
+                  <SelectValue placeholder="Selecciona un estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ESTADOS_ORDEN.map((e) => (
+                    <SelectItem key={e} value={e}>
+                      {e}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )
+          }
         />
       </FormField>
 
@@ -329,10 +379,11 @@ export function OrdenCampos({
             id="link_archivo_orden"
             type="url"
             placeholder="https://drive.google.com/..."
+            readOnly={disabled}
             {...register("link_archivo_orden")}
           />
         </FormField>
       </div>
-    </fieldset>
+    </div>
   );
 }
