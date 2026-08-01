@@ -12,7 +12,10 @@
 // app/ordenes/actions.ts), nunca desde código de cliente.
 
 import ExcelJS from "exceljs";
-import type { OrdenServicioFormValues } from "@/lib/validations/orden.schema";
+import {
+  RESPONSABLES_OS,
+  type OrdenServicioFormValues,
+} from "@/lib/validations/orden.schema";
 
 export type FilaExcelOrden = {
   fila: number;
@@ -26,6 +29,9 @@ type CampoImportable = keyof Omit<OrdenServicioFormValues, "cliente_id">;
 // tildes. cliente_id no aparece acá: no viene en el Excel, se elige en la
 // pantalla de importación y se agrega aparte por fila.
 const COLUMNAS_IMPORTAR: Record<string, CampoImportable> = {
+  "numero de os del cliente": "numero_os_cliente",
+  "fecha de recepcion os del cliente": "fecha_recepcion_os",
+  "responsable sec para gs": "responsable_os",
   "razon social": "nombre_empresa_usuaria",
   "nit empresa": "nit_empresa_usuaria",
   "numero cronograma": "cronograma",
@@ -40,6 +46,7 @@ const COLUMNAS_IMPORTAR: Record<string, CampoImportable> = {
 };
 
 const CAMPOS_NUMERICOS = new Set<CampoImportable>(["cronograma", "horas_cargadas"]);
+const CAMPOS_FECHA = new Set<CampoImportable>(["fecha_sipab", "fecha_recepcion_os"]);
 
 // A=Asesoría, T=Informe técnico, C=Capacitación — cualquier otro código (o
 // vacío) cae en "N/A". Confirmado por negocio.
@@ -71,7 +78,7 @@ const MESES: Record<string, string> = {
   dec: "12",
 };
 
-function normalizarHeader(valor: unknown): string {
+function normalizarTexto(valor: unknown): string {
   return String(valor ?? "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -136,10 +143,36 @@ function celdaTipoServicio(
   return TIPO_SERVICIO_POR_CODIGO[codigo] ?? "N/A";
 }
 
+function tokenizar(valor: string): string[] {
+  return normalizarTexto(valor).split(/\s+/).filter(Boolean);
+}
+
+// Match tolerante a nombres/apellidos de más (ej. "Yulieth Andrea Amell
+// Gonzalez" sigue matcheando a "Yulieth Amell"): un responsable de
+// RESPONSABLES_OS coincide si todos sus tokens están contenidos en los
+// tokens de la celda. Si hay 0 o 2+ coincidencias (p. ej. "Amell" solo,
+// ambiguo entre Yulieth Amell y Lina Amell) se devuelve el texto crudo sin
+// normalizar en vez de un match adivinado: como no es ninguno de los
+// valores de RESPONSABLES_OS, ordenServicioSchema.safeParse lo rechaza (es
+// un z.enum) y la fila queda marcada inválida en la previsualización en vez
+// de asignarse en silencio a la persona equivocada.
+function celdaResponsableOs(valor: unknown): string | undefined {
+  const texto = celdaTexto(valor);
+  if (!texto) return undefined;
+
+  const tokensCelda = new Set(tokenizar(texto));
+  const coincidencias = RESPONSABLES_OS.filter((nombre) =>
+    tokenizar(nombre).every((token) => tokensCelda.has(token)),
+  );
+
+  return coincidencias.length === 1 ? coincidencias[0] : texto;
+}
+
 function extraerValor(campo: CampoImportable, valorCelda: unknown) {
   const resuelto = resolverValorCelda(valorCelda);
-  if (campo === "fecha_sipab") return celdaFecha(resuelto);
+  if (CAMPOS_FECHA.has(campo)) return celdaFecha(resuelto);
   if (campo === "tipo_servicio") return celdaTipoServicio(resuelto);
+  if (campo === "responsable_os") return celdaResponsableOs(resuelto);
   if (CAMPOS_NUMERICOS.has(campo)) return celdaNumero(resuelto);
   return celdaTexto(resuelto);
 }
@@ -154,7 +187,7 @@ export async function leerOrdenesDesdeExcel(
 
   const indicePorCampo = new Map<CampoImportable, number>();
   hoja.getRow(1).eachCell((cell, colNumber) => {
-    const campo = COLUMNAS_IMPORTAR[normalizarHeader(cell.value)];
+    const campo = COLUMNAS_IMPORTAR[normalizarTexto(cell.value)];
     if (campo) indicePorCampo.set(campo, colNumber);
   });
 
