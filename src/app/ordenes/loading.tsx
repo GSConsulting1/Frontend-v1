@@ -15,6 +15,12 @@
 // al cargar, empujando la tabla hacia abajo. Los chips de filtros activos no
 // se pueden reservar acá (loading.tsx no recibe searchParams) y de todas
 // formas comparten fila con el botón.
+//
+// El segundo ToolbarSkeleton reserva el pie de paginación (ver
+// ordenes-paginacion.tsx): "Mostrando X–Y de Z" a la izquierda y los cuatro
+// botones size="icon-sm" → size-7 a la derecha. Se reserva siempre aunque el
+// pie se oculte con una sola página, porque acá todavía no se sabe cuántas
+// órdenes hay.
 
 import { PageHeader } from "@/components/layout/page-header";
 import { TableSkeleton } from "@/components/layout/table-skeleton";
@@ -43,6 +49,11 @@ export default function OrdenesLoading() {
           { header: "Secuencia", width: "w-16" },
           { header: "Acciones", align: "right", width: "w-7", alto: "h-7" },
         ]}
+      />
+
+      <ToolbarSkeleton
+        izquierda={["h-5 w-48"]}
+        derecha={["size-7", "size-7", "h-5 w-28", "size-7", "size-7"]}
       />
     </div>
   );

@@ -15,16 +15,27 @@
 // Nota: esto NO es el viejo "OrdenesManager" de guardado en lote (que se
 // eliminó al pasar a solo lectura). El único estado compartido que
 // gobierna es la selección para las acciones en lote. Ver structure.md.
+//
+// También es el dueño de la paginación, que en esta versión es de CLIENTE:
+// page.tsx sigue trayendo todas las órdenes que pasan los filtros y acá se
+// corta el array en páginas de ORDENES_POR_PAGINA. OrdenesTable recibe solo
+// la página visible, así que "seleccionar todas" (toggleAll) y las acciones
+// en lote (exportar / eliminar) operan únicamente sobre esa página.
 
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/layout/page-header";
 import { OrdenesFiltros } from "@/components/ordenes/ordenes-filtros";
 import { OrdenesTable } from "@/components/ordenes/ordenes-table";
 import { OrdenesAccionesMenu } from "@/components/ordenes/ordenes-acciones-menu";
 import { ExportarExcelButton } from "@/components/ordenes/exportar-excel-button";
 import { EliminarOrdenesButton } from "@/components/ordenes/eliminar-ordenes-button";
+import {
+  OrdenesPaginacion,
+  ORDENES_POR_PAGINA,
+} from "@/components/ordenes/ordenes-paginacion";
 import type { OrdenServicioConRelaciones } from "@/types";
 
 type ClienteOption = { id: number; nombre_cliente: string };
@@ -40,6 +51,40 @@ export function OrdenesListado({ ordenes, clientes }: OrdenesListadoProps) {
   const [accionSeleccion, setAccionSeleccion] = useState<AccionSeleccion>(null);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [accionError, setAccionError] = useState<string | null>(null);
+  const [pagina, setPagina] = useState(1);
+
+  // Los filtros viven en la URL (ver ordenes-filtros.tsx) y este componente NO
+  // se desmonta al aplicarlos, así que sin esto quedarías parado en la página 7
+  // de un resultado de 2 páginas. Se compara contra la query string en vez de
+  // contra la identidad del prop `ordenes` a propósito: las mutaciones llaman a
+  // revalidatePath("/ordenes"), que reejecuta el Server Component y devuelve un
+  // array nuevo — y ahí NO hay que reiniciar nada (editar una celda no debe
+  // devolverte a la página 1). Patrón de React para ajustar estado en render.
+  const claveFiltros = useSearchParams().toString();
+  const [claveVista, setClaveVista] = useState(claveFiltros);
+  if (claveVista !== claveFiltros) {
+    setClaveVista(claveFiltros);
+    setPagina(1);
+    setSelectedIds(new Set());
+  }
+
+  // Clamp derivado en vez de un efecto: cubre el caso de eliminar las últimas
+  // filas de la última página (el array se achica y `pagina` queda fuera de
+  // rango) sin un render intermedio con la tabla vacía.
+  const totalPaginas = Math.max(
+    1,
+    Math.ceil(ordenes.length / ORDENES_POR_PAGINA),
+  );
+  const paginaSegura = Math.min(pagina, totalPaginas);
+  const desde = (paginaSegura - 1) * ORDENES_POR_PAGINA;
+  const ordenesPagina = ordenes.slice(desde, desde + ORDENES_POR_PAGINA);
+
+  // La selección se limpia al cambiar de página para que exportar y eliminar
+  // nunca alcancen filas que ya no están a la vista.
+  function cambiarPagina(siguiente: number) {
+    setPagina(siguiente);
+    setSelectedIds(new Set());
+  }
 
   function toggle(id: number) {
     setSelectedIds((prev) => {
@@ -50,11 +95,13 @@ export function OrdenesListado({ ordenes, clientes }: OrdenesListadoProps) {
     });
   }
 
+  // Sobre `ordenesPagina`, no sobre `ordenes`: el checkbox de cabecera de la
+  // tabla marca la página visible, no todo el resultado de los filtros.
   function toggleAll() {
     setSelectedIds((prev) =>
-      prev.size === ordenes.length
+      prev.size === ordenesPagina.length
         ? new Set()
-        : new Set(ordenes.map((o) => o.id)),
+        : new Set(ordenesPagina.map((o) => o.id)),
     );
   }
 
@@ -99,12 +146,19 @@ export function OrdenesListado({ ordenes, clientes }: OrdenesListadoProps) {
       <OrdenesFiltros clientes={clientes} />
 
       <OrdenesTable
-        ordenes={ordenes}
+        ordenes={ordenesPagina}
         selectionMode={accionSeleccion !== null}
         selectedIds={selectedIds}
         onToggle={toggle}
         onToggleAll={toggleAll}
         accionError={accionError}
+      />
+
+      <OrdenesPaginacion
+        pagina={paginaSegura}
+        totalPaginas={totalPaginas}
+        totalFilas={ordenes.length}
+        onPaginaChange={cambiarPagina}
       />
     </>
   );

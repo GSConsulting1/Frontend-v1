@@ -13,6 +13,11 @@
 // checkboxes y se bloquean los controles que modifican una orden — celdas
 // editables inline y el menú "..." (Editar/PDF/Eliminar) — para que elegir
 // filas a exportar no se confunda con editar/borrar la orden.
+//
+// `ordenes` es UNA PÁGINA, no el resultado completo de los filtros:
+// OrdenesListado corta el array y renderiza el pie de paginación (ver
+// ordenes-paginacion.tsx). Por eso el checkbox de cabecera, exportar y
+// eliminar en lote alcanzan solo a las filas visibles.
 
 "use client";
 
@@ -179,7 +184,7 @@ export function OrdenesTable({
                 <input
                   type="checkbox"
                   className="size-4 rounded border-input accent-foreground"
-                  aria-label="Seleccionar todas las órdenes"
+                  aria-label="Seleccionar todas las órdenes de esta página"
                   checked={todasSeleccionadas}
                   ref={(el) => {
                     if (el) el.indeterminate = algunaSeleccionada && !todasSeleccionadas;
