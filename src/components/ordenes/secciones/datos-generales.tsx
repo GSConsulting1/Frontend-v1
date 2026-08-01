@@ -22,6 +22,10 @@ export type SeccionDatosGeneralesProps = {
   watch: UseFormWatch<OrdenInfoFormValues>;
   clientes: SelectOption[];
   disabled: boolean;
+  // Rol programador: no puede editar el resto de "Datos generales" (llega
+  // con disabled=true) pero sí el campo "Observaciones del responsable SEC
+  // para GS" — ver orden-form.tsx y OrdenCampos.
+  puedeEditarObservacionesSec: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
@@ -38,6 +42,7 @@ export function SeccionDatosGenerales({
   watch,
   clientes,
   disabled,
+  puedeEditarObservacionesSec,
   open,
   onOpenChange,
 }: SeccionDatosGeneralesProps) {
@@ -48,7 +53,9 @@ export function SeccionDatosGenerales({
       titulo="Datos generales"
       resumen={
         disabled
-          ? "Solo los roles administrador, financiero y talento pueden editarla"
+          ? puedeEditarObservacionesSec
+            ? "Solo puedes editar las observaciones del responsable SEC"
+            : "Solo los roles administrador, financiero y talento pueden editarla"
           : undefined
       }
       completo={algunoLleno(datosGenerales)}
@@ -58,9 +65,9 @@ export function SeccionDatosGenerales({
       {disabled && (
         <p className="mb-3 flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
           <Info className="size-4 shrink-0" aria-hidden />
-          Solo los roles administrador, financiero y talento pueden editar los
-          datos generales — puedes verlos y copiarlos, pero no modificarlos
-          desde tu cuenta.
+          {puedeEditarObservacionesSec
+            ? "De esta sección solo puedes editar “Observaciones del responsable SEC para GS”; el resto puedes verlo y copiarlo, pero no modificarlo desde tu cuenta."
+            : "Solo los roles administrador, financiero y talento pueden editar los datos generales — puedes verlos y copiarlos, pero no modificarlos desde tu cuenta."}
         </p>
       )}
       <OrdenCamposInfo />
@@ -71,6 +78,7 @@ export function SeccionDatosGenerales({
           errors={errors}
           clientes={clientes}
           disabled={disabled}
+          puedeEditarObservacionesSec={puedeEditarObservacionesSec}
         />
       </div>
     </SeccionAcordeon>

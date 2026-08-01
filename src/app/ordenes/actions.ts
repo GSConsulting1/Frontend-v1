@@ -32,6 +32,7 @@ import {
   updateOrdenRecord,
   deleteOrdenRecord,
   actualizarCampoOrdenRecord,
+  getNumerosOsExistentes,
 } from "@/lib/data/ordenes";
 import {
   eliminarInfoOrdenCompleta,
@@ -218,6 +219,30 @@ export async function previsualizarImportacionOrdenes(
     };
   }
 
+  // Números de OS repetidos: dentro del archivo (dos filas con el mismo
+  // número) y contra órdenes que ya existen en la DB para este cliente. El
+  // número de OS lo asigna el cliente, así que la unicidad es por
+  // (cliente_id, numero_os_cliente), no global.
+  const numerosEnArchivo = [
+    ...new Set(
+      filasExcel
+        .map(({ valores }) => valores.numero_os_cliente?.trim())
+        .filter((v): v is string => Boolean(v)),
+    ),
+  ];
+  let numerosExistentes: Set<string>;
+  try {
+    numerosExistentes = await getNumerosOsExistentes(clienteId, numerosEnArchivo);
+  } catch (err) {
+    return {
+      error:
+        err instanceof Error
+          ? err.message
+          : "No se pudieron validar números de OS duplicados",
+    };
+  }
+
+  const numerosVistos = new Set<string>();
   const filas: FilaPreviewImportacion[] = filasExcel.map(
     ({ fila, valores }) => {
       const candidato = {
@@ -226,12 +251,32 @@ export async function previsualizarImportacionOrdenes(
         cliente_id: clienteId,
       };
       const parsed = ordenServicioSchema.safeParse(candidato);
-      if (parsed.success) {
+
+      const numero = valores.numero_os_cliente?.trim();
+      let errorDuplicado: string | null = null;
+      if (numero) {
+        if (numerosExistentes.has(numero)) {
+          errorDuplicado = `Ya existe una orden con el número de OS "${numero}" para este cliente`;
+        } else if (numerosVistos.has(numero)) {
+          errorDuplicado = `Número de OS "${numero}" repetido en el archivo`;
+        } else {
+          numerosVistos.add(numero);
+        }
+      }
+
+      if (parsed.success && !errorDuplicado) {
         return { fila, valores: parsed.data, errores: [], valida: true };
       }
-      const errores = Object.values(parsed.error.flatten().fieldErrors)
-        .flat()
-        .filter((mensaje): mensaje is string => Boolean(mensaje));
+
+      const erroresSchema = parsed.success
+        ? []
+        : Object.values(parsed.error.flatten().fieldErrors)
+            .flat()
+            .filter((mensaje): mensaje is string => Boolean(mensaje));
+      const errores = errorDuplicado
+        ? [...erroresSchema, errorDuplicado]
+        : erroresSchema;
+
       return {
         fila,
         valores: candidato as OrdenServicioFormValues,
