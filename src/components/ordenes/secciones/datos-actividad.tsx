@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import {
   Controller,
   type Control,
@@ -12,24 +13,30 @@ import { Checkbox } from "@/components/forms/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Combobox,
+  ComboboxClear,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxInputGroup,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxTrigger,
+} from "@/components/ui/combobox";
 import { SeccionAcordeon } from "@/components/ui/seccion-acordeon";
 import { algunoLleno } from "@/lib/utils";
 import type { OrdenInfoFormValues } from "@/components/ordenes/orden-form";
 
 type SelectOption = { id: number; label: string };
+type CiudadOption = SelectOption & { departamentoId: number };
 
 export type SeccionDatosActividadProps = {
   register: UseFormRegister<OrdenInfoFormValues>;
   control: Control<OrdenInfoFormValues>;
   errors: FieldErrors<OrdenInfoFormValues>;
   watch: UseFormWatch<OrdenInfoFormValues>;
-  ciudades: SelectOption[];
+  departamentos: SelectOption[];
+  ciudades: CiudadOption[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
@@ -39,6 +46,7 @@ export function SeccionDatosActividad({
   control,
   errors,
   watch,
+  departamentos,
   ciudades,
   open,
   onOpenChange,
@@ -48,6 +56,28 @@ export function SeccionDatosActividad({
     "infoOrdenServicio.ciudad_id",
     "infoOrdenServicio.fecha_inicio_ejecucion",
   ]);
+
+  // El departamento NO vive en el formulario: la orden guarda `ciudad_id` y
+  // nada más, y el departamento se deriva de la ciudad. Meterlo al form
+  // obligaría a tocar el esquema de info_orden_servicio y su schema de Zod
+  // para almacenar un dato redundante.
+  //
+  // El inicializador lazy corre una sola vez, al montar, y es lo que hace que
+  // en modo edición el campo aparezca lleno: OrdenForm pasa `defaultValues` a
+  // useForm de forma síncrona, así que acá ya se puede leer la ciudad
+  // guardada y remontar hasta su departamento.
+  const ciudadGuardada = watch("infoOrdenServicio.ciudad_id");
+  const [departamentoId, setDepartamentoId] = React.useState<number | null>(
+    () => ciudades.find((c) => c.id === ciudadGuardada)?.departamentoId ?? null,
+  );
+
+  const ciudadesDelDepartamento = React.useMemo(
+    () =>
+      departamentoId == null
+        ? []
+        : ciudades.filter((c) => c.departamentoId === departamentoId),
+    [ciudades, departamentoId],
+  );
 
   return (
     <SeccionAcordeon
@@ -65,35 +95,101 @@ export function SeccionDatosActividad({
             {...register("infoOrdenServicio.fecha_emision_os")}
           />
         </FormField>
-        <FormField label="Ciudad" htmlFor="ciudad_id">
-          <Controller
-            name="infoOrdenServicio.ciudad_id"
-            control={control}
-            render={({ field }) => (
-              <Select
-                value={field.value != null ? String(field.value) : null}
-                onValueChange={(v: string | null) =>
-                  field.onChange(v ? Number(v) : undefined)
-                }
-                items={ciudades.map((c) => ({
-                  label: c.label,
-                  value: String(c.id),
-                }))}
-              >
-                <SelectTrigger id="ciudad_id" className="w-full">
-                  <SelectValue placeholder="Selecciona una ciudad" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ciudades.map((c) => (
-                    <SelectItem key={c.id} value={String(c.id)}>
-                      {c.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          />
-        </FormField>
+        {/* Departamento y Ciudad comparten un solo Controller porque están
+            acoplados: cambiar el departamento tiene que limpiar la ciudad, y
+            eso se hace con el `field.onChange` de la ciudad. Los hooks de
+            estado viven arriba, en el cuerpo del componente, y no acá adentro:
+            la render prop de Controller no es un componente. */}
+        <Controller
+          name="infoOrdenServicio.ciudad_id"
+          control={control}
+          render={({ field }) => (
+            <>
+              <FormField label="Departamento" htmlFor="departamento_id">
+                <Combobox
+                  items={departamentos}
+                  value={departamentos.find((d) => d.id === departamentoId) ?? null}
+                  onValueChange={(departamento: SelectOption | null) => {
+                    setDepartamentoId(departamento?.id ?? null);
+                    // Sin esto quedaría seleccionada una ciudad que ya no
+                    // pertenece al departamento elegido.
+                    field.onChange(undefined);
+                  }}
+                  itemToStringLabel={(d: SelectOption) => d.label}
+                  isItemEqualToValue={(a: SelectOption, b: SelectOption) =>
+                    a.id === b.id
+                  }
+                  autoHighlight
+                >
+                  <ComboboxInputGroup>
+                    <ComboboxInput
+                      id="departamento_id"
+                      placeholder="Escribe para buscar"
+                    />
+                    <ComboboxClear aria-label="Limpiar departamento" />
+                    <ComboboxTrigger aria-label="Ver departamentos" />
+                  </ComboboxInputGroup>
+                  <ComboboxContent>
+                    <ComboboxEmpty>Ningún departamento coincide.</ComboboxEmpty>
+                    <ComboboxList>
+                      {(departamento: SelectOption) => (
+                        <ComboboxItem key={departamento.id} value={departamento}>
+                          {departamento.label}
+                        </ComboboxItem>
+                      )}
+                    </ComboboxList>
+                  </ComboboxContent>
+                </Combobox>
+              </FormField>
+
+              <FormField label="Ciudad" htmlFor="ciudad_id">
+                <Combobox
+                  items={ciudadesDelDepartamento}
+                  value={
+                    ciudadesDelDepartamento.find((c) => c.id === field.value) ?? null
+                  }
+                  onValueChange={(ciudad: CiudadOption | null) =>
+                    field.onChange(ciudad?.id ?? undefined)
+                  }
+                  itemToStringLabel={(c: CiudadOption) => c.label}
+                  isItemEqualToValue={(a: CiudadOption, b: CiudadOption) =>
+                    a.id === b.id
+                  }
+                  // El departamento más grande tiene ~125 municipios, así que
+                  // el límite no llega a activarse hoy; está para que la lista
+                  // no pueda crecer sin control a futuro.
+                  limit={100}
+                  autoHighlight
+                  disabled={departamentoId == null}
+                >
+                  <ComboboxInputGroup>
+                    <ComboboxInput
+                      id="ciudad_id"
+                      placeholder={
+                        departamentoId == null
+                          ? "Selecciona primero un departamento"
+                          : "Escribe para buscar"
+                      }
+                    />
+                    <ComboboxClear aria-label="Limpiar ciudad" />
+                    <ComboboxTrigger aria-label="Ver ciudades" />
+                  </ComboboxInputGroup>
+                  <ComboboxContent>
+                    <ComboboxEmpty>Ningún municipio coincide.</ComboboxEmpty>
+                    <ComboboxList>
+                      {(ciudad: CiudadOption) => (
+                        <ComboboxItem key={ciudad.id} value={ciudad}>
+                          {ciudad.label}
+                        </ComboboxItem>
+                      )}
+                    </ComboboxList>
+                  </ComboboxContent>
+                </Combobox>
+              </FormField>
+            </>
+          )}
+        />
+
         <div className="sm:col-span-2">
           <Checkbox
             label="Actividad reprogramada"

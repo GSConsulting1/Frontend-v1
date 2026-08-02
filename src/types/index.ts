@@ -42,6 +42,13 @@ export type OrdenServicioConRelaciones = OrdenServicio & {
 // tablas 1-a-1 con ordenes_servicio (PK = orden_id). Ver
 // src/lib/data/info-orden.ts para las queries y src/components/ordenes/
 // orden-info-secciones.tsx para dónde se usan.
+// `ciudades` guarda los 1.104 municipios del país, no solo capitales, y
+// `departamentos` los 33 (32 + Bogotá D.C.) con el código DANE como id. El
+// nombre de la tabla sigue siendo "ciudades" —y el label de negocio, "Ciudad"—
+// aunque el nombre de dominio correcto sería "municipios": renombrarla
+// obligaría a tocar tipos, formularios, PDF, Excel y mocks a cambio de nada
+// funcional, con un FK con órdenes reales colgando.
+export type Departamento = Database["public"]["Tables"]["departamentos"]["Row"];
 export type Ciudad = Database["public"]["Tables"]["ciudades"]["Row"];
 export type EstadoEjecucion =
   Database["public"]["Tables"]["estados_ejecucion"]["Row"];

@@ -122,21 +122,32 @@ export type Database = {
       }
       ciudades: {
         Row: {
-          departamento: string | null
+          codigo_dane: string
+          departamento_id: number
           id: number
           nombre: string
         }
         Insert: {
-          departamento?: string | null
+          codigo_dane: string
+          departamento_id: number
           id?: number
           nombre: string
         }
         Update: {
-          departamento?: string | null
+          codigo_dane?: string
+          departamento_id?: number
           id?: number
           nombre?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ciudades_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       clientes: {
         Row: {
@@ -205,6 +216,21 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      departamentos: {
+        Row: {
+          id: number
+          nombre: string
+        }
+        Insert: {
+          id: number
+          nombre: string
+        }
+        Update: {
+          id?: number
+          nombre?: string
+        }
+        Relationships: []
       }
       detalle_entrega_profesional: {
         Row: {

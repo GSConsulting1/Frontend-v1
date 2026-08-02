@@ -65,6 +65,7 @@ export type OrdenInfoFormValues = OrdenServicioFormValues &
   OrdenInfoExtendidaFormValues;
 
 type SelectOption = { id: number; label: string };
+type CiudadOption = SelectOption & { departamentoId: number };
 
 type SaveStatus = "idle" | "success" | "error";
 
@@ -107,7 +108,8 @@ type OrdenFormProps = {
   // Personal interno de GS Group que da el "VoBo" en Detalle de entrega —
   // catálogo propio, no son profesionales de campo (ver detalle-entrega.tsx).
   vobo: SelectOption[];
-  ciudades: SelectOption[];
+  departamentos: SelectOption[];
+  ciudades: CiudadOption[];
   estadosEjecucion: SelectOption[];
   entregablesEstandar: SelectOption[];
 };
@@ -121,6 +123,7 @@ export function OrdenForm({
   profesionales,
   participantesArl,
   vobo,
+  departamentos,
   ciudades,
   estadosEjecucion,
   entregablesEstandar,
@@ -321,6 +324,7 @@ export function OrdenForm({
           errors={errors}
           watch={watch}
           setValue={setValue}
+          departamentos={departamentos}
           ciudades={ciudades}
           estadosEjecucion={estadosEjecucion}
           profesionales={profesionales}

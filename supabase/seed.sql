@@ -24,40 +24,9 @@
 --
 -- y copiar a mano solo los bloques de catálogo.
 
--- ---------------------------------------------------------------------------
--- Ciudades
---
--- ⚠️ Este bloque es temporal. Cuando entre la migración de departamentos y
--- municipios, las ciudades pasan a sembrarse desde la migración (son datos que
--- deben existir en producción, no solo en local) y este bloque se borra: la
--- columna `departamento` desaparece y este INSERT dejaría de compilar.
--- ---------------------------------------------------------------------------
-INSERT INTO "public"."ciudades" ("id", "nombre", "departamento") VALUES
-	(1, 'Bogotá D.C.', 'Bogotá D.C.'),
-	(2, 'Medellín', 'Antioquia'),
-	(3, 'Cali', 'Valle del Cauca'),
-	(4, 'Barranquilla', 'Atlántico'),
-	(5, 'Cartagena', 'Bolívar'),
-	(6, 'Cúcuta', 'Norte de Santander'),
-	(7, 'Bucaramanga', 'Santander'),
-	(8, 'Pereira', 'Risaralda'),
-	(9, 'Santa Marta', 'Magdalena'),
-	(10, 'Ibagué', 'Tolima'),
-	(11, 'Manizales', 'Caldas'),
-	(12, 'Villavicencio', 'Meta'),
-	(13, 'Neiva', 'Huila'),
-	(14, 'Pasto', 'Nariño'),
-	(15, 'Armenia', 'Quindío'),
-	(16, 'Montería', 'Córdoba'),
-	(17, 'Valledupar', 'Cesar'),
-	(18, 'Sincelejo', 'Sucre'),
-	(19, 'Popayán', 'Cauca'),
-	(20, 'Tunja', 'Boyacá'),
-	(21, 'Riohacha', 'La Guajira'),
-	(22, 'Florencia', 'Caquetá'),
-	(23, 'Yopal', 'Casanare'),
-	(24, 'Quibdó', 'Chocó'),
-	(25, 'Leticia', 'Amazonas');
+-- Las ciudades NO van acá: `departamentos` y los 1.104 municipios se siembran
+-- desde 20260802163953_departamentos_y_municipios.sql, porque son datos que
+-- deben existir también en producción (ver structure.md > `supabase/`).
 
 -- ---------------------------------------------------------------------------
 -- Entregables estándar
@@ -103,7 +72,8 @@ INSERT INTO "public"."vobo" ("id", "nombre_completo", "email", "celular", "activ
 -- secuencia: sin esto, el primer registro que se cree desde la app en local
 -- pediría id=1 y chocaría con una fila ya sembrada.
 -- ---------------------------------------------------------------------------
-SELECT setval('public.ciudades_id_seq',             (SELECT MAX(id) FROM public.ciudades));
+-- `ciudades` no aparece acá: sus filas las inserta la migración de municipios
+-- dejando que la secuencia asigne los ids, así que el contador ya queda bien.
 SELECT setval('public.entregables_estandar_id_seq', (SELECT MAX(id) FROM public.entregables_estandar));
 SELECT setval('public.estados_ejecucion_id_seq',    (SELECT MAX(id) FROM public.estados_ejecucion));
 SELECT setval('public.participantes_arl_id_seq',    (SELECT MAX(id) FROM public.participantes_arl));
