@@ -58,9 +58,14 @@
 --    Consecuencia real: con la anon key —que es pública, va en el bundle del
 --    navegador— se puede leer y escribir esas tablas sin sesión, incluido un
 --    UPDATE de `usuarios.rol`. Hoy lo único que restringe por rol es el
---    front. Ver PLAN-migraciones-y-municipios.md.
+--    front, que es un control de interfaz, no de seguridad.
 --
 --    `participantes_arl` y `vobo` están peor: no tienen RLS activado.
+--
+--    Arreglarlo NO es solo `DROP POLICY`: de esas 11 tablas, 8 no tienen
+--    ninguna otra policy, así que al quitarla quedarían inaccesibles para
+--    todos, y las lecturas fallan en silencio (RLS devuelve 0 filas, sin
+--    error). Las policies correctas tienen que entrar en el mismo cambio.
 -- ============================================================================
 
 

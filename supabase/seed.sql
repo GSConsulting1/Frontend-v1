@@ -31,7 +31,6 @@
 -- municipios, las ciudades pasan a sembrarse desde la migración (son datos que
 -- deben existir en producción, no solo en local) y este bloque se borra: la
 -- columna `departamento` desaparece y este INSERT dejaría de compilar.
--- Ver PLAN-migraciones-y-municipios.md.
 -- ---------------------------------------------------------------------------
 INSERT INTO "public"."ciudades" ("id", "nombre", "departamento") VALUES
 	(1, 'Bogotá D.C.', 'Bogotá D.C.'),
