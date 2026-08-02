@@ -12,6 +12,7 @@ import {
   mockChecklistProceso,
   mockCiudades,
   mockCuentaCobro,
+  mockDepartamentos,
   mockDetalleEntregaProfesional,
   mockEntregablesEstandar,
   mockEstadosEjecucion,
@@ -44,9 +45,49 @@ import type {
   OrdenInfoCompleta,
 } from "@/types";
 
+type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
+
+// PostgREST corta toda respuesta en `max_rows` —1.000 por defecto, ver
+// `max_rows` en supabase/config.toml y el ajuste "Max rows" del proyecto
+// remoto— y lo hace EN SILENCIO: no devuelve error ni warning, simplemente
+// faltan filas. Con 1.104 municipios eso significa perder ~100 sin que nadie
+// se entere, y encima el faltante depende del orden alfabético.
+//
+// Ojo: un `.range(0, 4999)` NO alcanza. El tope lo aplica el servidor, así
+// que pedir 5.000 filas igual devuelve 1.000. La única forma de traerlas
+// todas sin depender de un ajuste del dashboard es paginar hasta que una
+// página vuelva incompleta.
+//
+// El desempate por `id` no es decorativo: hay municipios homónimos en
+// departamentos distintos (Armenia está en Quindío y en Antioquia), y ordenar
+// solo por `nombre` deja los empates en orden indefinido — entre una página y
+// la siguiente Postgres podría devolverlos al revés y hacernos saltar o
+// duplicar filas.
+const TAMANO_PAGINA = 1000;
+
+async function getTodasLasCiudades(supabase: SupabaseServerClient) {
+  const filas: { id: number; nombre: string; departamento_id: number }[] = [];
+
+  for (let desde = 0; ; desde += TAMANO_PAGINA) {
+    const { data, error } = await supabase
+      .from("ciudades")
+      .select("id, nombre, departamento_id")
+      .order("nombre")
+      .order("id")
+      .range(desde, desde + TAMANO_PAGINA - 1);
+
+    if (error) return { data: null, error };
+    filas.push(...(data ?? []));
+    if ((data?.length ?? 0) < TAMANO_PAGINA) return { data: filas, error: null };
+  }
+}
+
 export async function getCatalogosInfoOrden() {
   if (!isSupabaseConfigured) {
     return {
+      departamentos: [...mockDepartamentos].sort((a, b) =>
+        a.nombre.localeCompare(b.nombre),
+      ),
       ciudades: [...mockCiudades].sort((a, b) => a.nombre.localeCompare(b.nombre)),
       estadosEjecucion: [...mockEstadosEjecucion].sort(
         (a, b) => (a.orden_visual ?? 0) - (b.orden_visual ?? 0),
@@ -64,25 +105,36 @@ export async function getCatalogosInfoOrden() {
   }
   const supabase = await createSupabaseServerClient();
 
-  const [ciudades, estadosEjecucion, entregablesEstandar, participantesArl, vobo] =
-    await Promise.all([
-      supabase.from("ciudades").select("id, nombre, departamento").order("nombre"),
-      supabase
-        .from("estados_ejecucion")
-        .select("id, nombre, orden_visual")
-        .order("orden_visual"),
-      supabase.from("entregables_estandar").select("id, nombre").order("nombre"),
-      supabase
-        .from("participantes_arl")
-        .select("id, nombre_completo")
-        .eq("activo", true)
-        .order("nombre_completo"),
-      supabase
-        .from("vobo")
-        .select("id, nombre_completo")
-        .eq("activo", true)
-        .order("nombre_completo"),
-    ]);
+  const [
+    departamentos,
+    ciudades,
+    estadosEjecucion,
+    entregablesEstandar,
+    participantesArl,
+    vobo,
+  ] = await Promise.all([
+    supabase.from("departamentos").select("id, nombre").order("nombre"),
+    // Paginado a propósito: son 1.104 filas y PostgREST corta en 1.000 sin
+    // avisar. Ver el comentario de getTodasLasCiudades.
+    getTodasLasCiudades(supabase),
+    supabase
+      .from("estados_ejecucion")
+      .select("id, nombre, orden_visual")
+      .order("orden_visual"),
+    supabase.from("entregables_estandar").select("id, nombre").order("nombre"),
+    supabase
+      .from("participantes_arl")
+      .select("id, nombre_completo")
+      .eq("activo", true)
+      .order("nombre_completo"),
+    supabase
+      .from("vobo")
+      .select("id, nombre_completo")
+      .eq("activo", true)
+      .order("nombre_completo"),
+  ]);
+  if (departamentos.error)
+    throw new Error(`No se pudieron cargar los departamentos: ${departamentos.error.message}`);
   if (ciudades.error) throw new Error(`No se pudieron cargar las ciudades: ${ciudades.error.message}`);
   if (estadosEjecucion.error)
     throw new Error(`No se pudieron cargar los estados de ejecución: ${estadosEjecucion.error.message}`);
@@ -94,6 +146,7 @@ export async function getCatalogosInfoOrden() {
     throw new Error(`No se pudieron cargar las personas de VoBo: ${vobo.error.message}`);
 
   return {
+    departamentos: departamentos.data ?? [],
     ciudades: ciudades.data ?? [],
     estadosEjecucion: estadosEjecucion.data ?? [],
     entregablesEstandar: entregablesEstandar.data ?? [],

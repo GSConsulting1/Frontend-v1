@@ -42,7 +42,7 @@ export type OrdenCamposProps = {
   errors: FieldErrors<OrdenServicioFormValues>;
   clientes: SelectOption[];
   // Solo administrador puede editar Datos generales (ver structure.md,
-  // supabase/004_ordenes_servicio_rls.sql) — cualquier otro rol la ve pero
+  // supabase/migrations/20260802085134_baseline_esquema_remoto.sql) — cualquier otro rol la ve pero
   // no puede tocarla.
   disabled: boolean;
   // Excepción puntual del rol programador: llega con disabled=true (no edita

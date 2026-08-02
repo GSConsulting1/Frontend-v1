@@ -65,6 +65,7 @@ export type OrdenInfoFormValues = OrdenServicioFormValues &
   OrdenInfoExtendidaFormValues;
 
 type SelectOption = { id: number; label: string };
+type CiudadOption = SelectOption & { departamentoId: number };
 
 type SaveStatus = "idle" | "success" | "error";
 
@@ -107,7 +108,8 @@ type OrdenFormProps = {
   // Personal interno de GS Group que da el "VoBo" en Detalle de entrega —
   // catálogo propio, no son profesionales de campo (ver detalle-entrega.tsx).
   vobo: SelectOption[];
-  ciudades: SelectOption[];
+  departamentos: SelectOption[];
+  ciudades: CiudadOption[];
   estadosEjecucion: SelectOption[];
   entregablesEstandar: SelectOption[];
 };
@@ -121,6 +123,7 @@ export function OrdenForm({
   profesionales,
   participantesArl,
   vobo,
+  departamentos,
   ciudades,
   estadosEjecucion,
   entregablesEstandar,
@@ -141,7 +144,7 @@ export function OrdenForm({
   // con `disabled` solo para ese campo.
   //
   // OJO: `programador` no tiene policy de UPDATE propia en Supabase (solo
-  // administrador y financiero, ver supabase/004_ordenes_servicio_rls.sql y
+  // administrador y financiero, ver supabase/migrations/20260802085134_baseline_esquema_remoto.sql y
   // 005_ordenes_servicio_financiero_edicion.sql). Hoy el guardado le funciona
   // por la policy "mvp_open_access"; cuando esa se quite hay que agregarle una
   // policy con WITH CHECK sobre esta columna o el UPDATE le va a fallar.
@@ -321,6 +324,7 @@ export function OrdenForm({
           errors={errors}
           watch={watch}
           setValue={setValue}
+          departamentos={departamentos}
           ciudades={ciudades}
           estadosEjecucion={estadosEjecucion}
           profesionales={profesionales}

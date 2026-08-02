@@ -41,6 +41,7 @@ import { SeccionFacturacion } from "@/components/ordenes/secciones/facturacion";
 import { SeccionLiquidacion } from "@/components/ordenes/secciones/liquidacion";
 
 type SelectOption = { id: number; label: string };
+type CiudadOption = SelectOption & { departamentoId: number };
 
 export type OrdenInfoSeccionesProps = {
   register: UseFormRegister<OrdenInfoFormValues>;
@@ -48,7 +49,8 @@ export type OrdenInfoSeccionesProps = {
   errors: FieldErrors<OrdenInfoFormValues>;
   watch: UseFormWatch<OrdenInfoFormValues>;
   setValue: UseFormSetValue<OrdenInfoFormValues>;
-  ciudades: SelectOption[];
+  departamentos: SelectOption[];
+  ciudades: CiudadOption[];
   estadosEjecucion: SelectOption[];
   profesionales: (SelectOption & {
     valorHora: number | null;
@@ -69,6 +71,7 @@ export function OrdenInfoSecciones({
   errors,
   watch,
   setValue,
+  departamentos,
   ciudades,
   estadosEjecucion,
   profesionales,
@@ -116,6 +119,7 @@ export function OrdenInfoSecciones({
         control={control}
         errors={errors}
         watch={watch}
+        departamentos={departamentos}
         ciudades={ciudades}
         open={seccionAbierta === "datos-actividad"}
         onOpenChange={(open) => onToggleSeccion("datos-actividad", open)}

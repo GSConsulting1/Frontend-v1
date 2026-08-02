@@ -33,7 +33,12 @@ export default async function NuevaOrdenPage() {
         }))}
         participantesArl={catalogos.participantesArl.map((p) => ({ id: p.id, label: p.nombre_completo }))}
         vobo={catalogos.vobo.map((v) => ({ id: v.id, label: v.nombre_completo }))}
-        ciudades={catalogos.ciudades.map((c) => ({ id: c.id, label: c.nombre }))}
+        departamentos={catalogos.departamentos.map((d) => ({ id: d.id, label: d.nombre }))}
+        ciudades={catalogos.ciudades.map((c) => ({
+          id: c.id,
+          label: c.nombre,
+          departamentoId: c.departamento_id,
+        }))}
         estadosEjecucion={catalogos.estadosEjecucion.map((e) => ({ id: e.id, label: e.nombre }))}
         entregablesEstandar={catalogos.entregablesEstandar.map((e) => ({ id: e.id, label: e.nombre }))}
       />
