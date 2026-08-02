@@ -1,0 +1,11 @@
+# Supabase
+.branches
+.temp
+
+# dotenvx
+.env.keys
+.env.local
+.env.*.local
+
+# Snippets SQL sincronizados desde el dashboard, no son parte del esquema
+snippets
