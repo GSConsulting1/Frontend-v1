@@ -85,6 +85,16 @@ fallar con `db:reset` si asume algo que ya estaba en tu base.
 
 `pnpm db:status` compara el historial local contra el remoto.
 
+**Quién toca qué.** `db:push` es el único que *modifica* producción. `db:status`
+y `db:types` van al remoto pero solo a leer (por eso `db:types` genera los tipos
+desde el esquema desplegado, no desde el local). `db:new` no toca ninguna base:
+solo escribe un archivo.
+
+`db reset` y `migration up` aceptan `--linked`, que los apunta al **remoto** —
+`supabase db reset --linked` borraría producción. Por eso `db:reset` y `db:up`
+fijan `--local` en el script: el destino queda explícito y no depende del
+default del CLI.
+
 Cada migración corre dentro de una transacción: si falla a la mitad, no queda
 nada aplicado de ese archivo.
 
