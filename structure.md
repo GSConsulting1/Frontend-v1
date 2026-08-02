@@ -101,7 +101,12 @@ nada aplicado de ese archivo.
   bandera el dump se trae el esquema `auth` completo, con emails y contraseñas
   hasheadas.
 - Los datos de catálogo que deben existir **en producción** (no solo en local)
-  van en una migración, no en `seed.sql`.
+  van en una migración, no en `seed.sql`. Ejemplo: los 33 departamentos y los
+  1.104 municipios viven en
+  `20260802163953_departamentos_y_municipios.sql`, con la procedencia del
+  dataset DIVIPOLA documentada en su encabezado. Un catálogo así se congela en
+  la migración y no se baja de una API en tiempo de ejecución: `db:reset`
+  tiene que poder reconstruir la base aunque la fuente externa ya no exista.
 
 El baseline arranca con un encabezado que documenta las decisiones de diseño
 que `pg_dump` no conserva (por qué `es_administrador()` es `SECURITY DEFINER`,
@@ -333,6 +338,17 @@ generado.
   igual que los primitivos de shadcn, no conoce ningún dominio y se
   reusa entre secciones. Lo consume cada archivo de
   `components/ordenes/secciones/`.
+- Otra excepción: `combobox.tsx` es un wrapper propio sobre
+  `@base-ui/react/combobox` (la misma librería que usan por debajo los
+  primitivos de shadcn de este proyecto), con el mismo patrón que
+  `select.tsx`: re-exporta las partes vestidas y no agrega lógica.
+  **Cuándo usar cuál**: Combobox es un Select con filtrado por texto, y
+  vale la pena solo cuando la lista es tan larga que scrollearla es peor
+  que escribir — el caso que lo trajo son los 1.104 municipios. Para
+  listas cortas, `<Select>` sigue siendo lo correcto. Al usarlo, no
+  olvidar `limit` (cuántos items se pintan como DOM) ni
+  `itemToStringLabel` + `isItemEqualToValue`, obligatorias cuando los
+  items son objetos que no tienen la forma `{ value, label }`.
 - Un componente de shadcn que exporta más de un sub-componente (ej.
   `dropdown-menu`, con `DropdownMenu`, `DropdownMenuItem`,
   `DropdownMenuContent`, etc.; o `tooltip`, con `Tooltip`,
