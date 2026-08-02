@@ -40,7 +40,7 @@ export type OrdenesFiltros = {
   secuencia?: string;
 };
 
-// Mismo criterio de zona horaria que supabase/006_ordenes_servicio_id_unico.sql:
+// Mismo criterio de zona horaria que supabase/migrations/20260802085134_baseline_esquema_remoto.sql:
 // Colombia no tiene horario de verano, así que un offset fijo alcanza, pero
 // se usa Intl para no hardcodear "-5" dos veces.
 const ZONA_HORARIA_NEGOCIO = "America/Bogota";
@@ -320,7 +320,7 @@ export async function createOrdenRecord(input: OrdenServicioFormValues) {
     const now = new Date();
     const dia = diaEnZonaHoraria(now);
     // Mismo formato y criterio (consecutivo diario en hora de Bogotá) que el
-    // trigger real — ver supabase/006_ordenes_servicio_id_unico.sql.
+    // trigger real — ver supabase/migrations/20260802085134_baseline_esquema_remoto.sql.
     const consecutivoHoy =
       mockOrdenes.filter(
         (o) => o.fecha_creacion && diaEnZonaHoraria(new Date(o.fecha_creacion)) === dia,
@@ -337,7 +337,7 @@ export async function createOrdenRecord(input: OrdenServicioFormValues) {
   const supabase = await createSupabaseServerClient();
 
   // id_unico no va en el insert: lo asigna el trigger
-  // generar_id_unico_orden (supabase/006_ordenes_servicio_id_unico.sql) con
+  // generar_id_unico_orden (supabase/migrations/20260802085134_baseline_esquema_remoto.sql) con
   // formato OS-AAAAMMDD-NNNN, consecutivo por día.
   const { data, error } = await supabase
     .from("ordenes_servicio")

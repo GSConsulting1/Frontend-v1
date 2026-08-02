@@ -41,9 +41,73 @@ src/
     ├── forms/         # Composición de formularios genérica — sin dominio
     ├── auth/          # AuthProvider/useAuth, RoleGate, LoginForm — sesión y roles
     └── <entidad>/      # Componentes específicos del dominio
+
+supabase/
+├── config.toml        # Config del stack local (generado por `supabase init`)
+├── migrations/        # Migraciones versionadas — LA fuente de verdad del esquema
+└── seed.sql           # Datos de catálogo solo para la DB local, nunca para el remoto
+
+scripts/
+└── gen-db-types.mjs   # Regenera src/types/database.types.ts desde el esquema remoto
 ```
 
 ## Reglas por carpeta
+
+### `supabase/`
+
+**Ningún cambio de esquema se aplica a mano.** Ni por el SQL editor del
+dashboard, ni por `psql`. Todo pasa por una migración versionada en
+`supabase/migrations/`, que es la fuente de verdad del esquema. Si el remoto y
+el repo se desincronizan, el repo deja de servir para reconstruir la base y
+nadie puede saber por qué una tabla es como es.
+
+Flujo para cualquier cambio de base:
+
+```bash
+pnpm db:new nombre_del_cambio   # crea supabase/migrations/<timestamp>_nombre.sql
+                                # …editar el archivo generado…
+pnpm db:start                   # levanta el stack local (Docker)
+pnpm db:reset                   # borra la DB local y reaplica TODO desde cero + seed
+                                # …probar la app contra la DB local…
+pnpm db:push                    # recién ahora, aplica al proyecto remoto
+pnpm db:types                   # regenera types/database.types.ts
+```
+
+`pnpm db:reset` es la prueba de fuego: corre todas las migraciones en orden
+sobre una base vacía. Si tu migración depende de algo que ya existía solo en el
+remoto, acá revienta — que es exactamente lo que se quiere. **Antes de
+`db:push`, siempre `db:reset`**, no `db:up`.
+
+`pnpm db:up` aplica solo las migraciones pendientes, sin borrar la base local.
+Sirve para iterar rápido cuando cargaste datos de prueba a mano y no querés
+perderlos, pero no demuestra nada: una migración puede pasar con `db:up` y
+fallar con `db:reset` si asume algo que ya estaba en tu base.
+
+`pnpm db:status` compara el historial local contra el remoto.
+
+Cada migración corre dentro de una transacción: si falla a la mitad, no queda
+nada aplicado de ese archivo.
+
+- **`migrations/`**: nombre `<AAAAMMDDHHMMSS>_descripcion.sql`, generado por
+  `pnpm db:new`. Nunca se edita una migración ya aplicada al remoto: se escribe
+  una nueva encima. El archivo más viejo es el baseline
+  (`..._baseline_esquema_remoto.sql`), un `pg_dump` del esquema que existía
+  cuando se adoptaron las migraciones; está marcado como aplicado en el remoto
+  y no se vuelve a correr allá, pero sí corre en local.
+- **`seed.sql`**: datos de catálogo **solo para la DB local**, corre al final de
+  `db:reset` y jamás toca el remoto. No va ningún dato real (órdenes, clientes,
+  usuarios, profesionales) ni nombres de personas de verdad. Si necesitás
+  regenerarlo desde el remoto, `--schema public` **no es opcional**: sin esa
+  bandera el dump se trae el esquema `auth` completo, con emails y contraseñas
+  hasheadas.
+- Los datos de catálogo que deben existir **en producción** (no solo en local)
+  van en una migración, no en `seed.sql`.
+
+El baseline arranca con un encabezado que documenta las decisiones de diseño
+que `pg_dump` no conserva (por qué `es_administrador()` es `SECURITY DEFINER`,
+por qué el consecutivo de OS convierte a `America/Bogota`, y el estado real de
+RLS). Ese encabezado es lo único editable del archivo: el SQL de abajo es
+generado.
 
 ### `types/`
 - `database.types.ts` es **generado**, nunca se edita a mano. Se
@@ -421,7 +485,7 @@ src/
 - `orden-campos.tsx` ("Datos generales", TODOS los campos de
   `ordenes_servicio`) recibe `disabled` — `true` para cualquier rol que
   no sea `administrador`, `financiero` o `talento` (ver
-  `supabase/004_ordenes_servicio_rls.sql`): se ve pero no se puede tocar,
+  `supabase/migrations/20260802085134_baseline_esquema_remoto.sql`): se ve pero no se puede tocar,
   mismo patrón `<fieldset disabled>` que ya usaba
   `orden-info-secciones.tsx`. `orden-info-secciones.tsx` es un
   orquestador delgado: mete en un mismo `<fieldset disabled>` las 11

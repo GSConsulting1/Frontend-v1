@@ -141,7 +141,7 @@ export function OrdenForm({
   // con `disabled` solo para ese campo.
   //
   // OJO: `programador` no tiene policy de UPDATE propia en Supabase (solo
-  // administrador y financiero, ver supabase/004_ordenes_servicio_rls.sql y
+  // administrador y financiero, ver supabase/migrations/20260802085134_baseline_esquema_remoto.sql y
   // 005_ordenes_servicio_financiero_edicion.sql). Hoy el guardado le funciona
   // por la policy "mvp_open_access"; cuando esa se quite hay que agregarle una
   // policy con WITH CHECK sobre esta columna o el UPDATE le va a fallar.
