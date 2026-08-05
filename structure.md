@@ -156,11 +156,12 @@ generado.
 - Next 16 renombró `middleware.ts` a `proxy.ts` (ver
   `node_modules/next/dist/docs/.../file-conventions/proxy.md`) — no crear
   un `middleware.ts`, Next ya no lo reconoce como convención de archivo.
-- Hoy solo refresca el token de sesión en cada request (`supabase.auth.getUser()`)
-  para que la cookie no expire mientras navegas. **No redirige nada
-  todavía** — `/ordenes/*` sigue abierto sin sesión a propósito (ver
-  `components/auth/`), porque hoy no hay usuarios reales creados en
-  Supabase Auth. Cuando los haya, agregar la lógica de redirect acá.
+- Refresca el token de sesión en cada request (`supabase.auth.getUser()`)
+  para que la cookie no expire mientras navegas, y además bloquea
+  `/ordenes/*` sin sesión: redirige a `/login` (páginas) o devuelve 401 JSON
+  (rutas bajo `/api/ordenes/*`, ver `excel/route.tsx` y `[id]/pdf/route.tsx`).
+  Sin `isSupabaseConfigured` (modo mock) no bloquea nada, mismo criterio que
+  `app/usuarios/page.tsx`.
 
 ### `lib/mock-data/`
 - Un archivo por entidad (ej. `ordenes.ts` agrupa clientes, estados,
@@ -407,11 +408,12 @@ generado.
   que esas pantallas no tengan el chrome de la app — no hay un layout de
   ruta aparte para eso todavía. `/cuenta` sí lleva sidebar (usuario ya
   logueado), con un ícono de engranaje junto al botón de logout.
-- **Las rutas de `/ordenes/*` siguen sin protección** (no hay redirect a
-  `/login` si no hay sesión) — decisión a propósito mientras no existan
-  usuarios reales creados en Supabase Auth + su fila en `usuarios`. Para
-  activarla: agregar el chequeo de sesión en cada `page.tsx` (o
-  centralizarlo en `proxy.ts`, ver esa sección).
+- **Las rutas de `/ordenes/*` están protegidas centralizadamente en
+  `proxy.ts`** (ver esa sección): sin sesión, redirect a `/login` para las
+  páginas y 401 JSON para `/api/ordenes/*`. Se eligió centralizar en vez de
+  repetir el chequeo (`getPerfilActual()` + `redirect()`) en cada `page.tsx`
+  de la entidad como hace `/usuarios` — acá alcanza con "hay sesión o no",
+  sin distinción de rol, así que no hace falta el perfil completo.
 - **`/usuarios` es la excepción**: al ser la pantalla que asigna roles, su
   `page.tsx` sí bloquea de verdad en servidor (no solo con `RoleGate`) —
   ver `lib/data/usuarios.ts` (`getPerfilActual()`) y
