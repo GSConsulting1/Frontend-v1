@@ -238,14 +238,22 @@ generado.
   `lib/excel/` (ver abajo) y también usa `lib/supabaseAdmin.ts` porque la
   matriz incluye `valor_hora_orden` y toda la sección financiera. Como el
   service role saltaría RLS para cualquiera, la protección real vive en la
-  ruta: primero valida sesión + rol (`administrador`/`financiero`) con
-  `lib/supabase/server.ts` y solo entonces consulta con el service role. No
-  tiene ruta mock: sin credenciales de Supabase no funciona, igual que el
-  PDF.
+  ruta: primero valida sesión + rol (`administrador`/`financiero`/`talento`,
+  `ROLES_PERMITIDOS`) con `lib/supabase/server.ts` y solo entonces consulta
+  con el service role. Además decide ahí `incluirFinanciera`
+  (`ROLES_CON_FINANCIERA`, solo `administrador`/`financiero`): `talento`
+  exporta la matriz completa salvo las columnas `financiera: true` de
+  `matriz-ordenes.ts` (las 5 tablas cuenta_cobro/acta_servicio/facturacion/
+  radicacion_imagine/liquidacion), porque RLS solo le da acceso a
+  `valor_hora_orden`, no a esas 5. No tiene ruta mock: sin credenciales de
+  Supabase no funciona, igual que el PDF.
 - `lib/excel/`: builders/parsers de `.xlsx` con `exceljs`, análogo a
   `lib/pdf/` pero para hojas de cálculo. `matriz-ordenes.ts` es la única
   fuente de verdad del orden y el mapeo de columnas (una fila por orden,
-  hoja plana con los textos exactos del documento de referencia);
+  hoja plana con los textos exactos del documento de referencia); las
+  columnas de la sección financiera llevan `financiera: true` en
+  `ColumnaMatriz` y `construir-matriz-excel.ts` las filtra cuando
+  `construirMatrizExcel` recibe `{ incluirFinanciera: false }`;
   `construir-matriz-excel.ts` arma el workbook — solo lo importa la ruta de
   arriba. `leer-ordenes-excel.ts` es el caso inverso (lectura, para
   `/ordenes/importar`, ver `components/<entidad>/` abajo): mapea las
@@ -458,12 +466,13 @@ generado.
   una sola vez vía `useAuth()` (mismo criterio que `puedeVerFinanciera` en
   `orden-form.tsx`) y no renderiza nada si el rol no tiene ningún permiso
   — evita un botón "⋮" que abre un menú vacío. "Nueva orden" y "Eliminar
-  órdenes" solo para `administrador`; "Exportar Excel" para
-  `administrador`+`financiero` (protección real en
-  `app/api/ordenes/excel/route.tsx`, `ROLES_PERMITIDOS`); "Importar desde
-  Excel" para `administrador`+`financiero`+`talento` — sin protección real
-  del lado del servidor (mismo hueco que "Datos generales", ver
-  `mvp_open_access` más abajo), solo se oculta el ítem del menú.
+  órdenes" solo para `administrador`; "Exportar Excel" e "Importar desde
+  Excel" para `administrador`+`financiero`+`talento` (protección real del
+  export en `app/api/ordenes/excel/route.tsx`, `ROLES_PERMITIDOS` — esa
+  misma ruta filtra la sección financiera para `talento`, ver arriba). El
+  import no tiene protección real del lado del servidor (mismo hueco que
+  "Datos generales", ver `mvp_open_access` más abajo), solo se oculta el
+  ítem del menú.
   `exportar-excel-button.tsx`/`eliminar-ordenes-button.tsx` no son el
   botón disparador: cada uno renderiza sus propios controles
   ("Descargar (N)"/"Cancelar", o "Eliminar (N)"/"Cancelar") solo mientras

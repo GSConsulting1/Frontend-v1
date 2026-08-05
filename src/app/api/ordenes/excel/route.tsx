@@ -10,9 +10,13 @@
 // administrador y financiero.
 //
 // Como supabaseAdmin salta RLS, la protección real vive acá: solo continúa si
-// hay sesión y el rol es administrador o financiero (el RoleGate del botón es
-// solo UX). Igual que el PDF, esto NO tiene ruta mock: sin credenciales de
-// Supabase el export no funciona, a propósito.
+// hay sesión y el rol es administrador, financiero o talento (el RoleGate del
+// botón es solo UX). talento exporta la matriz sin la sección financiera
+// (cuenta_cobro/acta_servicio/facturacion/radicacion_imagine/liquidacion,
+// columnas financiera: true en lib/excel/matriz-ordenes.ts) — RLS solo le da
+// acceso a valor_hora_orden, no a esas 5 tablas. Igual que el PDF, esto NO
+// tiene ruta mock: sin credenciales de Supabase el export no funciona, a
+// propósito.
 
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
@@ -21,7 +25,8 @@ import { construirMatrizExcel } from "@/lib/excel/construir-matriz-excel";
 import type { MatrizOrdenRow } from "@/lib/excel/matriz-ordenes";
 import type { RolUsuario } from "@/types";
 
-const ROLES_PERMITIDOS: RolUsuario[] = ["administrador", "financiero"];
+const ROLES_PERMITIDOS: RolUsuario[] = ["administrador", "financiero", "talento"];
+const ROLES_CON_FINANCIERA: RolUsuario[] = ["administrador", "financiero"];
 
 // Indexa filas 1-a-1 (una por orden) por orden_id.
 function indexarPorOrden<T extends { orden_id: number }>(
@@ -49,6 +54,9 @@ export async function POST(request: Request) {
   if (!perfil || !ROLES_PERMITIDOS.includes(perfil.rol as RolUsuario)) {
     return NextResponse.json({ error: "No autorizado" }, { status: 403 });
   }
+  const incluirFinanciera = ROLES_CON_FINANCIERA.includes(
+    perfil.rol as RolUsuario,
+  );
 
   // 2. IDs seleccionados.
   let body: unknown;
@@ -202,7 +210,7 @@ export async function POST(request: Request) {
     }));
 
   // 6. Generar el binario.
-  const buffer = await construirMatrizExcel(filas);
+  const buffer = await construirMatrizExcel(filas, { incluirFinanciera });
 
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
