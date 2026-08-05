@@ -45,7 +45,7 @@ export const RESPONSABLES_OS = [
   "Daniela Rosso",
   "Lucia Bejarano",
   "Lina Amell",
-  "Tatiana Carillo",
+  "Tatiana Carrillo",
 ] as const;
 
 export type EstadoOrden = (typeof ESTADOS_ORDEN)[number];
@@ -63,7 +63,10 @@ export const ordenServicioSchema = z.object({
   cronograma: z.number().nonnegative("Debe ser un número positivo").optional(),
   secuencia: z.string().optional(),
   nombre_servicio: z.string().trim().min(1, "Describe el servicio"),
-  horas_cargadas: z.number().nonnegative("Debe ser un número positivo").optional(),
+  horas_cargadas: z
+    .number()
+    .nonnegative("Debe ser un número positivo")
+    .optional(),
   tipo_servicio: z.enum(TIPO_SERVICIO_OPCIONES).optional(),
   fecha_sipab: z.string().optional(),
   // Sin CHECK en la DB (a diferencia de estado/responsable_os arriba): texto
@@ -78,7 +81,10 @@ export const ordenServicioSchema = z.object({
   // lo que anota el responsable SEC de GS sobre la orden.
   observaciones_responsable_sec: z.string().optional(),
   link_archivo_orden: z
-    .union([z.literal(""), z.string().trim().url("Debe ser un link válido (http/https)")])
+    .union([
+      z.literal(""),
+      z.string().trim().url("Debe ser un link válido (http/https)"),
+    ])
     .optional(),
 });
 
