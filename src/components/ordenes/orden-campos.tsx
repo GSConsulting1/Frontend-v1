@@ -42,9 +42,16 @@ export type OrdenCamposProps = {
   errors: FieldErrors<OrdenServicioFormValues>;
   clientes: SelectOption[];
   // Solo administrador puede editar Datos generales (ver structure.md,
-  // supabase/004_ordenes_servicio_rls.sql) — cualquier otro rol la ve pero
+  // supabase/migrations/20260802085134_baseline_esquema_remoto.sql) — cualquier otro rol la ve pero
   // no puede tocarla.
   disabled: boolean;
+  // Excepción puntual del rol programador: llega con disabled=true (no edita
+  // la sección) pero sí puede escribir en "Observaciones del responsable SEC
+  // para GS". Es el único campo donde este flag se combina con `disabled`.
+  // Si aparece una segunda excepción así, conviene reemplazar estos dos
+  // booleanos por una matriz de permisos por campo — ver el plan en
+  // PLAN-permisos-por-rol.md.
+  puedeEditarObservacionesSec: boolean;
 };
 
 export function OrdenCampos({
@@ -53,6 +60,7 @@ export function OrdenCampos({
   errors,
   clientes,
   disabled,
+  puedeEditarObservacionesSec,
 }: OrdenCamposProps) {
   return (
     <div className="grid gap-4 sm:grid-cols-2">
@@ -324,7 +332,7 @@ export function OrdenCampos({
         >
           <Textarea
             id="observaciones_responsable_sec"
-            readOnly={disabled}
+            readOnly={disabled && !puedeEditarObservacionesSec}
             {...register("observaciones_responsable_sec")}
           />
         </FormField>

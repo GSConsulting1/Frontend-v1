@@ -12,6 +12,7 @@ import type {
   ChecklistProceso,
   Ciudad,
   CuentaCobro,
+  Departamento,
   DetalleEntregaProfesional,
   EntregableEstandar,
   EstadoEjecucion,
@@ -24,11 +25,28 @@ import type {
   Vobo,
 } from "@/types";
 
+// En la base real son los 33 departamentos y los 1.104 municipios del país
+// (ver la migración de departamentos y municipios). Acá alcanza con un
+// subconjunto: lo que hay que poder probar sin Supabase es la cascada
+// Departamento → Ciudad, y para eso basta con que haya varios departamentos y
+// que alguno tenga más de un municipio. Los ids son los códigos DANE reales,
+// así que el mock se comporta igual que la base.
+export const mockDepartamentos: Departamento[] = [
+  { id: 5, nombre: "Antioquia" },
+  { id: 8, nombre: "Atlántico" },
+  { id: 11, nombre: "Bogotá, D.C." },
+  { id: 76, nombre: "Valle del Cauca" },
+];
+
 export const mockCiudades: Ciudad[] = [
-  { id: 1, nombre: "Bogotá D.C.", departamento: "Cundinamarca" },
-  { id: 2, nombre: "Medellín", departamento: "Antioquia" },
-  { id: 3, nombre: "Cali", departamento: "Valle del Cauca" },
-  { id: 4, nombre: "Barranquilla", departamento: "Atlántico" },
+  { id: 1, codigo_dane: "11001", departamento_id: 11, nombre: "Bogotá, D.C." },
+  { id: 2, codigo_dane: "05001", departamento_id: 5, nombre: "Medellín" },
+  { id: 3, codigo_dane: "76001", departamento_id: 76, nombre: "Santiago de Cali" },
+  { id: 4, codigo_dane: "08001", departamento_id: 8, nombre: "Barranquilla" },
+  { id: 5, codigo_dane: "05360", departamento_id: 5, nombre: "Itagüí" },
+  { id: 6, codigo_dane: "05266", departamento_id: 5, nombre: "Envigado" },
+  { id: 7, codigo_dane: "76109", departamento_id: 76, nombre: "Buenaventura" },
+  { id: 8, codigo_dane: "08758", departamento_id: 8, nombre: "Soledad" },
 ];
 
 // Mismo seed del SQL en el Plan MVP.

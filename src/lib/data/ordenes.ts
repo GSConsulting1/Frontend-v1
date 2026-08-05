@@ -55,7 +55,7 @@ const COLUMNAS_ORDENABLES = new Set([
   "secuencia",
 ]);
 
-// Mismo criterio de zona horaria que supabase/006_ordenes_servicio_id_unico.sql:
+// Mismo criterio de zona horaria que supabase/migrations/20260802085134_baseline_esquema_remoto.sql:
 // Colombia no tiene horario de verano, así que un offset fijo alcanza, pero
 // se usa Intl para no hardcodear "-5" dos veces.
 const ZONA_HORARIA_NEGOCIO = "America/Bogota";
@@ -317,6 +317,44 @@ export async function getClientesParaSelect() {
   return data ?? [];
 }
 
+// Números de OS del cliente que ya existen en órdenes de ESE MISMO cliente
+// — el número de OS lo asigna el cliente, así que dos clientes distintos sí
+// pueden repetirlo sin problema (por eso el filtro por cliente_id). Usado
+// por la previsualización de importación de Excel (app/ordenes/actions.ts)
+// para bloquear duplicados antes de crear nada.
+export async function getNumerosOsExistentes(
+  clienteId: number,
+  numeros: string[],
+): Promise<Set<string>> {
+  if (numeros.length === 0) return new Set();
+
+  if (!isSupabaseConfigured) {
+    return new Set(
+      mockOrdenes
+        .filter(
+          (o) =>
+            o.cliente_id === clienteId &&
+            o.numero_os_cliente &&
+            numeros.includes(o.numero_os_cliente),
+        )
+        .map((o) => o.numero_os_cliente as string),
+    );
+  }
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("ordenes_servicio")
+    .select("numero_os_cliente")
+    .eq("cliente_id", clienteId)
+    .in("numero_os_cliente", numeros);
+  if (error)
+    throw new Error(`No se pudieron validar duplicados: ${error.message}`);
+  return new Set(
+    (data ?? [])
+      .map((o) => o.numero_os_cliente)
+      .filter((v): v is string => Boolean(v)),
+  );
+}
+
 // valor_hora/cedula/telefono viajan acá además de id/nombre_completo para
 // mostrar el detalle del profesional elegido en "Profesional y contacto en
 // sitio" (cédula/celular, de solo lectura) y precargar "Valor hora
@@ -356,7 +394,7 @@ export async function createOrdenRecord(input: OrdenServicioFormValues) {
     const now = new Date();
     const dia = diaEnZonaHoraria(now);
     // Mismo formato y criterio (consecutivo diario en hora de Bogotá) que el
-    // trigger real — ver supabase/006_ordenes_servicio_id_unico.sql.
+    // trigger real — ver supabase/migrations/20260802085134_baseline_esquema_remoto.sql.
     const consecutivoHoy =
       mockOrdenes.filter(
         (o) => o.fecha_creacion && diaEnZonaHoraria(new Date(o.fecha_creacion)) === dia,
@@ -373,7 +411,7 @@ export async function createOrdenRecord(input: OrdenServicioFormValues) {
   const supabase = await createSupabaseServerClient();
 
   // id_unico no va en el insert: lo asigna el trigger
-  // generar_id_unico_orden (supabase/006_ordenes_servicio_id_unico.sql) con
+  // generar_id_unico_orden (supabase/migrations/20260802085134_baseline_esquema_remoto.sql) con
   // formato OS-AAAAMMDD-NNNN, consecutivo por día.
   const { data, error } = await supabase
     .from("ordenes_servicio")

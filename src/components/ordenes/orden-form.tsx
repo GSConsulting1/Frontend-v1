@@ -65,6 +65,7 @@ export type OrdenInfoFormValues = OrdenServicioFormValues &
   OrdenInfoExtendidaFormValues;
 
 type SelectOption = { id: number; label: string };
+type CiudadOption = SelectOption & { departamentoId: number };
 
 type SaveStatus = "idle" | "success" | "error";
 
@@ -111,7 +112,8 @@ type OrdenFormProps = {
   // Personal interno de GS Group que da el "VoBo" en Detalle de entrega —
   // catálogo propio, no son profesionales de campo (ver detalle-entrega.tsx).
   vobo: SelectOption[];
-  ciudades: SelectOption[];
+  departamentos: SelectOption[];
+  ciudades: CiudadOption[];
   estadosEjecucion: SelectOption[];
   entregablesEstandar: SelectOption[];
 };
@@ -126,6 +128,7 @@ export function OrdenForm({
   profesionales,
   participantesArl,
   vobo,
+  departamentos,
   ciudades,
   estadosEjecucion,
   entregablesEstandar,
@@ -140,10 +143,26 @@ export function OrdenForm({
   // ve/edita todo salvo la sección financiera de arriba (ver RLS
   // "admin_fin_valor_hora").
   const puedeEditarGeneral = puedeVerFinanciera || perfil?.rol === "talento";
+  // Excepción puntual dentro de "Datos generales": programador no edita la
+  // sección (queda con disabled=true) pero sí el campo "Observaciones del
+  // responsable SEC para GS" — ver OrdenCampos, donde este flag se combina
+  // con `disabled` solo para ese campo.
+  //
+  // OJO: `programador` no tiene policy de UPDATE propia en Supabase (solo
+  // administrador y financiero, ver supabase/migrations/20260802085134_baseline_esquema_remoto.sql y
+  // 005_ordenes_servicio_financiero_edicion.sql). Hoy el guardado le funciona
+  // por la policy "mvp_open_access"; cuando esa se quite hay que agregarle una
+  // policy con WITH CHECK sobre esta columna o el UPDATE le va a fallar.
+  const puedeEditarObservacionesSec = perfil?.rol === "programador";
   const [serverError, setServerError] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [seccionAbierta, setSeccionAbierta] = useState<SeccionId | null>(
-    puedeEditarGeneral ? "datos-generales" : mode !== "nueva" ? "datos-actividad" : null,
+    // programador arranca acá también: es donde está su único campo editable.
+    puedeEditarGeneral || puedeEditarObservacionesSec
+      ? "datos-generales"
+      : mode !== "nueva"
+        ? "datos-actividad"
+        : null,
   );
   const {
     register,
@@ -225,9 +244,18 @@ export function OrdenForm({
           }),
     };
 
+    // El rol programador también manda datosBase: es el único camino para
+    // persistir su única columna editable (observaciones_responsable_sec).
+    // El resto de los campos viajan sin cambios porque en pantalla están en
+    // solo lectura, así que el UPDATE los reescribe con su mismo valor.
+    //
+    // Esto es conveniencia de UI, no seguridad: guardarInformacionOrden no
+    // valida el rol, así que un cliente modificado podría mandar cualquier
+    // columna. El filtro real va en el Server Action — ver
+    // PLAN-permisos-por-rol.md.
     const result = await guardarInformacionOrden(
       ordenId!,
-      puedeEditarGeneral ? values : null,
+      puedeEditarGeneral || puedeEditarObservacionesSec ? values : null,
       datosExtendidos,
     );
     if (!result.ok) {
@@ -278,6 +306,7 @@ export function OrdenForm({
           watch={watch}
           clientes={clientes}
           disabled={!puedeEditarGeneral}
+          puedeEditarObservacionesSec={puedeEditarObservacionesSec}
           open={seccionAbierta === "datos-generales"}
           onOpenChange={(open) => toggleSeccion("datos-generales", open)}
         />
@@ -300,6 +329,7 @@ export function OrdenForm({
           errors={errors}
           watch={watch}
           setValue={setValue}
+          departamentos={departamentos}
           ciudades={ciudades}
           estadosEjecucion={estadosEjecucion}
           profesionales={profesionales}
