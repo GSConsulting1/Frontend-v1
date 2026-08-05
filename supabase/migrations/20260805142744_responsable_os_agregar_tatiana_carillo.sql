@@ -21,5 +21,5 @@ ALTER TABLE "public"."ordenes_servicio"
     'Daniela Rosso'::character varying,
     'Lucia Bejarano'::character varying,
     'Lina Amell'::character varying,
-    'Tatiana Carillo'::character varying
+    'Tatiana Carrillo'::character varying
   ])::"text"[])));
