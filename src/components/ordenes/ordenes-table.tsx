@@ -142,6 +142,14 @@ export function OrdenesTable({
   accionError,
 }: OrdenesTableProps) {
   const { perfil } = useAuth();
+  // Filtros/orden activos en /ordenes (query string) para que "Editar" los
+  // devuelva vía backHref — ver EditarOrdenPage y OrdenForm.
+  const searchParams = useSearchParams();
+  const queryActual = searchParams.toString();
+  const hrefEditar = (id: number) =>
+    queryActual
+      ? `/ordenes/${id}/editar?volver=${encodeURIComponent(queryActual)}`
+      : `/ordenes/${id}/editar`;
   // Financiero es el único rol que ve "Cliente" + "Número de OS"; el resto ve
   // el nombre de la empresa usuaria en su lugar y no ve el número de OS.
   const esFinanciero = perfil?.rol === "financiero";
@@ -396,7 +404,7 @@ export function OrdenesTable({
                     />
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem
-                        render={<Link href={`/ordenes/${orden.id}/editar`} />}
+                        render={<Link href={hrefEditar(orden.id)} />}
                       >
                         <Pencil className="size-4" />
                         Editar

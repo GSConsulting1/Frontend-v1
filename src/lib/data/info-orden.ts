@@ -66,7 +66,7 @@ export async function getCatalogosInfoOrden() {
 
   const [ciudades, estadosEjecucion, entregablesEstandar, participantesArl, vobo] =
     await Promise.all([
-      supabase.from("ciudades").select("id, nombre, departamento").order("nombre"),
+      supabase.from("ciudades").select("id, nombre").order("nombre"),
       supabase
         .from("estados_ejecucion")
         .select("id, nombre, orden_visual")

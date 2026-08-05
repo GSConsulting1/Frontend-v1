@@ -17,12 +17,19 @@ import type { EstadoOrden, ResponsableOs } from "@/lib/validations/orden.schema"
 
 export default async function EditarOrdenPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ volver?: string }>;
 }) {
   const { id } = await params;
+  const { volver } = await searchParams;
   const ordenId = Number(id);
   if (!Number.isInteger(ordenId)) notFound();
+  // "volver" trae los filtros/orden de /ordenes que ya estaban aplicados
+  // cuando se entró a editar (ver hrefEditar en ordenes-table.tsx), para
+  // que "Volver al listado" no los pierda.
+  const backHref = volver ? `/ordenes?${volver}` : "/ordenes";
 
   const orden = await getOrdenById(ordenId);
   if (!orden) notFound();
@@ -174,6 +181,7 @@ export default async function EditarOrdenPage({
       <OrdenForm
         mode="existente"
         titulo={`Editar orden ${orden.id_unico ?? `#${orden.id}`}`}
+        backHref={backHref}
         ordenId={orden.id}
         defaultValues={defaultValues}
         clientes={clientes.map((c) => ({ id: c.id, label: c.nombre_cliente }))}

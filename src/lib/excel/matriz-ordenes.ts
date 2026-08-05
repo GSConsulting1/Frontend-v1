@@ -88,18 +88,9 @@ function siNo(valor: boolean | null | undefined): string {
   return valor ? "Sí" : "No";
 }
 
-// Devuelve number para que Excel lo trate como numérico (sumable/filtrable);
-// acepta el numeric de Supabase que a veces llega como string.
-function monto(valor: number | string | null | undefined): number | null {
-  if (valor == null || valor === "") return null;
-  const n = typeof valor === "string" ? Number(valor) : valor;
-  return Number.isFinite(n) ? n : null;
-}
-
 // COLUMNAS_MATRIZ: orden y textos EXACTOS del documento de referencia.
-// Dos columnas quedan en blanco a propósito porque no tienen respaldo en la
-// base de datos todavía (pendiente confirmar mapeo): "Observaciones del
-// responsable SEC para GS" y "Estado en Guardian".
+// "Estado en Guardian" queda en blanco a propósito: no tiene respaldo en la
+// base de datos todavía (pendiente confirmar mapeo).
 export const COLUMNAS_MATRIZ: ColumnaMatriz[] = [
   // ---- Paso 1 (ordenes_servicio + clientes) ----
   { header: "COD Cliente", value: (f) => f.orden.cliente?.id ?? f.orden.cliente_id },
@@ -125,15 +116,20 @@ export const COLUMNAS_MATRIZ: ColumnaMatriz[] = [
     header: "Observaciones iniciales del cliente (detalle registrada en OS del cliente)",
     value: (f) => f.orden.observaciones_iniciales ?? "",
   },
-  { header: "Tiene Valor Transporte", value: (f) => monto(f.orden.tarifa_valor_transporte), money: true },
+  // character varying en la base real (no numeric): se guarda tal cual la
+  // escribe quien carga la orden, así que no se puede tratar como money
+  // (ver mismo comentario en lib/validations/orden.schema.ts).
+  { header: "Tiene Valor Transporte", value: (f) => f.orden.tarifa_valor_transporte ?? "" },
   { header: "Responsable SEC para GS", value: (f) => f.orden.responsable_os ?? "" },
-  // Sin columna en la DB — pendiente confirmar mapeo.
-  { header: "Observaciones del responsable SEC para GS", value: () => "" },
+  {
+    header: "Observaciones del responsable SEC para GS",
+    value: (f) => f.orden.observaciones_responsable_sec ?? "",
+  },
 
   // ---- Asignación GS + Información OS (info_orden_servicio, detalle, valor_hora) ----
   {
     header: "Consecutivo orden de servicio para Profesional de GS asignado",
-    value: (f) => f.info?.consecutivo_os_profesional ?? null,
+    value: (f) => f.orden.id_unico ?? null,
   },
   {
     header: "Fecha de emisión OS para el profesional de GS asignado",

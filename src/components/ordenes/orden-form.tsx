@@ -92,6 +92,10 @@ export type SeccionId =
 type OrdenFormProps = {
   mode: "nueva" | "existente";
   titulo: string;
+  // "/ordenes" por defecto; EditarOrdenPage lo arma con los filtros/orden
+  // activos en el listado (query "volver") para que el link "Volver al
+  // listado" no los pierda.
+  backHref?: string;
   ordenId?: number;
   defaultValues?: Partial<OrdenInfoFormValues>;
   clientes: SelectOption[];
@@ -115,6 +119,7 @@ type OrdenFormProps = {
 export function OrdenForm({
   mode,
   titulo,
+  backHref = "/ordenes",
   ordenId,
   defaultValues,
   clientes,
@@ -238,7 +243,7 @@ export function OrdenForm({
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
       <PageHeader
         title={titulo}
-        backHref="/ordenes"
+        backHref={backHref}
         backLabel="Volver al listado"
         actions={
           <SaveButton
