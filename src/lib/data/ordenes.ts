@@ -45,7 +45,15 @@ export type OrdenesFiltros = {
   // solo las que empiecen/terminen exactamente dentro de él.
   fechaEjecucionDesde?: string;
   fechaEjecucionHasta?: string;
+  sortBy?: "numero_os_cliente" | "fecha_recepcion_os" | "secuencia";
+  sortDir?: "asc" | "desc";
 };
+
+const COLUMNAS_ORDENABLES = new Set([
+  "numero_os_cliente",
+  "fecha_recepcion_os",
+  "secuencia",
+]);
 
 // Mismo criterio de zona horaria que supabase/006_ordenes_servicio_id_unico.sql:
 // Colombia no tiene horario de verano, así que un offset fijo alcanza, pero
@@ -190,6 +198,16 @@ export async function getOrdenes(
         return true;
       });
     }
+    if (filtros.sortBy && COLUMNAS_ORDENABLES.has(filtros.sortBy)) {
+      const campo = filtros.sortBy;
+      const factor = filtros.sortDir === "asc" ? 1 : -1;
+      return [...ordenes].sort((a, b) => {
+        const av = a[campo] ?? "";
+        const bv = b[campo] ?? "";
+        if (av === bv) return 0;
+        return av < bv ? -factor : factor;
+      });
+    }
     return ordenes.sort((a, b) => b.id - a.id);
   }
   const supabase = await createSupabaseServerClient();
@@ -204,10 +222,16 @@ export async function getOrdenes(
     ? "*, cliente:clientes(id, nombre_cliente), checklist:checklist_proceso(estado_ejecucion:estados_ejecucion(id, nombre)), info_orden_servicio!inner(fecha_inicio_ejecucion, fecha_fin_ejecucion)"
     : "*, cliente:clientes(id, nombre_cliente), checklist:checklist_proceso(estado_ejecucion:estados_ejecucion(id, nombre))";
 
+  const sortBy =
+    filtros.sortBy && COLUMNAS_ORDENABLES.has(filtros.sortBy)
+      ? filtros.sortBy
+      : "id";
+  const sortAscending = sortBy === "id" ? false : filtros.sortDir === "asc";
+
   let query = supabase
     .from("ordenes_servicio")
     .select(select)
-    .order("id", { ascending: false });
+    .order(sortBy, { ascending: sortAscending });
 
   if (filtros.clienteIds?.length)
     query = query.in("cliente_id", filtros.clienteIds);

@@ -14,11 +14,20 @@ import { COLUMNAS_MATRIZ, type MatrizOrdenRow } from "./matriz-ordenes";
 
 export async function construirMatrizExcel(
   filas: MatrizOrdenRow[],
+  opciones?: { incluirFinanciera?: boolean },
 ): Promise<Buffer> {
+  // talento exporta sin las columnas financiera: true (RLS restringe esas 5
+  // tablas a administrador/financiero, ver ROLES_CON_FINANCIERA en
+  // app/api/ordenes/excel/route.tsx).
+  const columnas =
+    opciones?.incluirFinanciera === false
+      ? COLUMNAS_MATRIZ.filter((columna) => !columna.financiera)
+      : COLUMNAS_MATRIZ;
+
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet("Órdenes de servicio");
 
-  worksheet.columns = COLUMNAS_MATRIZ.map((columna) => ({
+  worksheet.columns = columnas.map((columna) => ({
     header: columna.header,
     width: 26,
   }));
@@ -29,12 +38,12 @@ export async function construirMatrizExcel(
   headerRow.height = 42;
 
   for (const fila of filas) {
-    worksheet.addRow(COLUMNAS_MATRIZ.map((columna) => columna.value(fila)));
+    worksheet.addRow(columnas.map((columna) => columna.value(fila)));
   }
 
   // Formato de miles para las columnas marcadas como money (getColumn es
-  // 1-indexado, igual que el orden de COLUMNAS_MATRIZ).
-  COLUMNAS_MATRIZ.forEach((columna, indice) => {
+  // 1-indexado, igual que el orden de `columnas`).
+  columnas.forEach((columna, indice) => {
     if (columna.money) worksheet.getColumn(indice + 1).numFmt = "#,##0";
   });
 

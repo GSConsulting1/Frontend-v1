@@ -25,10 +25,18 @@ export default async function OrdenesPage({
     cronograma?: string;
     fechaEjecucionDesde?: string;
     fechaEjecucionHasta?: string;
+    sort?: string;
+    dir?: string;
   }>;
 }) {
   const params = await searchParams;
   const cronograma = params.cronograma ? Number(params.cronograma) : undefined;
+  const COLUMNAS_ORDENABLES = [
+    "numero_os_cliente",
+    "fecha_recepcion_os",
+    "secuencia",
+  ] as const;
+  const sortBy = COLUMNAS_ORDENABLES.find((c) => c === params.sort);
   const filtros = {
     clienteIds: params.clienteId?.split(",").filter(Boolean).map(Number),
     desde: params.desde || undefined,
@@ -43,6 +51,8 @@ export default async function OrdenesPage({
     cronograma: cronograma != null && !Number.isNaN(cronograma) ? cronograma : undefined,
     fechaEjecucionDesde: params.fechaEjecucionDesde || undefined,
     fechaEjecucionHasta: params.fechaEjecucionHasta || undefined,
+    sortBy,
+    sortDir: params.dir === "asc" ? ("asc" as const) : ("desc" as const),
   };
 
   const [ordenes, clientes] = await Promise.all([

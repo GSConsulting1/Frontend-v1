@@ -61,6 +61,12 @@ export type ColumnaMatriz = {
   value: (fila: MatrizOrdenRow) => string | number | null;
   // Formato numérico de moneda (miles) en la celda; el value devuelve number.
   money?: boolean;
+  // Columna de la sección financiera (cuenta_cobro/acta_servicio/
+  // facturacion/radicacion_imagine/liquidacion) — RLS restringe esas 5
+  // tablas a administrador/financiero (talento sí puede leer valor_hora_orden,
+  // por eso "Valor Hora Profesional" NO lleva este flag). construir-matriz-excel
+  // filtra estas columnas cuando incluirFinanciera es false.
+  financiera?: boolean;
 };
 
 // --- Formateadores locales de presentación (sin dominio) ---
@@ -211,43 +217,45 @@ export const COLUMNAS_MATRIZ: ColumnaMatriz[] = [
   { header: "Informe Guardian", value: (f) => f.checklist?.informe_guardian ?? "" },
 
   // ---- Financiera (cuenta_cobro, acta_servicio, facturacion, radicacion_imagine, liquidacion) ----
-  { header: "Radicación de cuenta de cobro", value: (f) => siNo(f.cuentaCobro?.radicacion_cuenta) },
-  { header: "Fecha de radicación", value: (f) => fecha(f.cuentaCobro?.fecha_radicacion) },
-  { header: "Valor Cuenta de cobro", value: (f) => f.cuentaCobro?.valor_cuenta_cobro ?? null, money: true },
-  { header: "Documento Soporte", value: (f) => f.cuentaCobro?.documento_soporte ?? "" },
-  { header: "Corte pago", value: (f) => f.cuentaCobro?.corte_pago ?? "" },
-  { header: "Fecha de pago", value: (f) => fecha(f.cuentaCobro?.fecha_pago) },
-  { header: "Alerta de Facturación", value: (f) => f.facturacion?.alerta_facturacion ?? "" },
+  { header: "Radicación de cuenta de cobro", value: (f) => siNo(f.cuentaCobro?.radicacion_cuenta), financiera: true },
+  { header: "Fecha de radicación", value: (f) => fecha(f.cuentaCobro?.fecha_radicacion), financiera: true },
+  { header: "Valor Cuenta de cobro", value: (f) => f.cuentaCobro?.valor_cuenta_cobro ?? null, money: true, financiera: true },
+  { header: "Documento Soporte", value: (f) => f.cuentaCobro?.documento_soporte ?? "", financiera: true },
+  { header: "Corte pago", value: (f) => f.cuentaCobro?.corte_pago ?? "", financiera: true },
+  { header: "Fecha de pago", value: (f) => fecha(f.cuentaCobro?.fecha_pago), financiera: true },
+  { header: "Alerta de Facturación", value: (f) => f.facturacion?.alerta_facturacion ?? "", financiera: true },
   // Sin columna en la DB — pendiente confirmar mapeo.
-  { header: "Estado en Guardian", value: () => "" },
-  { header: "Estado en IMAGINE", value: (f) => f.radicacion?.estado_imagine ?? "" },
-  { header: "Fecha del acta", value: (f) => fecha(f.acta?.fecha_acta) },
-  { header: "Hora del acta", value: (f) => hora(f.acta?.hora_acta) },
-  { header: "Profesional del acta", value: (f) => f.acta?.profesional_acta?.nombre_completo ?? "" },
-  { header: "Fecha de corte", value: (f) => fecha(f.cuentaCobro?.fecha_corte) },
-  { header: "Fecha de radicación en imagine", value: (f) => fecha(f.radicacion?.fecha_radicacion_1) },
-  { header: "Número de radicado Imagine", value: (f) => f.radicacion?.numero_radicado_1 ?? "" },
-  { header: "Novedades Imagine", value: (f) => f.radicacion?.novedades_1 ?? "" },
+  { header: "Estado en Guardian", value: () => "", financiera: true },
+  { header: "Estado en IMAGINE", value: (f) => f.radicacion?.estado_imagine ?? "", financiera: true },
+  { header: "Fecha del acta", value: (f) => fecha(f.acta?.fecha_acta), financiera: true },
+  { header: "Hora del acta", value: (f) => hora(f.acta?.hora_acta), financiera: true },
+  { header: "Profesional del acta", value: (f) => f.acta?.profesional_acta?.nombre_completo ?? "", financiera: true },
+  { header: "Fecha de corte", value: (f) => fecha(f.cuentaCobro?.fecha_corte), financiera: true },
+  { header: "Fecha de radicación en imagine", value: (f) => fecha(f.radicacion?.fecha_radicacion_1), financiera: true },
+  { header: "Número de radicado Imagine", value: (f) => f.radicacion?.numero_radicado_1 ?? "", financiera: true },
+  { header: "Novedades Imagine", value: (f) => f.radicacion?.novedades_1 ?? "", financiera: true },
   {
     header: "Fecha de radicación en imagine por segunda vez",
     value: (f) => fecha(f.radicacion?.fecha_radicacion_2),
+    financiera: true,
   },
   {
     header: "Número de radicado Imagine por segunda vez",
     value: (f) => f.radicacion?.numero_radicado_2 ?? "",
+    financiera: true,
   },
-  { header: "Novedades Imagine por segunda vez", value: (f) => f.radicacion?.novedades_2 ?? "" },
-  { header: "Actualización SIPAB", value: (f) => f.radicacion?.actualizacion_sipab ?? "" },
-  { header: "Estado de facturación", value: (f) => f.facturacion?.estado_facturacion ?? "" },
-  { header: "Número de prefactura", value: (f) => f.facturacion?.numero_prefactura ?? "" },
-  { header: "Número de factura", value: (f) => f.facturacion?.numero_factura ?? "" },
-  { header: "Valor total cotizado", value: (f) => f.liquidacion?.valor_total_cotizado ?? null, money: true },
-  { header: "Valor desplazamiento", value: (f) => f.liquidacion?.valor_desplazamiento ?? null, money: true },
-  { header: "Gasto de servicio", value: (f) => f.liquidacion?.gasto_servicio ?? null, money: true },
-  { header: "IVA", value: (f) => f.liquidacion?.iva ?? null, money: true },
-  { header: "Valor antes de IVA", value: (f) => f.liquidacion?.valor_antes_iva ?? null, money: true },
-  { header: "Retención Fuente", value: (f) => f.liquidacion?.retencion_fuente ?? null, money: true },
-  { header: "Retención IVA", value: (f) => f.liquidacion?.retencion_iva ?? null, money: true },
-  { header: "Total", value: (f) => f.liquidacion?.total ?? null, money: true },
-  { header: "Ganacia", value: (f) => f.liquidacion?.ganancia ?? null, money: true },
+  { header: "Novedades Imagine por segunda vez", value: (f) => f.radicacion?.novedades_2 ?? "", financiera: true },
+  { header: "Actualización SIPAB", value: (f) => f.radicacion?.actualizacion_sipab ?? "", financiera: true },
+  { header: "Estado de facturación", value: (f) => f.facturacion?.estado_facturacion ?? "", financiera: true },
+  { header: "Número de prefactura", value: (f) => f.facturacion?.numero_prefactura ?? "", financiera: true },
+  { header: "Número de factura", value: (f) => f.facturacion?.numero_factura ?? "", financiera: true },
+  { header: "Valor total cotizado", value: (f) => f.liquidacion?.valor_total_cotizado ?? null, money: true, financiera: true },
+  { header: "Valor desplazamiento", value: (f) => f.liquidacion?.valor_desplazamiento ?? null, money: true, financiera: true },
+  { header: "Gasto de servicio", value: (f) => f.liquidacion?.gasto_servicio ?? null, money: true, financiera: true },
+  { header: "IVA", value: (f) => f.liquidacion?.iva ?? null, money: true, financiera: true },
+  { header: "Valor antes de IVA", value: (f) => f.liquidacion?.valor_antes_iva ?? null, money: true, financiera: true },
+  { header: "Retención Fuente", value: (f) => f.liquidacion?.retencion_fuente ?? null, money: true, financiera: true },
+  { header: "Retención IVA", value: (f) => f.liquidacion?.retencion_iva ?? null, money: true, financiera: true },
+  { header: "Total", value: (f) => f.liquidacion?.total ?? null, money: true, financiera: true },
+  { header: "Ganacia", value: (f) => f.liquidacion?.ganancia ?? null, money: true, financiera: true },
 ];

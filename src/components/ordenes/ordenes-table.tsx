@@ -18,7 +18,17 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Download, Loader2, MoreHorizontal, Pencil, X } from "lucide-react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  Download,
+  Loader2,
+  MoreHorizontal,
+  Pencil,
+  X,
+} from "lucide-react";
 import {
   Table,
   TableBody,
@@ -59,6 +69,57 @@ import {
 import type { OrdenServicioConRelaciones, RolUsuario } from "@/types";
 const ROLES_EDITAN_INLINE: RolUsuario[] = ["administrador", "financiero"];
 const OPCIONES_ESTADO = ESTADOS_ORDEN.map((e) => ({ id: e, label: e }));
+
+type ColumnaOrdenable = "numero_os_cliente" | "fecha_recepcion_os" | "secuencia";
+
+// Encabezado clicable que persiste sort/dir en la URL (mismo patrón que
+// OrdenesFiltros): la página (Server Component) lee "sort"/"dir" de
+// searchParams y hace el ORDER BY en getOrdenes — acá solo se lee/escribe la
+// query string, nunca se ordena en el cliente.
+function SortableHeader({
+  column,
+  label,
+  className,
+}: {
+  column: ColumnaOrdenable;
+  label: string;
+  className?: string;
+}) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const activo = searchParams.get("sort") === column;
+  const direccionActual = searchParams.get("dir") === "asc" ? "asc" : "desc";
+
+  function alternar() {
+    const params = new URLSearchParams(searchParams.toString());
+    const nuevaDireccion = activo && direccionActual === "asc" ? "desc" : "asc";
+    params.set("sort", column);
+    params.set("dir", nuevaDireccion);
+    router.push(`${pathname}?${params.toString()}`);
+  }
+
+  return (
+    <TableHead className={className}>
+      <button
+        type="button"
+        onClick={alternar}
+        className="inline-flex items-center gap-1 hover:text-foreground"
+      >
+        {label}
+        {activo ? (
+          direccionActual === "asc" ? (
+            <ArrowUp className="size-3.5" />
+          ) : (
+            <ArrowDown className="size-3.5" />
+          )
+        ) : (
+          <ArrowUpDown className="size-3.5 text-muted-foreground/50" />
+        )}
+      </button>
+    </TableHead>
+  );
+}
 
 type OrdenesTableProps = {
   ordenes: OrdenServicioConRelaciones[];
@@ -192,13 +253,18 @@ export function OrdenesTable({
             <TableHead className="whitespace-normal">
               {esFinanciero ? "Cliente" : "Nombre Empresa usuaria del cliente"}
             </TableHead>
-            {esFinanciero && <TableHead>Número de OS</TableHead>}
-            <TableHead>Fecha recepción</TableHead>
+            {esFinanciero && (
+              <SortableHeader
+                column="numero_os_cliente"
+                label="Número de OS"
+              />
+            )}
+            <SortableHeader column="fecha_recepcion_os" label="Fecha recepción" />
             <TableHead className="whitespace-normal">Tipo servicio</TableHead>
             <TableHead>Estado Gerencia</TableHead>
             <TableHead>Estado de ejecución</TableHead>
             <TableHead>Cronograma</TableHead>
-            <TableHead>Secuencia</TableHead>
+            <SortableHeader column="secuencia" label="Secuencia" />
             <TableHead className="text-right">Acciones</TableHead>
           </TableRow>
         </TableHeader>
