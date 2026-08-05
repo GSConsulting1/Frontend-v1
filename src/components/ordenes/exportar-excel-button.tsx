@@ -9,8 +9,9 @@
 // los IDs — mismo patrón fetch → blob → <a download> que la descarga de PDF
 // en ordenes-table.tsx.
 //
-// Solo para administrador y financiero (RoleGate) — coincide con el chequeo
-// de rol del endpoint. Es UX: la protección real vive en la ruta.
+// Para administrador, financiero y talento (RoleGate) — coincide con
+// ROLES_PERMITIDOS del endpoint. Es UX: la protección real vive en la ruta,
+// que además decide ahí si incluye o no la sección financiera según el rol.
 
 "use client";
 
@@ -65,7 +66,7 @@ export function ExportarExcelButton({
   }
 
   return (
-    <RoleGate allow={["administrador", "financiero"]}>
+    <RoleGate allow={["administrador", "financiero", "talento"]}>
       <div className="flex items-center gap-1.5">
         <Button
           variant="outline"

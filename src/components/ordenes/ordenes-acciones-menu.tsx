@@ -10,13 +10,14 @@
 // si el usuario no tiene ningún permiso, el componente no renderiza nada —
 // así no queda un botón "⋮" que abre un menú vacío.
 //
-// "Importar desde Excel" es administrador/financiero/talento; "Exportar
-// Excel" es administrador/financiero únicamente (talento no exporta) —
-// coincide con ROLES_PERMITIDOS de app/api/ordenes/excel/route.tsx, que sí
-// es la protección real para el export. El import no tiene chequeo de rol
-// del lado del servidor (mismo hueco que datos generales, ver structure.md:
-// "mvp_open_access" tumba la RLS real de ordenes_servicio hoy), así que acá
-// también es solo UX.
+// "Importar desde Excel" y "Exportar Excel" son ambos
+// administrador/financiero/talento — coincide con ROLES_PERMITIDOS de
+// app/api/ordenes/excel/route.tsx, que sí es la protección real para el
+// export (esa misma ruta decide, ya del lado del servidor, si el .xlsx
+// incluye o no la sección financiera según el rol). El import no tiene
+// chequeo de rol del lado del servidor (mismo hueco que datos generales,
+// ver structure.md: "mvp_open_access" tumba la RLS real de
+// ordenes_servicio hoy), así que acá también es solo UX.
 
 "use client";
 
@@ -48,8 +49,9 @@ export function OrdenesAccionesMenu({
 }: OrdenesAccionesMenuProps) {
   const { perfil } = useAuth();
   const esAdmin = perfil?.rol === "administrador";
-  const puedeExportar = esAdmin || perfil?.rol === "financiero";
-  const puedeImportar = puedeExportar || perfil?.rol === "talento";
+  const puedeExportar =
+    esAdmin || perfil?.rol === "financiero" || perfil?.rol === "talento";
+  const puedeImportar = puedeExportar;
 
   const grupoNavegacion = esAdmin || puedeImportar;
 

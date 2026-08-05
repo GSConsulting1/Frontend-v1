@@ -64,6 +64,9 @@ type FiltrosValues = {
   estados: string[];
   responsablesOs: string[];
   secuencia: string;
+  cronograma: string;
+  fechaEjecucionDesde: string;
+  fechaEjecucionHasta: string;
 };
 
 function parseLista(value: string | null): string[] {
@@ -100,6 +103,9 @@ export function OrdenesFiltros({ clientes }: OrdenesFiltrosProps) {
     estados: parseLista(searchParams.get("estado")),
     responsablesOs: parseLista(searchParams.get("responsableOs")),
     secuencia: searchParams.get("secuencia") ?? "",
+    cronograma: searchParams.get("cronograma") ?? "",
+    fechaEjecucionDesde: searchParams.get("fechaEjecucionDesde") ?? "",
+    fechaEjecucionHasta: searchParams.get("fechaEjecucionHasta") ?? "",
   };
 
   const filtrosActivos = [
@@ -133,6 +139,15 @@ export function OrdenesFiltros({ clientes }: OrdenesFiltrosProps) {
       texto: initial.asesorGestionRiesgos,
     },
     { key: "secuencia", label: "Secuencia", texto: initial.secuencia },
+    { key: "cronograma", label: "Cronograma", texto: initial.cronograma },
+    {
+      key: "fechaEjecucion",
+      label: "Ejecución",
+      texto:
+        initial.fechaEjecucionDesde || initial.fechaEjecucionHasta
+          ? `${initial.fechaEjecucionDesde || "…"} — ${initial.fechaEjecucionHasta || "…"}`
+          : "",
+    },
   ].filter((f) => f.texto.length > 0);
 
   function aplicarFiltros(values: FiltrosValues) {
@@ -151,6 +166,12 @@ export function OrdenesFiltros({ clientes }: OrdenesFiltrosProps) {
       params.set("responsableOs", values.responsablesOs.join(","));
     if (values.secuencia.trim())
       params.set("secuencia", values.secuencia.trim());
+    if (values.cronograma.trim())
+      params.set("cronograma", values.cronograma.trim());
+    if (values.fechaEjecucionDesde)
+      params.set("fechaEjecucionDesde", values.fechaEjecucionDesde);
+    if (values.fechaEjecucionHasta)
+      params.set("fechaEjecucionHasta", values.fechaEjecucionHasta);
 
     const query = params.toString();
     router.push(query ? `${pathname}?${query}` : pathname);
@@ -162,7 +183,12 @@ export function OrdenesFiltros({ clientes }: OrdenesFiltrosProps) {
 
   function quitarFiltro(key: string) {
     const params = new URLSearchParams(searchParams.toString());
-    params.delete(key);
+    if (key === "fechaEjecucion") {
+      params.delete("fechaEjecucionDesde");
+      params.delete("fechaEjecucionHasta");
+    } else {
+      params.delete(key);
+    }
     const query = params.toString();
     router.push(query ? `${pathname}?${query}` : pathname);
   }
@@ -250,6 +276,13 @@ function FiltrosCampos({
     initial.responsablesOs,
   );
   const [secuencia, setSecuencia] = useState(initial.secuencia);
+  const [cronograma, setCronograma] = useState(initial.cronograma);
+  const [fechaEjecucionDesde, setFechaEjecucionDesde] = useState(
+    initial.fechaEjecucionDesde,
+  );
+  const [fechaEjecucionHasta, setFechaEjecucionHasta] = useState(
+    initial.fechaEjecucionHasta,
+  );
 
   const clienteLabelPorId = new Map(
     clientes.map((c) => [String(c.id), c.nombre_cliente]),
@@ -269,6 +302,9 @@ function FiltrosCampos({
       estados,
       responsablesOs,
       secuencia,
+      cronograma,
+      fechaEjecucionDesde,
+      fechaEjecucionHasta,
     });
   }
 
@@ -406,6 +442,40 @@ function FiltrosCampos({
           value={secuencia}
           onChange={(e) => setSecuencia(e.target.value)}
           placeholder="Ej. 1/2"
+        />
+      </FormField>
+
+      <FormField label="Cronograma" htmlFor="filtro-cronograma">
+        <Input
+          id="filtro-cronograma"
+          type="number"
+          value={cronograma}
+          onChange={(e) => setCronograma(e.target.value)}
+          placeholder="Ej. 3"
+        />
+      </FormField>
+
+      <FormField
+        label="Ejecución desde"
+        htmlFor="filtro-fecha-ejecucion-desde"
+      >
+        <Input
+          id="filtro-fecha-ejecucion-desde"
+          type="date"
+          value={fechaEjecucionDesde}
+          onChange={(e) => setFechaEjecucionDesde(e.target.value)}
+        />
+      </FormField>
+
+      <FormField
+        label="Ejecución hasta"
+        htmlFor="filtro-fecha-ejecucion-hasta"
+      >
+        <Input
+          id="filtro-fecha-ejecucion-hasta"
+          type="date"
+          value={fechaEjecucionHasta}
+          onChange={(e) => setFechaEjecucionHasta(e.target.value)}
         />
       </FormField>
 

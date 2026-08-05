@@ -19,6 +19,7 @@ import {
 import {
   mockChecklistProceso,
   mockEstadosEjecucion,
+  mockInfoOrdenServicio,
 } from "@/lib/mock-data/info-orden";
 import { orNull } from "@/lib/utils";
 import type {
@@ -38,7 +39,21 @@ export type OrdenesFiltros = {
   estados?: string[];
   responsablesOs?: string[];
   secuencia?: string;
+  cronograma?: number;
+  // Filtran por solape: cualquier orden cuya ejecución (fecha_inicio_ejecucion
+  // a fecha_fin_ejecucion, en info_orden_servicio) toque el rango pedido, no
+  // solo las que empiecen/terminen exactamente dentro de él.
+  fechaEjecucionDesde?: string;
+  fechaEjecucionHasta?: string;
+  sortBy?: "numero_os_cliente" | "fecha_recepcion_os" | "secuencia";
+  sortDir?: "asc" | "desc";
 };
+
+const COLUMNAS_ORDENABLES = new Set([
+  "numero_os_cliente",
+  "fecha_recepcion_os",
+  "secuencia",
+]);
 
 // Mismo criterio de zona horaria que supabase/migrations/20260802085134_baseline_esquema_remoto.sql:
 // Colombia no tiene horario de verano, así que un offset fijo alcanza, pero
@@ -162,21 +177,80 @@ export async function getOrdenes(
         (o.secuencia ?? "").toLowerCase().includes(needle),
       );
     }
+    if (filtros.cronograma != null) {
+      ordenes = ordenes.filter((o) => o.cronograma === filtros.cronograma);
+    }
+    if (filtros.fechaEjecucionDesde || filtros.fechaEjecucionHasta) {
+      ordenes = ordenes.filter((o) => {
+        const info = mockInfoOrdenServicio.find((i) => i.orden_id === o.id);
+        if (!info?.fecha_inicio_ejecucion || !info?.fecha_fin_ejecucion)
+          return false;
+        if (
+          filtros.fechaEjecucionHasta &&
+          info.fecha_inicio_ejecucion > filtros.fechaEjecucionHasta
+        )
+          return false;
+        if (
+          filtros.fechaEjecucionDesde &&
+          info.fecha_fin_ejecucion < filtros.fechaEjecucionDesde
+        )
+          return false;
+        return true;
+      });
+    }
+    if (filtros.sortBy && COLUMNAS_ORDENABLES.has(filtros.sortBy)) {
+      const campo = filtros.sortBy;
+      const factor = filtros.sortDir === "asc" ? 1 : -1;
+      return [...ordenes].sort((a, b) => {
+        const av = a[campo] ?? "";
+        const bv = b[campo] ?? "";
+        if (av === bv) return 0;
+        return av < bv ? -factor : factor;
+      });
+    }
     return ordenes.sort((a, b) => b.id - a.id);
   }
   const supabase = await createSupabaseServerClient();
 
+  // info_orden_servicio solo se joinea (y con !inner) cuando de verdad se
+  // filtra por fecha de ejecución: un !inner incondicional excluiría del
+  // listado cualquier orden que todavía no tenga esa info cargada.
+  const filtraPorEjecucion = Boolean(
+    filtros.fechaEjecucionDesde || filtros.fechaEjecucionHasta,
+  );
+  const select = filtraPorEjecucion
+    ? "*, cliente:clientes(id, nombre_cliente), checklist:checklist_proceso(estado_ejecucion:estados_ejecucion(id, nombre)), info_orden_servicio!inner(fecha_inicio_ejecucion, fecha_fin_ejecucion)"
+    : "*, cliente:clientes(id, nombre_cliente), checklist:checklist_proceso(estado_ejecucion:estados_ejecucion(id, nombre))";
+
+  const sortBy =
+    filtros.sortBy && COLUMNAS_ORDENABLES.has(filtros.sortBy)
+      ? filtros.sortBy
+      : "id";
+  const sortAscending = sortBy === "id" ? false : filtros.sortDir === "asc";
+
   let query = supabase
     .from("ordenes_servicio")
-    .select(
-      "*, cliente:clientes(id, nombre_cliente), checklist:checklist_proceso(estado_ejecucion:estados_ejecucion(id, nombre))",
-    )
-    .order("id", { ascending: false });
+    .select(select)
+    .order(sortBy, { ascending: sortAscending });
 
   if (filtros.clienteIds?.length)
     query = query.in("cliente_id", filtros.clienteIds);
   if (filtros.desde) query = query.gte("fecha_recepcion_os", filtros.desde);
   if (filtros.hasta) query = query.lte("fecha_recepcion_os", filtros.hasta);
+  if (filtros.cronograma != null)
+    query = query.eq("cronograma", filtros.cronograma);
+  if (filtros.fechaEjecucionHasta) {
+    query = query.lte(
+      "info_orden_servicio.fecha_inicio_ejecucion",
+      filtros.fechaEjecucionHasta,
+    );
+  }
+  if (filtros.fechaEjecucionDesde) {
+    query = query.gte(
+      "info_orden_servicio.fecha_fin_ejecucion",
+      filtros.fechaEjecucionDesde,
+    );
+  }
   if (filtros.numeroOs) {
     query = query.ilike("numero_os_cliente", `%${filtros.numeroOs}%`);
   }
