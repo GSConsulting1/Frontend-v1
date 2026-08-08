@@ -15,7 +15,20 @@
 import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 
-const PROJECT_ID = "tvveelfjazwlinhlbcjd";
+// Lee la base LOCAL por defecto, no el proyecto remoto. Es lo único coherente
+// con el flujo de migraciones: los tipos tienen que describir el esquema de TU
+// rama —el que sale de supabase/migrations/ al correr `pnpm db:reset`—, no el
+// que hoy tenga producción. Antes esto apuntaba fijo al project-id de prod, y
+// eso hacía que escribieras una migración, corrieras `pnpm db:types` y los
+// tipos salieran SIN tu cambio; el error aparecía después, como un choque de
+// tipos incomprensible en el código que usaba la columna nueva.
+//
+//   pnpm db:types            -> base local (necesita `pnpm db:start` arriba)
+//   pnpm db:types --linked   -> proyecto remoto enlazado, para comparar drift
+//                               entre las migraciones y lo que hay desplegado
+const USAR_REMOTO = process.argv.slice(2).includes("--linked");
+const ORIGEN = USAR_REMOTO ? "--linked" : "--local";
+
 const DESTINO = "src/types/database.types.ts";
 
 const BANNER = `// ⚠️ ARCHIVO AUTOGENERADO — NO EDITAR A MANO ⚠️
@@ -33,15 +46,7 @@ let generado;
 try {
   generado = execFileSync(
     "supabase",
-    [
-      "gen",
-      "types",
-      "typescript",
-      "--project-id",
-      PROJECT_ID,
-      "--schema",
-      "public",
-    ],
+    ["gen", "types", "typescript", ORIGEN, "--schema", "public"],
     {
       encoding: "utf8",
       // stderr directo a la consola: ahí sale el "you need to login" y demás.
@@ -51,8 +56,11 @@ try {
   );
 } catch {
   console.error(`\n✖ No se pudieron generar los tipos — ${DESTINO} quedó intacto.`);
+  if (!USAR_REMOTO) {
+    console.error("  ¿Está la base local arriba? Probá `pnpm db:start`.");
+  }
   process.exit(1);
 }
 
 writeFileSync(DESTINO, `${BANNER}\n${generado}`);
-console.log(`✔ ${DESTINO} regenerado.`);
+console.log(`✔ ${DESTINO} regenerado desde ${USAR_REMOTO ? "el proyecto remoto" : "la base local"}.`);
