@@ -1,11 +1,29 @@
-# Aplica las migraciones de supabase/migrations/ al proyecto de producción
-# cuando algo entra a `main`.
+# Aplica las migraciones de supabase/migrations/ al proyecto remoto que
+# corresponda: `development` -> dev, `main` -> producción.
 #
 # Por qué existe: hasta ahora el esquema se cambiaba a mano desde el SQL
 # editor del dashboard. Eso significa que el repo y la base pueden decir
 # cosas distintas sin que nadie se entere, y que el despliegue del front
-# depende de que alguien se acuerde de correr el SQL. Con esto, mergear a
-# `main` es lo único que hay que hacer.
+# depende de que alguien se acuerde de correr el SQL. Con esto, mergear es
+# lo único que hay que hacer.
+#
+# Cómo sabe a qué proyecto apuntar: por GitHub Environments. Hay dos, `dev`
+# y `prod`, cada uno con su propia variable SUPABASE_PROJECT_REF y su propio
+# secret SUPABASE_DB_PASSWORD. El job elige el environment según la rama
+# destino, así que los nombres de secret son idénticos en ambos y no hay
+# lógica de `if` repartiendo credenciales.
+#
+# Los tres viven en el environment y NINGUNO a nivel repo, ni siquiera
+# SUPABASE_ACCESS_TOKEN —que sirve para los dos proyectos y es tentador
+# dejar compartido—. Un secret de repo lo lee cualquier workflow en
+# cualquier rama, y ese token es de alcance organizacional: puede crear y
+# borrar proyectos. Duplicarlo en los dos environments cuesta un pegado más
+# cuando se rota, y a cambio deja una regla sin excepciones.
+#
+# El otro motivo para no dejar nada en el repo es que GitHub resuelve los
+# secrets del environment primero y, si falta alguno, cae al del repo sin
+# avisar: un SUPABASE_DB_PASSWORD olvidado en `dev` tomaría el de prod y
+# fallaría con "authentication failed" mientras en la UI todo se ve bien.
 #
 # ⚠️ Esto NO es atómico con el despliegue del front. Vercel empieza a
 # construir en el mismo push, así que durante ~1-2 minutos conviven la base
@@ -18,9 +36,9 @@
 # despliegues (primero agregar y hacer que el código tolere ambos esquemas,
 # después borrar), no un YAML.
 #
-# Se corre en TODO push a `main`, sin filtro de `paths`. Filtrar por
-# `supabase/migrations/**` parece más prolijo, pero se equivoca en los
-# merges: si el archivo entró en un commit anterior del mismo push, el
+# Se corre en TODO push a las ramas de entorno, sin filtro de `paths`.
+# Filtrar por `supabase/migrations/**` parece más prolijo, pero se equivoca
+# en los merges: si el archivo entró en un commit anterior del mismo push, el
 # filtro no lo ve y la migración nunca se aplica. `db push` es idempotente
 # —consulta el historial remoto y no reaplica nada— así que correrlo de más
 # no cuesta nada y correrlo de menos sí.
@@ -31,11 +49,13 @@ on:
   push:
     branches:
       - main
-  # En los PRs a `main` corre en seco: muestra en el check qué migraciones
-  # se aplicarían al mergear, para que no haya sorpresas sobre producción.
+      - development
+  # En los PRs corre en seco: muestra en el check qué migraciones se
+  # aplicarían al mergear, para que no haya sorpresas sobre la base destino.
   pull_request:
     branches:
       - main
+      - development
 
 permissions:
   contents: read
@@ -52,16 +72,52 @@ jobs:
     name: Aplicar migraciones al proyecto remoto
     runs-on: ubuntu-latest
 
+    # `base_ref` viene lleno en `pull_request` y vacío en `push`; `ref_name`
+    # es al revés. La combinación da la rama destino en los dos eventos, sin
+    # tener que duplicar el job.
+    environment:
+      name: ${{ (github.base_ref || github.ref_name) == 'main' && 'prod' || 'dev' }}
+
     env:
-      # No es un secreto: el project ref ya está en scripts/gen-db-types.mjs
-      # y viaja en la URL pública de la API.
-      PROJECT_REF: tvveelfjazwlinhlbcjd
+      # El project ref no es un secreto (viaja en la URL pública de la API),
+      # pero sí cambia por entorno, así que va como variable del environment.
+      PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      RAMA_DESTINO: ${{ github.base_ref || github.ref_name }}
 
     steps:
       - name: Traer el repo
         uses: actions/checkout@v4
+
+      # Red de seguridad contra un environment mal configurado. Sin esto, un
+      # dedazo en la variable de `dev` haría que un merge a `development`
+      # aplique migraciones sobre producción, y no habría forma de notarlo
+      # hasta después. El ref de prod está escrito acá a propósito: el punto
+      # es que sea una constante del repo que nadie pueda cambiar desde la UI
+      # de GitHub, a diferencia de las variables de environment.
+      - name: Verificar que el destino corresponde a la rama
+        env:
+          REF_PROD: tvveelfjazwlinhlbcjd
+        run: |
+          echo "Rama destino: $RAMA_DESTINO -> proyecto: $PROJECT_REF"
+
+          if [ -z "$PROJECT_REF" ]; then
+            echo "::error::SUPABASE_PROJECT_REF está vacío. ¿Falta la variable en el environment?"
+            exit 1
+          fi
+
+          if [ "$RAMA_DESTINO" = "main" ] && [ "$PROJECT_REF" != "$REF_PROD" ]; then
+            echo "::error::main tiene que apuntar a producción ($REF_PROD), no a $PROJECT_REF."
+            exit 1
+          fi
+
+          if [ "$RAMA_DESTINO" != "main" ] && [ "$PROJECT_REF" = "$REF_PROD" ]; then
+            echo "::error::'$RAMA_DESTINO' no puede aplicar migraciones sobre producción."
+            exit 1
+          fi
+
+          echo "OK: el destino corresponde a la rama."
 
       - name: Instalar el CLI de Supabase
         uses: supabase/setup-cli@v1
@@ -75,10 +131,14 @@ jobs:
       - name: Enlazar el proyecto
         run: supabase link --project-ref "$PROJECT_REF"
 
-      - name: Simular (PRs a main)
+      - name: Simular (PRs)
         if: github.event_name == 'pull_request'
         run: supabase db push --dry-run
 
-      - name: Aplicar (merge a main)
+      # Sin `--include-seed` a propósito: supabase/seed.sql tiene IDs fijos y
+      # está pensado solo para la base local (lo dice su encabezado). Los
+      # catálogos de dev se siembran una única vez al crear el proyecto, no en
+      # cada merge.
+      - name: Aplicar (merge)
         if: github.event_name == 'push'
         run: supabase db push

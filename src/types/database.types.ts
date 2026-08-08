@@ -17,11 +17,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.5"
-  }
   public: {
     Tables: {
       acta_servicio: {
@@ -630,33 +625,6 @@ export type Database = {
         }
         Relationships: []
       }
-      vobo: {
-        Row: {
-          activo: boolean | null
-          celular: string | null
-          email: string | null
-          fecha_creacion: string | null
-          id: number
-          nombre_completo: string
-        }
-        Insert: {
-          activo?: boolean | null
-          celular?: string | null
-          email?: string | null
-          fecha_creacion?: string | null
-          id?: number
-          nombre_completo: string
-        }
-        Update: {
-          activo?: boolean | null
-          celular?: string | null
-          email?: string | null
-          fecha_creacion?: string | null
-          id?: number
-          nombre_completo?: string
-        }
-        Relationships: []
-      }
       profesionales: {
         Row: {
           activo: boolean | null
@@ -794,6 +762,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      vobo: {
+        Row: {
+          activo: boolean | null
+          celular: string | null
+          email: string | null
+          fecha_creacion: string | null
+          id: number
+          nombre_completo: string
+        }
+        Insert: {
+          activo?: boolean | null
+          celular?: string | null
+          email?: string | null
+          fecha_creacion?: string | null
+          id?: number
+          nombre_completo: string
+        }
+        Update: {
+          activo?: boolean | null
+          celular?: string | null
+          email?: string | null
+          fecha_creacion?: string | null
+          id?: number
+          nombre_completo?: string
+        }
+        Relationships: []
       }
     }
     Views: {
@@ -933,3 +928,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+
