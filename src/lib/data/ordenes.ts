@@ -355,9 +355,9 @@ export async function getNumerosOsExistentes(
   );
 }
 
-// valor_hora/cedula/telefono viajan acá además de id/nombre_completo para
-// mostrar el detalle del profesional elegido en "Profesional y contacto en
-// sitio" (cédula/celular, de solo lectura) y precargar "Valor hora
+// valor_hora/cedula/telefono/email viajan acá además de id/nombre_completo
+// para mostrar el detalle del profesional elegido en "Profesional y contacto
+// en sitio" (cédula/celular/correo, de solo lectura) y precargar "Valor hora
 // profesional" (ver SeccionValorHora) con su tarifa base — ninguno se
 // edita desde acá, son datos del profesional (se gestionan en
 // /profesionales), solo se muestran/copian.
@@ -371,12 +371,13 @@ export async function getProfesionalesParaSelect() {
         valor_hora: p.valor_hora,
         cedula: p.cedula,
         telefono: p.telefono,
+        email: p.email,
       }));
   }
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("profesionales")
-    .select("id, nombre_completo, valor_hora, cedula, telefono")
+    .select("id, nombre_completo, valor_hora, cedula, telefono, email")
     .eq("activo", true)
     .order("nombre_completo");
   if (error)

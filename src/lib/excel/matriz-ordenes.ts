@@ -35,6 +35,7 @@ export type MatrizOrdenRow = {
           nombre_completo: string;
           cedula: string | null;
           telefono: string | null;
+          email: string | null;
         } | null;
       })
     | null;
@@ -139,6 +140,7 @@ export const COLUMNAS_MATRIZ: ColumnaMatriz[] = [
   { header: "Profesional de GS asignado", value: (f) => f.info?.profesional?.nombre_completo ?? "" },
   { header: "Identificación del Profesional de GS asignado", value: (f) => f.info?.profesional?.cedula ?? "" },
   { header: "Numero de contacto del profesional", value: (f) => f.info?.profesional?.telefono ?? "" },
+  { header: "Correo del profesional", value: (f) => f.info?.profesional?.email ?? "" },
   { header: "Empresa a visitar", value: (f) => f.info?.empresa_a_visitar ?? "" },
   { header: "Nombre de la actividad a desarrollar", value: (f) => f.info?.nombre_actividad ?? "" },
   { header: "Descripción de la actividad", value: (f) => f.info?.descripcion_actividad ?? "" },

@@ -98,7 +98,7 @@ export async function POST(request: Request) {
     supabaseAdmin
       .from("info_orden_servicio")
       .select(
-        "*, ciudad:ciudades(nombre), profesional:profesionales(nombre_completo, cedula, telefono)",
+        "*, ciudad:ciudades(nombre), profesional:profesionales(nombre_completo, cedula, telefono, email)",
       )
       .in("orden_id", ids),
     supabaseAdmin
