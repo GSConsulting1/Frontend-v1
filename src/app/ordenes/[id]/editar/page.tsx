@@ -191,6 +191,7 @@ export default async function EditarOrdenPage({
           valorHora: p.valor_hora,
           cedula: p.cedula,
           telefono: p.telefono,
+          email: p.email,
         }))}
         participantesArl={catalogos.participantesArl.map((p) => ({ id: p.id, label: p.nombre_completo }))}
         vobo={catalogos.vobo.map((v) => ({ id: v.id, label: v.nombre_completo }))}

@@ -100,13 +100,15 @@ type OrdenFormProps = {
   ordenId?: number;
   defaultValues?: Partial<OrdenInfoFormValues>;
   clientes: SelectOption[];
-  // valorHora/cedula/telefono viajan acá para precargar "Valor hora
-  // profesional" y mostrar cédula/celular de solo lectura en "Profesional y
-  // contacto en sitio" — ver SeccionValorHora / SeccionProfesionalContacto.
+  // valorHora/cedula/telefono/email viajan acá para precargar "Valor hora
+  // profesional" y mostrar cédula/celular/correo de solo lectura en
+  // "Profesional y contacto en sitio" — ver SeccionValorHora /
+  // SeccionProfesionalContacto.
   profesionales: (SelectOption & {
     valorHora: number | null;
     cedula: string | null;
     telefono: string | null;
+    email: string | null;
   })[];
   participantesArl: SelectOption[];
   // Personal interno de GS Group que da el "VoBo" en Detalle de entrega —

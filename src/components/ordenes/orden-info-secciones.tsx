@@ -56,6 +56,7 @@ export type OrdenInfoSeccionesProps = {
     valorHora: number | null;
     cedula: string | null;
     telefono: string | null;
+    email: string | null;
   })[];
   participantesArl: SelectOption[];
   vobo: SelectOption[];

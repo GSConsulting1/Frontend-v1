@@ -24,6 +24,7 @@ type SelectOption = { id: number; label: string };
 type ProfesionalConContacto = SelectOption & {
   cedula: string | null;
   telefono: string | null;
+  email: string | null;
 };
 
 export type SeccionProfesionalContactoProps = {
@@ -50,8 +51,8 @@ export function SeccionProfesionalContacto({
     "infoOrdenServicio.contacto_nombre",
   ]);
   const profesionalId = profesionalContacto[0];
-  // Cédula/celular del profesional: de solo lectura acá — son datos de su
-  // ficha (se editan en /profesionales), no de esta orden puntual.
+  // Cédula/celular/correo del profesional: de solo lectura acá — son datos
+  // de su ficha (se editan en /profesionales), no de esta orden puntual.
   const profesionalSeleccionado =
     profesionalId != null
       ? profesionales.find((p) => p.id === profesionalId)
@@ -111,6 +112,14 @@ export function SeccionProfesionalContacto({
           <Input
             id="profesional_telefono"
             value={profesionalSeleccionado?.telefono ?? ""}
+            placeholder="—"
+            disabled
+          />
+        </FormField>
+        <FormField label="Correo del profesional" htmlFor="profesional_email">
+          <Input
+            id="profesional_email"
+            value={profesionalSeleccionado?.email ?? ""}
             placeholder="—"
             disabled
           />

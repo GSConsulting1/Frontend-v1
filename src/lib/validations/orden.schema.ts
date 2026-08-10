@@ -46,6 +46,8 @@ export const RESPONSABLES_OS = [
   "Lucia Bejarano",
   "Lina Amell",
   "Tatiana Carrillo",
+  "Abigail Dorado",
+  "Johanna Reyes",
 ] as const;
 
 export type EstadoOrden = (typeof ESTADOS_ORDEN)[number];
