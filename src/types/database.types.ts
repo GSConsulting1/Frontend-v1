@@ -662,6 +662,7 @@ export type Database = {
         Row: {
           actualizacion_sipab: string | null
           estado_imagine: string | null
+          fecha_corte: string | null
           fecha_radicacion_1: string | null
           fecha_radicacion_2: string | null
           novedades_1: string | null
@@ -673,6 +674,7 @@ export type Database = {
         Insert: {
           actualizacion_sipab?: string | null
           estado_imagine?: string | null
+          fecha_corte?: string | null
           fecha_radicacion_1?: string | null
           fecha_radicacion_2?: string | null
           novedades_1?: string | null
@@ -684,6 +686,7 @@ export type Database = {
         Update: {
           actualizacion_sipab?: string | null
           estado_imagine?: string | null
+          fecha_corte?: string | null
           fecha_radicacion_1?: string | null
           fecha_radicacion_2?: string | null
           novedades_1?: string | null

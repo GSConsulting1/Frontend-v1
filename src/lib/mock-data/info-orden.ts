@@ -297,6 +297,7 @@ export const mockActaServicio: ActaServicio[] = [
 export const mockRadicacionImagine: RadicacionImagine[] = [
   {
     orden_id: 1,
+    fecha_corte: "2026-06-15",
     numero_radicado_1: "RAD-2026-0456",
     fecha_radicacion_1: "2026-06-16",
     novedades_1: null,
@@ -308,6 +309,7 @@ export const mockRadicacionImagine: RadicacionImagine[] = [
   },
   {
     orden_id: 4,
+    fecha_corte: null,
     numero_radicado_1: null,
     fecha_radicacion_1: null,
     novedades_1: null,
