@@ -127,7 +127,13 @@ export type ActaServicioFormValues = z.infer<typeof actaServicioSchema>;
 // a diferencia de informe_guardian) — no hay un catálogo cerrado de valores
 // del que partir, así que van como texto igual que novedades_1/2 y
 // alerta_facturacion.
+//
+// `fecha_corte` acá es la de la radicación en Imagine y NO es la misma que
+// cuentaCobroSchema.fecha_corte (tabla cuenta_cobro): son dos cortes de dos
+// procesos distintos que comparten nombre. Ver la migración
+// 20260810172525_agregar_fecha_corte_radicacion_imagine.sql.
 export const radicacionImagineSchema = z.object({
+  fecha_corte: z.string().optional(),
   numero_radicado_1: z.string().optional(),
   fecha_radicacion_1: z.string().optional(),
   novedades_1: z.string().optional(),
