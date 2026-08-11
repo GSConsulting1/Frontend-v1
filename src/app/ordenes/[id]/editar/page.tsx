@@ -142,6 +142,7 @@ export default async function EditarOrdenPage({
       : undefined,
     radicacionImagine: radicacionImagine
       ? {
+          fecha_corte: radicacionImagine.fecha_corte ?? undefined,
           numero_radicado_1: radicacionImagine.numero_radicado_1 ?? undefined,
           fecha_radicacion_1: radicacionImagine.fecha_radicacion_1 ?? undefined,
           novedades_1: radicacionImagine.novedades_1 ?? undefined,

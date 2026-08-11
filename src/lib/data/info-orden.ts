@@ -385,6 +385,7 @@ function normalizarActaServicio(ordenId: number, input: ActaServicioFormValues) 
 function normalizarRadicacionImagine(ordenId: number, input: RadicacionImagineFormValues) {
   return {
     orden_id: ordenId,
+    fecha_corte: orNull(input.fecha_corte),
     numero_radicado_1: orNull(input.numero_radicado_1),
     fecha_radicacion_1: orNull(input.fecha_radicacion_1),
     novedades_1: orNull(input.novedades_1),
