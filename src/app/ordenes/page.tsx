@@ -38,7 +38,7 @@ export default async function OrdenesPage({
   const cronograma = params.cronograma ? Number(params.cronograma) : undefined;
   const COLUMNAS_ORDENABLES = [
     "numero_os_cliente",
-    "fecha_recepcion_os",
+    "fecha_sipab",
     "secuencia",
   ] as const;
   const sortBy = COLUMNAS_ORDENABLES.find((c) => c === params.sort);

@@ -50,13 +50,13 @@ export type OrdenesFiltros = {
   // solo las que empiecen/terminen exactamente dentro de él.
   fechaEjecucionDesde?: string;
   fechaEjecucionHasta?: string;
-  sortBy?: "numero_os_cliente" | "fecha_recepcion_os" | "secuencia";
+  sortBy?: "numero_os_cliente" | "fecha_sipab" | "secuencia";
   sortDir?: "asc" | "desc";
 };
 
 const COLUMNAS_ORDENABLES = new Set([
   "numero_os_cliente",
-  "fecha_recepcion_os",
+  "fecha_sipab",
   "secuencia",
 ]);
 

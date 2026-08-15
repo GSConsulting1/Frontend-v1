@@ -61,7 +61,7 @@ import { EditableCell } from "@/components/ordenes/editable-cell";
 import { RoleGate } from "@/components/auth/role-gate";
 import { useAuth } from "@/components/auth/auth-provider";
 import { eliminarOrden, actualizarCampoOrden } from "@/app/ordenes/actions";
-import { cn } from "@/lib/utils";
+import { cn, formatearFecha } from "@/lib/utils";
 import {
   ESTADOS_ORDEN,
   type EstadoOrden,
@@ -70,7 +70,7 @@ import type { OrdenServicioConRelaciones, RolUsuario } from "@/types";
 const ROLES_EDITAN_INLINE: RolUsuario[] = ["administrador", "financiero"];
 const OPCIONES_ESTADO = ESTADOS_ORDEN.map((e) => ({ id: e, label: e }));
 
-type ColumnaOrdenable = "numero_os_cliente" | "fecha_recepcion_os" | "secuencia";
+type ColumnaOrdenable = "numero_os_cliente" | "fecha_sipab" | "secuencia";
 
 // Encabezado clicable que persiste sort/dir en la URL (mismo patrón que
 // OrdenesFiltros): la página (Server Component) lee "sort"/"dir" de
@@ -267,7 +267,7 @@ export function OrdenesTable({
                 label="Número de OS"
               />
             )}
-            <SortableHeader column="fecha_recepcion_os" label="Fecha recepción" />
+            <SortableHeader column="fecha_sipab" label="Fecha SIPAB" />
             <TableHead className="whitespace-normal">Tipo servicio</TableHead>
             <TableHead>Estado Gerencia</TableHead>
             <TableHead>Estado de ejecución</TableHead>
@@ -318,7 +318,7 @@ export function OrdenesTable({
                 {esFinanciero && (
                   <TableCell>{orden.numero_os_cliente ?? "—"}</TableCell>
                 )}
-                <TableCell>{orden.fecha_recepcion_os ?? "—"}</TableCell>
+                <TableCell>{formatearFecha(orden.fecha_sipab) || "—"}</TableCell>
                 <TableCell className="whitespace-normal">
                   {orden.tipo_servicio ?? "—"}
                 </TableCell>
