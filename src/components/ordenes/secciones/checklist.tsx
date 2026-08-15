@@ -60,10 +60,26 @@ export function SeccionChecklist({
         <Checkbox label="Envío AT031" {...register("checklist.envio_at031")} />
         <Checkbox label="Envío AT028" {...register("checklist.envio_at028")} />
         <Checkbox label="Formatos" {...register("checklist.formatos")} />
-        <FormField label="Estado de ejecución" htmlFor="estado_ejecucion_id">
+        <FormField
+          label="Estado de ejecución"
+          htmlFor="estado_ejecucion_id"
+          required
+          error={errors.checklist?.estado_ejecucion_id?.message}
+        >
           <Controller
             name="checklist.estado_ejecucion_id"
             control={control}
+            // Fallback para mode="nueva": esa pantalla no le pasa
+            // defaultValues al formulario (la sección todavía está
+            // deshabilitada, ver orden-form.tsx), así que sin esto el campo
+            // queda undefined y el .refine de checklistProcesoSchema
+            // bloquea el guardado de la orden nueva en silencio. En
+            // mode="existente" no pisa nada: editar/page.tsx ya manda un
+            // valor explícito en defaultValues, que RHF prioriza sobre este.
+            defaultValue={
+              estadosEjecucion.find((e) => e.label === "Pendiente programar")
+                ?.id
+            }
             render={({ field }) => (
               <Select
                 value={field.value != null ? String(field.value) : null}
@@ -123,14 +139,37 @@ export function SeccionChecklist({
           required
           error={errors.checklist?.vobo_emitido?.message}
         >
-          <Checkbox
-            label="Sí"
-            id="vobo_emitido"
-            {...register("checklist.vobo_emitido")}
+          <Controller
+            name="checklist.vobo_emitido"
+            control={control}
+            // Mismo motivo que el defaultValue de estado_ejecucion_id de
+            // arriba: sin esto, en mode="nueva" el campo queda undefined
+            // (antes era un checkbox nativo, que siempre resuelve a
+            // false/true nunca undefined) y vobo_emitido es boolean
+            // requerido en el schema, así que bloquea el guardado.
+            defaultValue={false}
+            render={({ field }) => (
+              <Select
+                value={field.value ? "true" : "false"}
+                onValueChange={(v: string | null) => field.onChange(v === "true")}
+                items={[
+                  { label: "Sí", value: "true" },
+                  { label: "No", value: "false" },
+                ]}
+              >
+                <SelectTrigger id="vobo_emitido" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="true">Sí</SelectItem>
+                  <SelectItem value="false">No</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
           />
         </FormField>
         <Checkbox
-          label="Cumplió entrega en fecha"
+          label="Cumplió la entrega en la fecha pactada"
           {...register("checklist.cumplio_entrega_fecha")}
         />
         <FormField

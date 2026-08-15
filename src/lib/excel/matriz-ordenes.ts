@@ -21,6 +21,7 @@ import type {
   OrdenServicio,
   RadicacionImagine,
 } from "@/types";
+import { formatearFecha as fecha } from "@/lib/utils";
 
 // Fila ya "aplanada": la orden con todas sus tablas relacionadas resueltas.
 // Cada relación es null si la orden todavía no tiene fila en esa tabla.
@@ -73,15 +74,10 @@ export type ColumnaMatriz = {
 };
 
 // --- Formateadores locales de presentación (sin dominio) ---
-// Se quedan acá y no en lib/utils.ts porque hoy solo los usa la exportación a
-// Excel; el PDF (app/api/ordenes/[id]/pdf) tiene los suyos. Si un tercer
-// consumidor los necesita, ese es el momento de promoverlos a lib/utils.ts.
-function fecha(iso: string | null | undefined): string {
-  if (!iso) return "";
-  const [year, month, day] = iso.split("-");
-  return day && month && year ? `${day}/${month}/${year}` : iso;
-}
-
+// `fecha` (día/mes/año) vive en lib/utils.ts como formatearFecha — ya lo
+// usaban este archivo y pdf/route.tsx, más ordenes-table.tsx/ordenes-filtros.tsx
+// (ver el import de arriba). `hora`/`siNo` siguen acá porque solo esta
+// exportación los necesita hoy.
 function hora(valor: string | null | undefined): string {
   return valor ? valor.slice(0, 5) : "";
 }
@@ -122,6 +118,7 @@ export const COLUMNAS_MATRIZ: ColumnaMatriz[] = [
     value: (f) => f.orden.cronograma ?? null,
   },
   { header: "Secuencia (ARL Bolivar)", value: (f) => f.orden.secuencia ?? "" },
+  { header: "Estado Gerencia", value: (f) => f.orden.estado ?? "" },
   {
     header: "Nombre del servicio (ARL Bolivar - Descripción de la actividad)",
     value: (f) => f.orden.nombre_servicio ?? "",
@@ -343,9 +340,13 @@ export const COLUMNAS_MATRIZ: ColumnaMatriz[] = [
     value: (f) => fecha(f.cuentaCobro?.fecha_pago),
     financiera: true,
   },
+  // alerta_facturacion pasó a ser una fecha (fecha_sipab + 40 días, ver
+  // supabase/migrations/20260815120000_alinear_estados_imagine_y_facturacion.sql
+  // y facturacion.tsx) — antes era un estado de texto libre, por eso hasta
+  // ahora salía sin pasar por fecha() como el resto de columnas de fecha.
   {
     header: "Alerta de Facturación",
-    value: (f) => f.facturacion?.alerta_facturacion ?? "",
+    value: (f) => fecha(f.facturacion?.alerta_facturacion),
     financiera: true,
   },
   // Sin columna en la DB — pendiente confirmar mapeo.

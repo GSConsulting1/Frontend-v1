@@ -6,7 +6,12 @@
 // intermedio, así que no hace falta OrdenesManager.
 
 import { OrdenesListado } from "@/components/ordenes/ordenes-listado";
-import { getOrdenes, getClientesParaSelect } from "@/lib/data/ordenes";
+import {
+  getOrdenes,
+  getClientesParaSelect,
+  type OrdenesFiltros,
+} from "@/lib/data/ordenes";
+import { getPerfilActual } from "@/lib/data/usuarios";
 
 export default async function OrdenesPage({
   searchParams,
@@ -33,11 +38,11 @@ export default async function OrdenesPage({
   const cronograma = params.cronograma ? Number(params.cronograma) : undefined;
   const COLUMNAS_ORDENABLES = [
     "numero_os_cliente",
-    "fecha_recepcion_os",
+    "fecha_sipab",
     "secuencia",
   ] as const;
   const sortBy = COLUMNAS_ORDENABLES.find((c) => c === params.sort);
-  const filtros = {
+  const filtros: OrdenesFiltros = {
     clienteIds: params.clienteId?.split(",").filter(Boolean).map(Number),
     desde: params.desde || undefined,
     hasta: params.hasta || undefined,
@@ -54,6 +59,16 @@ export default async function OrdenesPage({
     sortBy,
     sortDir: params.dir === "asc" ? ("asc" as const) : ("desc" as const),
   };
+
+  // No-administradores solo ven las órdenes de su propio profesional
+  // (cruce por email contra profesionales.email vía
+  // info_orden_servicio.profesional_id) — ver getOrdenes() en lib/data/ordenes.ts.
+  // getPerfilActual() devuelve null sin sesión real (o en modo mock sin
+  // Supabase configurado), así que ahí no se restringe nada.
+  const perfil = await getPerfilActual();
+  if (perfil && perfil.rol !== "administrador" && perfil.email) {
+    filtros.profesionalEmail = perfil.email;
+  }
 
   const [ordenes, clientes] = await Promise.all([
     getOrdenes(filtros),
