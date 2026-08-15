@@ -12,6 +12,7 @@ import {
   getProfesionalesParaSelect,
 } from "@/lib/data/ordenes";
 import { getCatalogosInfoOrden, getInfoOrdenCompleta } from "@/lib/data/info-orden";
+import { getEmpresasUsuariasParaSelect } from "@/lib/data/empresas-usuarias";
 import type { ChecklistProcesoFormValues } from "@/lib/validations/info-orden.schema";
 import type { EstadoOrden, ResponsableOs } from "@/lib/validations/orden.schema";
 
@@ -34,12 +35,17 @@ export default async function EditarOrdenPage({
   const orden = await getOrdenById(ordenId);
   if (!orden) notFound();
 
-  const [clientes, profesionales, catalogos, infoCompleta] = await Promise.all([
-    getClientesParaSelect(),
-    getProfesionalesParaSelect(),
-    getCatalogosInfoOrden(),
-    getInfoOrdenCompleta(ordenId),
-  ]);
+  const [clientes, empresasUsuarias, profesionales, catalogos, infoCompleta] =
+    await Promise.all([
+      getClientesParaSelect(),
+      // incluirId: si la empresa de ESTA orden se marcó inactiva después, la
+      // lista igual tiene que traerla — si no, el campo saldría vacío y
+      // guardar le borraría el vínculo (ver lib/data/empresas-usuarias.ts).
+      getEmpresasUsuariasParaSelect(orden.empresa_usuaria_id),
+      getProfesionalesParaSelect(),
+      getCatalogosInfoOrden(),
+      getInfoOrdenCompleta(ordenId),
+    ]);
 
   const {
     infoOrdenServicio,
@@ -58,6 +64,7 @@ export default async function EditarOrdenPage({
     estado: (orden.estado as EstadoOrden) ?? undefined,
     numero_os_cliente: orden.numero_os_cliente ?? undefined,
     fecha_recepcion_os: orden.fecha_recepcion_os ?? undefined,
+    empresa_usuaria_id: orden.empresa_usuaria_id ?? undefined,
     nombre_empresa_usuaria: orden.nombre_empresa_usuaria ?? undefined,
     nit_empresa_usuaria: orden.nit_empresa_usuaria ?? undefined,
     cronograma: orden.cronograma ?? undefined,
@@ -186,6 +193,11 @@ export default async function EditarOrdenPage({
         ordenId={orden.id}
         defaultValues={defaultValues}
         clientes={clientes.map((c) => ({ id: c.id, label: c.nombre_cliente }))}
+        empresasUsuarias={empresasUsuarias.map((e) => ({
+          id: e.id,
+          label: e.nombre,
+          nit: e.nit,
+        }))}
         profesionales={profesionales.map((p) => ({
           id: p.id,
           label: p.nombre_completo,

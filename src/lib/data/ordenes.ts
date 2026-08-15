@@ -79,6 +79,7 @@ function normalizarInput(input: OrdenServicioFormValues) {
     estado: orNull(input.estado),
     numero_os_cliente: orNull(input.numero_os_cliente),
     fecha_recepcion_os: orNull(input.fecha_recepcion_os),
+    empresa_usuaria_id: input.empresa_usuaria_id ?? null,
     nombre_empresa_usuaria: orNull(input.nombre_empresa_usuaria),
     nit_empresa_usuaria: orNull(input.nit_empresa_usuaria),
     cronograma: input.cronograma ?? null,

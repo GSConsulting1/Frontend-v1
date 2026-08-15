@@ -169,9 +169,9 @@ generado.
   `lib/data/*.ts`, nunca desde componentes ni desde `app/`.
 
 ### `lib/data/`
-- **Un archivo por entidad** (`ordenes.ts`, y a futuro `clientes.ts`,
-  `profesionales.ts`, etc.). Es el único lugar del código que llama a
-  `supabase.from(...)`.
+- **Un archivo por entidad** (`ordenes.ts`, `clientes.ts`,
+  `profesionales.ts`, `usuarios.ts`, `info-orden.ts`). Es el único lugar
+  del código que llama a `supabase.from(...)`.
 - Regla dura: **ni `app/**/page.tsx` ni ningún componente llaman a
   Supabase directamente.** Siempre pasan por una función exportada de
   acá.
@@ -635,6 +635,123 @@ generado.
   `eliminarOrden` tampoco redirige, solo `revalidatePath` — la dispara
   la tabla.
 
+### `components/clientes/`
+- CRUD completo de la tabla `clientes` (`/clientes`, solo
+  `administrador`). Calca la anatomía de `/ordenes` —no la de
+  `/profesionales`— porque tiene selección de filas: `clientes-listado.tsx`
+  (Client Component dueño del estado), `clientes-acciones-menu.tsx` (el "⋮"
+  del header), `eliminar-clientes-button.tsx` ("Eliminar (N)" + `AlertDialog`)
+  y `clientes-table.tsx`. `campos-cliente.tsx` son los 2 campos del
+  formulario, compartidos por el alta y por la fila de edición.
+- `selectionMode: boolean` en vez del `accionSeleccion` de órdenes: hay una
+  sola acción en lote (eliminar), no dos. `clientes-listado.tsx` también
+  gobierna `formAbierto` (alta) y `editandoId` (edición) porque los tres
+  modos se apagan entre sí.
+- Alta y edición son **inline** (formulario arriba de la tabla / fila
+  desplegada debajo), no páginas `nueva` + `[id]/editar` como órdenes: un
+  cliente son 2 campos. Si la entidad crece, ahí sí conviene la página.
+- **Sí tiene borrado real**, a diferencia de `profesionales`: la FK
+  `ordenes_servicio_cliente_id_fkey` no tiene `ON DELETE CASCADE`, así que
+  Postgres rechaza (`23503`) borrar un cliente con órdenes — el historial lo
+  protege la base. `lib/data/clientes.ts` traduce ese código a un mensaje
+  legible y la UI ofrece "Marcar inactivo" como alternativa. El borrado en
+  lote (`eliminarClientes`) devuelve `{ eliminados, fallidos }` y no aborta
+  el lote, igual que `eliminarOrdenes`.
+- Ningún componente usa `<RoleGate>`: la pantalla entera ya está gateada en
+  servidor (`app/clientes/page.tsx`), y repetir el chequeo en el cliente
+  dejaría la UI vacía en modo mock (sin Supabase no hay `perfil`).
+- `app/clientes/actions.ts` revalida `/clientes` **y** `/ordenes`: el filtro
+  y el `<Select>` de cliente de órdenes salen de
+  `getClientesParaSelect()` (`lib/data/ordenes.ts`, solo activos), así que
+  cualquier alta/edición/baja acá cambia esa pantalla. Esa función sigue
+  viviendo en `ordenes.ts` a propósito (la consumen 4 `page.tsx` de
+  órdenes); `lib/data/clientes.ts` es la administración de la entidad, no el
+  catálogo.
+- La policy de `clientes` sigue siendo `mvp_open_access` (`USING (true)`),
+  así que el `redirect()` de `page.tsx` es toda la barrera real hoy —
+  cualquier sesión podría escribir la tabla por la API. Cerrarlo es una
+  migración de policy, no un cambio de front.
+
+### `components/empresas-usuarias/`
+- Segunda pestaña de la pantalla `/clientes` (`/clientes/empresas-usuarias`):
+  CRUD completo de `empresas_usuarias`, la empresa **donde se ejecuta** el
+  servicio — distinta del `Cliente`, que es quien lo contrata y paga. Mismos 5
+  archivos y misma anatomía que `components/clientes/` (listado + tabla +
+  menú "⋮" + botón de borrado en lote + campos compartidos).
+- **Las pestañas no salen de un `layout.tsx`**: cada página monta
+  `<ClientesTabs />` (`components/clientes/clientes-tabs.tsx`) justo debajo de
+  su propio `PageHeader`. Un layout tendría que dibujarlas encima del título,
+  porque el header lo renderiza cada listado (sus botones dependen del estado
+  de selección de esa tabla). Son dos líneas repetidas a cambio de que el
+  header siga siendo dueño de sus acciones. Al agregar una pestaña nueva:
+  entrada en `TABS` de `clientes-tabs.tsx` + su carpeta de ruta con `page.tsx`
+  y `loading.tsx`, cada uno con su propio gate de rol (no hay layout donde
+  centralizarlo).
+- La tabla tiene una columna **"Órdenes"** (conteo) que las demás no tienen:
+  sale de un embedded aggregate de PostgREST (`ordenes_servicio(count)`,
+  devuelve `[{ count: N }]`) que `lib/data/empresas-usuarias.ts` normaliza a
+  `number`. Ese conteo es además el que decide si el ítem "Eliminar" del menú
+  de fila va deshabilitado: con órdenes asociadas el borrado falla siempre por
+  FK, y ofrecer una acción que no puede funcionar es peor que no ofrecerla.
+  En `clientes-table.tsx` ese ítem sí queda habilitado, porque ahí no se carga
+  el conteo.
+- `lib/data/empresas-usuarias.ts` traduce **dos** códigos de Postgres a
+  mensajes de pantalla (clientes solo traduce uno):
+  - `23505` — el índice único es sobre el nombre NORMALIZADO (trim, espacios
+    colapsados, mayúsculas), así que "ACME SA" choca con "acme  sa" aunque el
+    texto no sea idéntico. Es a propósito: evita volver a llenar la tabla de
+    variantes de la misma empresa.
+  - `23503` — `ordenes_servicio.empresa_usuaria_id` no tiene `ON DELETE
+    CASCADE`, mismo criterio que `clientes`.
+- El origen de los datos es la migración
+  `20260815123716_catalogo_empresas_usuarias.sql`, que creó la tabla a partir
+  de los `nombre_empresa_usuaria` que ya estaban escritos a mano en las
+  órdenes. Esas columnas de texto **siguen existiendo** y son las que el front
+  de órdenes lee hoy; `empresa_usuaria_id` todavía no la consume nadie fuera
+  de esta pantalla. Migrar esos consumidores (y recién ahí borrar las columnas
+  viejas) es trabajo pendiente, no un descuido.
+- `supabase/seed.sql` carga estas 4 empresas a mano y vincula las órdenes con
+  el mismo `UPDATE` normalizado de la migración. Hace falta porque `db:reset`
+  corre todas las migraciones sobre una base vacía y el seed va después: el
+  backfill no tiene ninguna orden que leer.
+- **Consumo desde el formulario de órdenes**: "Datos generales"
+  (`orden-campos.tsx`) ya no pide la empresa usuaria como texto libre. Es un
+  `<Combobox>` sobre `getEmpresasUsuariasParaSelect()` enlazado a
+  `empresa_usuaria_id`, y al elegir una copia con `setValue` su nombre y su NIT
+  a `nombre_empresa_usuaria` / `nit_empresa_usuaria`. Esas dos columnas
+  quedaron **denormalizadas a propósito**: son las que siguen leyendo el
+  listado, el Excel y el PDF, así que el formulario las mantiene sincronizadas
+  en vez de obligar a migrar los cuatro consumidores en el mismo diff. El campo
+  NIT quedó `readOnly` siempre — el NIT es un dato de la empresa y se corrige
+  en su pantalla, no orden por orden, que es justo lo que produjo el desorden
+  que la migración limpió.
+  Dos casos que ese campo maneja explícitamente: si la orden apunta a una
+  empresa marcada inactiva después, `getEmpresasUsuariasParaSelect(incluirId)`
+  la incluye igual (si no, el campo saldría vacío y guardar borraría el
+  vínculo); y si la orden tiene nombre en texto pero `empresa_usuaria_id` en
+  NULL, el campo muestra un aviso de "sin vincular" en vez de verse vacío.
+- **Importación desde Excel** (`/ordenes/importar`): el archivo del ARL trae la
+  razón social escrita a mano, así que la importación resuelve cada nombre
+  contra el catálogo por nombre normalizado y deja las órdenes ya vinculadas.
+  El reparto entre los dos pasos del wizard es deliberado:
+  - `previsualizarImportacionOrdenes` **solo consulta**
+    (`buscarEmpresasUsuariasPorNombre`) y devuelve `empresasNuevas`, que la
+    pantalla lista antes de confirmar. Las filas cuya empresa ya existe se
+    muestran con el nombre y NIT **canónicos** (los de la tabla, no los del
+    Excel): la previsualización enseña lo que se va a guardar.
+  - `importarOrdenesDesdeExcel` **crea las que falten**
+    (`resolverEmpresasUsuarias`) y vuelve a resolver del lado del servidor, sin
+    confiar en el `empresa_usuaria_id` que calculó la previsualización — las
+    filas llegan desde el cliente y el catálogo pudo cambiar entre un paso y
+    otro.
+  La regla detrás de esa división: una importación **no debe dar de alta
+  empresas en silencio**, porque un typo en el Excel crea una variante nueva y
+  es exactamente lo que llenó de duplicados la etapa de texto libre. Se crean,
+  pero recién después de mostrarlas.
+  Si el catálogo no se puede resolver, la importación falla entera y no crea
+  ninguna orden (a diferencia del bucle por fila, que sí es resiliente): es
+  preferible a dejar media importación con vínculos incompletos.
+
 ### `components/usuarios/`
 - `usuarios-table.tsx`: única pantalla de administración de usuarios —
   lista `nombre_completo`/`email`/`rol` y deja cambiar el rol inline con
@@ -653,18 +770,24 @@ generado.
   queries (no el singleton de `lib/supabase/client.ts`) porque `usuarios`
   tiene RLS — mismo motivo que `ordenes.ts`/`info-orden.ts`.
 
-## Al agregar una entidad nueva (ej. "clientes" como pantalla propia)
+## Al agregar una entidad nueva (ej. "proveedores" como pantalla propia)
 
-1. `types/index.ts` — ya debería existir el alias (`Cliente`); si no,
-   agregarlo.
-2. `lib/mock-data/clientes.ts` (o reutilizar el de `ordenes.ts` si ya
-   están ahí).
-3. `lib/data/clientes.ts` — funciones `getClientes`, `createCliente`,
-   etc., mismo patrón mock/real que `ordenes.ts`.
-4. `lib/validations/cliente.schema.ts` — schema de Zod.
-5. `app/clientes/page.tsx`, `app/clientes/actions.ts`, rutas
-   `nueva`/`[id]/editar` si aplica.
-6. `components/clientes/` — tabla, formulario, etc.
+1. `types/index.ts` — agregar el alias de dominio (`Proveedor`) sobre el
+   tipo crudo de `database.types.ts`.
+2. `lib/mock-data/proveedores.ts` (o reutilizar el mock de otra entidad si
+   los datos ya están ahí — `clientes` reusa `mock-data/ordenes.ts`).
+3. `lib/data/proveedores.ts` — funciones `getProveedores`,
+   `crearProveedorRecord`, etc., mismo patrón mock/real que `ordenes.ts`.
+4. `lib/validations/proveedor.schema.ts` — schema de Zod.
+5. `app/proveedores/page.tsx`, `actions.ts`, `loading.tsx`, y rutas
+   `nueva`/`[id]/editar` si el formulario no cabe inline.
+6. `components/proveedores/` — tabla, formulario, etc.
+7. `components/layout/nav-config.ts` — la entrada del sidebar (con
+   `roles` si la pantalla no es para todos).
 
 Si en el paso 3 se repite un helper que ya existe en `lib/data/ordenes.ts`
 (como `orNull`), ese es el momento de moverlo a `lib/utils.ts`.
+
+**`clientes` es la implementación de referencia más reciente y completa de
+esta receta** (los 7 pasos, incluido el CRUD entero): si vas a agregar una
+entidad nueva, copiá esa forma antes que inventar una.

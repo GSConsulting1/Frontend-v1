@@ -1,4 +1,5 @@
 import {
+  Building2,
   ClipboardList,
   /* Home, */ Users,
   UserCog,
@@ -27,6 +28,12 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Profesionales",
     icon: UserCog,
     roles: ["administrador", "financiero", "talento"],
+  },
+  {
+    href: "/clientes",
+    label: "Clientes",
+    icon: Building2,
+    roles: ["administrador"],
   },
   {
     href: "/usuarios",
