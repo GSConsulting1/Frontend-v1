@@ -102,6 +102,7 @@ export const COLUMNAS_MATRIZ: ColumnaMatriz[] = [
   { header: "Nit Empresa usuaria del cliente", value: (f) => f.orden.nit_empresa_usuaria ?? "" },
   { header: "Cronograma (ARL Bolivar)", value: (f) => f.orden.cronograma ?? null },
   { header: "Secuencia (ARL Bolivar)", value: (f) => f.orden.secuencia ?? "" },
+  { header: "Estado Gerencia", value: (f) => f.orden.estado ?? "" },
   {
     header: "Nombre del servicio (ARL Bolivar - Descripción de la actividad)",
     value: (f) => f.orden.nombre_servicio ?? "",
