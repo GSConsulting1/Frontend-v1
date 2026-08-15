@@ -79,19 +79,29 @@ export const INFORME_GUARDIAN_OPCIONES = [
   "Rechazado",
 ] as const;
 
-export const checklistProcesoSchema = z.object({
-  envio_at031: z.boolean().optional(),
-  envio_at028: z.boolean().optional(),
-  formatos: z.boolean().optional(),
-  estado_ejecucion_id: z.number().int().positive().optional(),
-  fecha_maxima_ejecucion: z.string().optional(),
-  entrega_soportes_profesional: z.boolean().optional(),
-  entrega_soportes_cliente: z.boolean().optional(),
-  fecha_maxima_entrega_soportes: z.string().optional(),
-  vobo_emitido: z.boolean(),
-  cumplio_entrega_fecha: z.boolean().optional(),
-  informe_guardian: z.enum(INFORME_GUARDIAN_OPCIONES).optional(),
-});
+export const checklistProcesoSchema = z
+  .object({
+    envio_at031: z.boolean().optional(),
+    envio_at028: z.boolean().optional(),
+    formatos: z.boolean().optional(),
+    // Requerido: cada orden debe arrancar en un estado de ejecución visible
+    // (ver editar/page.tsx, que la precarga con "Pendiente programar" si la
+    // orden aún no tiene checklist). Sigue .optional() acá para que el
+    // formulario pueda arrancar sin valor si ese catálogo llegara a fallar;
+    // el .refine de abajo es el que realmente lo exige al guardar.
+    estado_ejecucion_id: z.number().int().positive().optional(),
+    fecha_maxima_ejecucion: z.string().optional(),
+    entrega_soportes_profesional: z.boolean().optional(),
+    entrega_soportes_cliente: z.boolean().optional(),
+    fecha_maxima_entrega_soportes: z.string().optional(),
+    vobo_emitido: z.boolean(),
+    cumplio_entrega_fecha: z.boolean().optional(),
+    informe_guardian: z.enum(INFORME_GUARDIAN_OPCIONES).optional(),
+  })
+  .refine((v) => v.estado_ejecucion_id != null, {
+    message: "Selecciona un estado de ejecución",
+    path: ["estado_ejecucion_id"],
+  });
 
 export type ChecklistProcesoFormValues = z.infer<typeof checklistProcesoSchema>;
 

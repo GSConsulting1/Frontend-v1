@@ -53,6 +53,15 @@ export default async function EditarOrdenPage({
     liquidacion,
   } = infoCompleta;
 
+  // Toda orden sin checklist todavía arranca en "Pendiente programar" en vez
+  // de quedar sin estado (ver ordenes-table.tsx, que ya usa ese mismo texto
+  // como fallback en el listado) — checklistProcesoSchema exige elegir un
+  // estado, así que si el catálogo no trajera esa fila el usuario igual
+  // tendría que elegir uno manualmente.
+  const estadoEjecucionPendienteProgramar = catalogos.estadosEjecucion.find(
+    (e) => e.nombre === "Pendiente programar",
+  )?.id;
+
   const defaultValues: Partial<OrdenInfoFormValues> = {
     cliente_id: orden.cliente_id,
     estado: (orden.estado as EstadoOrden) ?? undefined,
@@ -111,7 +120,8 @@ export default async function EditarOrdenPage({
       envio_at031: checklist?.envio_at031 ?? undefined,
       envio_at028: checklist?.envio_at028 ?? undefined,
       formatos: checklist?.formatos ?? undefined,
-      estado_ejecucion_id: checklist?.estado_ejecucion_id ?? undefined,
+      estado_ejecucion_id:
+        checklist?.estado_ejecucion_id ?? estadoEjecucionPendienteProgramar,
       fecha_maxima_ejecucion: checklist?.fecha_maxima_ejecucion ?? undefined,
       entrega_soportes_profesional: checklist?.entrega_soportes_profesional ?? undefined,
       entrega_soportes_cliente: checklist?.entrega_soportes_cliente ?? undefined,

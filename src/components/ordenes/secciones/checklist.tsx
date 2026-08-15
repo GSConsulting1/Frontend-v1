@@ -60,7 +60,12 @@ export function SeccionChecklist({
         <Checkbox label="Envío AT031" {...register("checklist.envio_at031")} />
         <Checkbox label="Envío AT028" {...register("checklist.envio_at028")} />
         <Checkbox label="Formatos" {...register("checklist.formatos")} />
-        <FormField label="Estado de ejecución" htmlFor="estado_ejecucion_id">
+        <FormField
+          label="Estado de ejecución"
+          htmlFor="estado_ejecucion_id"
+          required
+          error={errors.checklist?.estado_ejecucion_id?.message}
+        >
           <Controller
             name="checklist.estado_ejecucion_id"
             control={control}
@@ -123,14 +128,31 @@ export function SeccionChecklist({
           required
           error={errors.checklist?.vobo_emitido?.message}
         >
-          <Checkbox
-            label="Sí"
-            id="vobo_emitido"
-            {...register("checklist.vobo_emitido")}
+          <Controller
+            name="checklist.vobo_emitido"
+            control={control}
+            render={({ field }) => (
+              <Select
+                value={field.value ? "true" : "false"}
+                onValueChange={(v: string | null) => field.onChange(v === "true")}
+                items={[
+                  { label: "Sí", value: "true" },
+                  { label: "No", value: "false" },
+                ]}
+              >
+                <SelectTrigger id="vobo_emitido" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="true">Sí</SelectItem>
+                  <SelectItem value="false">No</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
           />
         </FormField>
         <Checkbox
-          label="Cumplió entrega en fecha"
+          label="Cumplió la entrega en la fecha pactada"
           {...register("checklist.cumplio_entrega_fecha")}
         />
         <FormField

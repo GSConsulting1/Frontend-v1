@@ -347,7 +347,7 @@ export function OrdenesTable({
                 </TableCell>
                 <TableCell>
                   <Badge variant="secondary">
-                    {orden.checklist?.estado_ejecucion?.nombre ?? "Sin definir"}
+                    {orden.checklist?.estado_ejecucion?.nombre ?? "Pendiente programar"}
                   </Badge>
                 </TableCell>
                 <TableCell>
