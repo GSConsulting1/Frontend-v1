@@ -1,23 +1,10 @@
-// Envoltorio de cliente del listado de clientes. Existe por el mismo motivo
-// que ordenes-listado.tsx: la acción en lote del header ("Eliminar clientes",
-// disparada desde el menú "⋮" — ver clientes-acciones-menu.tsx) necesita
-// compartir con la tabla el Set de IDs seleccionados, así que ese estado se
-// sube acá (lifting state up). page.tsx sigue siendo Server Component (hace el
-// fetch) y solo renderiza este componente.
+// Envoltorio de cliente de la pestaña "Empresas usuarias" — mismo rol y misma
+// forma que components/clientes/clientes-listado.tsx: sube el estado de
+// selección (para el borrado en lote del header) y decide qué formulario está
+// abierto, porque alta, edición y selección se apagan entre sí.
 //
-// A diferencia de órdenes, acá alcanza con `selectionMode: boolean` y no un
-// `accionSeleccion: "exportar" | "eliminar" | null`: hay UNA sola acción en
-// lote, así que no hay nada que distinguir.
-//
-// También gobierna qué formulario está abierto —el de alta (formAbierto) o la
-// fila en edición (editandoId)— porque son mutuamente excluyentes: los tres
-// modos (alta, edición, selección) se apagan entre sí, si no la pantalla queda
-// mostrando dos formularios y una columna de checkboxes a la vez.
-//
-// Sin useState duplicando la lista: al llamar a una Server Action desde un
-// Client Component, Next.js vuelve a renderizar el page.tsx del segmento con
-// datos frescos después del revalidatePath, así que `clientes` (prop) ya llega
-// actualizado — mismo criterio que profesionales-listado.tsx.
+// Monta <ClientesTabs /> debajo de su PageHeader, igual que ClientesListado —
+// ver el comentario de clientes-tabs.tsx sobre por qué no hay layout.tsx.
 
 "use client";
 
@@ -29,22 +16,24 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ClientesTabs } from "@/components/clientes/clientes-tabs";
-import { CamposCliente } from "@/components/clientes/campos-cliente";
-import { ClientesTable } from "@/components/clientes/clientes-table";
-import { ClientesAccionesMenu } from "@/components/clientes/clientes-acciones-menu";
-import { EliminarClientesButton } from "@/components/clientes/eliminar-clientes-button";
-import { crearCliente } from "@/app/clientes/actions";
+import { CamposEmpresaUsuaria } from "@/components/empresas-usuarias/campos-empresa-usuaria";
+import { EmpresasUsuariasTable } from "@/components/empresas-usuarias/empresas-usuarias-table";
+import { EmpresasUsuariasAccionesMenu } from "@/components/empresas-usuarias/empresas-usuarias-acciones-menu";
+import { EliminarEmpresasUsuariasButton } from "@/components/empresas-usuarias/eliminar-empresas-usuarias-button";
+import { crearEmpresaUsuaria } from "@/app/clientes/empresas-usuarias/actions";
 import {
-  clienteSchema,
-  type ClienteFormValues,
-} from "@/lib/validations/cliente.schema";
-import type { Cliente } from "@/types";
+  empresaUsuariaSchema,
+  type EmpresaUsuariaFormValues,
+} from "@/lib/validations/empresa-usuaria.schema";
+import type { EmpresaUsuariaConConteo } from "@/types";
 
-type ClientesListadoProps = {
-  clientes: Cliente[];
+type EmpresasUsuariasListadoProps = {
+  empresas: EmpresaUsuariaConConteo[];
 };
 
-export function ClientesListado({ clientes }: ClientesListadoProps) {
+export function EmpresasUsuariasListado({
+  empresas,
+}: EmpresasUsuariasListadoProps) {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [accionError, setAccionError] = useState<string | null>(null);
@@ -53,18 +42,15 @@ export function ClientesListado({ clientes }: ClientesListadoProps) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
 
-  // Filtro en memoria, sin ida y vuelta al servidor: la lista de clientes no
-  // está paginada, así que alcanza con filtrar el array ya cargado (mismo
-  // criterio que profesionales-listado.tsx).
-  const clientesFiltrados = useMemo(() => {
+  const empresasFiltradas = useMemo(() => {
     const termino = busqueda.trim().toLowerCase();
-    if (!termino) return clientes;
-    return clientes.filter((c) =>
-      [c.nombre_cliente, c.nit]
+    if (!termino) return empresas;
+    return empresas.filter((e) =>
+      [e.nombre, e.nit]
         .filter(Boolean)
         .some((campo) => campo!.toLowerCase().includes(termino)),
     );
-  }, [clientes, busqueda]);
+  }, [empresas, busqueda]);
 
   const {
     register,
@@ -72,8 +58,8 @@ export function ClientesListado({ clientes }: ClientesListadoProps) {
     reset,
     setError,
     formState: { errors, isSubmitting },
-  } = useForm<ClienteFormValues>({
-    resolver: zodResolver(clienteSchema),
+  } = useForm<EmpresaUsuariaFormValues>({
+    resolver: zodResolver(empresaUsuariaSchema),
   });
 
   function toggle(id: number) {
@@ -85,13 +71,12 @@ export function ClientesListado({ clientes }: ClientesListadoProps) {
     });
   }
 
-  // Sobre la lista FILTRADA, no sobre `clientes`: "seleccionar todo" tiene que
-  // marcar lo que se está viendo, no filas escondidas por la búsqueda.
+  // Sobre la lista FILTRADA: "seleccionar todo" marca lo que se está viendo.
   function toggleAll() {
     setSelectedIds((prev) =>
-      clientesFiltrados.every((c) => prev.has(c.id))
+      empresasFiltradas.every((e) => prev.has(e.id))
         ? new Set()
-        : new Set(clientesFiltrados.map((c) => c.id)),
+        : new Set(empresasFiltradas.map((e) => e.id)),
     );
   }
 
@@ -122,15 +107,15 @@ export function ClientesListado({ clientes }: ClientesListadoProps) {
     setEditandoId(id);
   }
 
-  async function onSubmit(values: ClienteFormValues) {
+  async function onSubmit(values: EmpresaUsuariaFormValues) {
     setServerError(null);
-    const result = await crearCliente(values);
+    const result = await crearEmpresaUsuaria(values);
 
     if (!result.ok) {
       if (result.fieldErrors) {
         for (const [field, messages] of Object.entries(result.fieldErrors)) {
           if (messages?.[0]) {
-            setError(field as keyof ClienteFormValues, {
+            setError(field as keyof EmpresaUsuariaFormValues, {
               message: messages[0],
             });
           }
@@ -148,17 +133,17 @@ export function ClientesListado({ clientes }: ClientesListadoProps) {
     <>
       <PageHeader
         title="Clientes"
-        description="Empresas que contratan las órdenes de servicio"
+        description="Empresas donde se ejecuta el servicio, referenciadas por las órdenes"
         actions={
           selectionMode ? (
-            <EliminarClientesButton
+            <EliminarEmpresasUsuariasButton
               selectedIds={[...selectedIds]}
               onCancelSelection={cancelarSeleccion}
               onError={setAccionError}
             />
           ) : (
-            <ClientesAccionesMenu
-              onNuevo={abrirAlta}
+            <EmpresasUsuariasAccionesMenu
+              onNueva={abrirAlta}
               onEliminar={iniciarSeleccion}
             />
           )
@@ -177,7 +162,7 @@ export function ClientesListado({ clientes }: ClientesListadoProps) {
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
           placeholder="Buscar por nombre o NIT"
-          aria-label="Buscar cliente"
+          aria-label="Buscar empresa usuaria"
           className="pl-8"
         />
       </div>
@@ -188,7 +173,11 @@ export function ClientesListado({ clientes }: ClientesListadoProps) {
           className="grid gap-4 rounded-lg border border-border bg-card p-4 sm:grid-cols-2"
           noValidate
         >
-          <CamposCliente idPrefix="nuevo" register={register} errors={errors} />
+          <CamposEmpresaUsuaria
+            idPrefix="nueva"
+            register={register}
+            errors={errors}
+          />
 
           {serverError && (
             <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive sm:col-span-2">
@@ -209,14 +198,14 @@ export function ClientesListado({ clientes }: ClientesListadoProps) {
               Cancelar
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Guardando…" : "Guardar cliente"}
+              {isSubmitting ? "Guardando…" : "Guardar empresa"}
             </Button>
           </div>
         </form>
       )}
 
-      <ClientesTable
-        clientes={clientesFiltrados}
+      <EmpresasUsuariasTable
+        empresas={empresasFiltradas}
         selectionMode={selectionMode}
         selectedIds={selectedIds}
         onToggle={toggle}
@@ -226,9 +215,9 @@ export function ClientesListado({ clientes }: ClientesListadoProps) {
         onEditar={abrirEdicion}
         onCerrarEdicion={() => setEditandoId(null)}
         mensajeVacio={
-          clientes.length === 0
-            ? "No hay clientes registrados."
-            : "Ningún cliente coincide con la búsqueda."
+          empresas.length === 0
+            ? "No hay empresas usuarias registradas."
+            : "Ninguna empresa coincide con la búsqueda."
         }
       />
     </>

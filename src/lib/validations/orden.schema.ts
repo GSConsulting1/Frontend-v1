@@ -58,6 +58,13 @@ export const ordenServicioSchema = z.object({
   estado: z.enum(ESTADOS_ORDEN).optional(),
   numero_os_cliente: z.string().optional(),
   fecha_recepcion_os: z.string().optional(),
+  // La empresa usuaria se elige del catálogo `empresas_usuarias`
+  // (empresa_usuaria_id), y nombre/NIT se copian de la opción elegida — el
+  // Combobox de OrdenCampos los llena con setValue, no se escriben a mano.
+  // Los tres campos conviven a propósito: la FK es la fuente de verdad nueva,
+  // pero el listado, el Excel y el PDF todavía leen las dos columnas de texto.
+  // Optional (no obligatoria) porque hay órdenes viejas sin vincular.
+  empresa_usuaria_id: z.number().int().positive().optional(),
   nombre_empresa_usuaria: z.string().optional(),
   nit_empresa_usuaria: z.string().optional(),
   // `cronograma` es numeric en la base real (no una fecha) — ver

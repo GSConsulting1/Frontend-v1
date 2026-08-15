@@ -282,6 +282,30 @@ export type Database = {
           },
         ]
       }
+      empresas_usuarias: {
+        Row: {
+          activo: boolean | null
+          fecha_creacion: string | null
+          id: number
+          nit: string | null
+          nombre: string
+        }
+        Insert: {
+          activo?: boolean | null
+          fecha_creacion?: string | null
+          id?: number
+          nit?: string | null
+          nombre: string
+        }
+        Update: {
+          activo?: boolean | null
+          fecha_creacion?: string | null
+          id?: number
+          nit?: string | null
+          nombre?: string
+        }
+        Relationships: []
+      }
       entregables_estandar: {
         Row: {
           id: number
@@ -523,6 +547,7 @@ export type Database = {
           asesor_gestion_riesgos: string | null
           cliente_id: number
           cronograma: number | null
+          empresa_usuaria_id: number | null
           estado: string | null
           fecha_actualizacion: string | null
           fecha_creacion: string | null
@@ -547,6 +572,7 @@ export type Database = {
           asesor_gestion_riesgos?: string | null
           cliente_id: number
           cronograma?: number | null
+          empresa_usuaria_id?: number | null
           estado?: string | null
           fecha_actualizacion?: string | null
           fecha_creacion?: string | null
@@ -571,6 +597,7 @@ export type Database = {
           asesor_gestion_riesgos?: string | null
           cliente_id?: number
           cronograma?: number | null
+          empresa_usuaria_id?: number | null
           estado?: string | null
           fecha_actualizacion?: string | null
           fecha_creacion?: string | null
@@ -597,6 +624,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordenes_servicio_empresa_usuaria_id_fkey"
+            columns: ["empresa_usuaria_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_usuarias"
             referencedColumns: ["id"]
           },
         ]

@@ -17,6 +17,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { TableSkeleton } from "@/components/layout/table-skeleton";
 import { ToolbarSkeleton } from "@/components/layout/toolbar-skeleton";
 import { ClientesAccionesMenu } from "@/components/clientes/clientes-acciones-menu";
+import { ClientesTabs } from "@/components/clientes/clientes-tabs";
 
 export default function ClientesLoading() {
   return (
@@ -26,6 +27,8 @@ export default function ClientesLoading() {
         description="Empresas que contratan las órdenes de servicio"
         actions={<ClientesAccionesMenu />}
       />
+
+      <ClientesTabs />
 
       <ToolbarSkeleton izquierda={["h-8 w-full max-w-xs"]} />
 
