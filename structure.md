@@ -169,9 +169,9 @@ generado.
   `lib/data/*.ts`, nunca desde componentes ni desde `app/`.
 
 ### `lib/data/`
-- **Un archivo por entidad** (`ordenes.ts`, y a futuro `clientes.ts`,
-  `profesionales.ts`, etc.). Es el único lugar del código que llama a
-  `supabase.from(...)`.
+- **Un archivo por entidad** (`ordenes.ts`, `clientes.ts`,
+  `profesionales.ts`, `usuarios.ts`, `info-orden.ts`). Es el único lugar
+  del código que llama a `supabase.from(...)`.
 - Regla dura: **ni `app/**/page.tsx` ni ningún componente llaman a
   Supabase directamente.** Siempre pasan por una función exportada de
   acá.
@@ -635,6 +635,43 @@ generado.
   `eliminarOrden` tampoco redirige, solo `revalidatePath` — la dispara
   la tabla.
 
+### `components/clientes/`
+- CRUD completo de la tabla `clientes` (`/clientes`, solo
+  `administrador`). Calca la anatomía de `/ordenes` —no la de
+  `/profesionales`— porque tiene selección de filas: `clientes-listado.tsx`
+  (Client Component dueño del estado), `clientes-acciones-menu.tsx` (el "⋮"
+  del header), `eliminar-clientes-button.tsx` ("Eliminar (N)" + `AlertDialog`)
+  y `clientes-table.tsx`. `campos-cliente.tsx` son los 2 campos del
+  formulario, compartidos por el alta y por la fila de edición.
+- `selectionMode: boolean` en vez del `accionSeleccion` de órdenes: hay una
+  sola acción en lote (eliminar), no dos. `clientes-listado.tsx` también
+  gobierna `formAbierto` (alta) y `editandoId` (edición) porque los tres
+  modos se apagan entre sí.
+- Alta y edición son **inline** (formulario arriba de la tabla / fila
+  desplegada debajo), no páginas `nueva` + `[id]/editar` como órdenes: un
+  cliente son 2 campos. Si la entidad crece, ahí sí conviene la página.
+- **Sí tiene borrado real**, a diferencia de `profesionales`: la FK
+  `ordenes_servicio_cliente_id_fkey` no tiene `ON DELETE CASCADE`, así que
+  Postgres rechaza (`23503`) borrar un cliente con órdenes — el historial lo
+  protege la base. `lib/data/clientes.ts` traduce ese código a un mensaje
+  legible y la UI ofrece "Marcar inactivo" como alternativa. El borrado en
+  lote (`eliminarClientes`) devuelve `{ eliminados, fallidos }` y no aborta
+  el lote, igual que `eliminarOrdenes`.
+- Ningún componente usa `<RoleGate>`: la pantalla entera ya está gateada en
+  servidor (`app/clientes/page.tsx`), y repetir el chequeo en el cliente
+  dejaría la UI vacía en modo mock (sin Supabase no hay `perfil`).
+- `app/clientes/actions.ts` revalida `/clientes` **y** `/ordenes`: el filtro
+  y el `<Select>` de cliente de órdenes salen de
+  `getClientesParaSelect()` (`lib/data/ordenes.ts`, solo activos), así que
+  cualquier alta/edición/baja acá cambia esa pantalla. Esa función sigue
+  viviendo en `ordenes.ts` a propósito (la consumen 4 `page.tsx` de
+  órdenes); `lib/data/clientes.ts` es la administración de la entidad, no el
+  catálogo.
+- La policy de `clientes` sigue siendo `mvp_open_access` (`USING (true)`),
+  así que el `redirect()` de `page.tsx` es toda la barrera real hoy —
+  cualquier sesión podría escribir la tabla por la API. Cerrarlo es una
+  migración de policy, no un cambio de front.
+
 ### `components/usuarios/`
 - `usuarios-table.tsx`: única pantalla de administración de usuarios —
   lista `nombre_completo`/`email`/`rol` y deja cambiar el rol inline con
@@ -653,18 +690,24 @@ generado.
   queries (no el singleton de `lib/supabase/client.ts`) porque `usuarios`
   tiene RLS — mismo motivo que `ordenes.ts`/`info-orden.ts`.
 
-## Al agregar una entidad nueva (ej. "clientes" como pantalla propia)
+## Al agregar una entidad nueva (ej. "proveedores" como pantalla propia)
 
-1. `types/index.ts` — ya debería existir el alias (`Cliente`); si no,
-   agregarlo.
-2. `lib/mock-data/clientes.ts` (o reutilizar el de `ordenes.ts` si ya
-   están ahí).
-3. `lib/data/clientes.ts` — funciones `getClientes`, `createCliente`,
-   etc., mismo patrón mock/real que `ordenes.ts`.
-4. `lib/validations/cliente.schema.ts` — schema de Zod.
-5. `app/clientes/page.tsx`, `app/clientes/actions.ts`, rutas
-   `nueva`/`[id]/editar` si aplica.
-6. `components/clientes/` — tabla, formulario, etc.
+1. `types/index.ts` — agregar el alias de dominio (`Proveedor`) sobre el
+   tipo crudo de `database.types.ts`.
+2. `lib/mock-data/proveedores.ts` (o reutilizar el mock de otra entidad si
+   los datos ya están ahí — `clientes` reusa `mock-data/ordenes.ts`).
+3. `lib/data/proveedores.ts` — funciones `getProveedores`,
+   `crearProveedorRecord`, etc., mismo patrón mock/real que `ordenes.ts`.
+4. `lib/validations/proveedor.schema.ts` — schema de Zod.
+5. `app/proveedores/page.tsx`, `actions.ts`, `loading.tsx`, y rutas
+   `nueva`/`[id]/editar` si el formulario no cabe inline.
+6. `components/proveedores/` — tabla, formulario, etc.
+7. `components/layout/nav-config.ts` — la entrada del sidebar (con
+   `roles` si la pantalla no es para todos).
 
 Si en el paso 3 se repite un helper que ya existe en `lib/data/ordenes.ts`
 (como `orNull`), ese es el momento de moverlo a `lib/utils.ts`.
+
+**`clientes` es la implementación de referencia más reciente y completa de
+esta receta** (los 7 pasos, incluido el CRUD entero): si vas a agregar una
+entidad nueva, copiá esa forma antes que inventar una.
