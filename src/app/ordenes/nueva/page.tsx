@@ -10,13 +10,16 @@ import {
   getProfesionalesParaSelect,
 } from "@/lib/data/ordenes";
 import { getCatalogosInfoOrden } from "@/lib/data/info-orden";
+import { getEmpresasUsuariasParaSelect } from "@/lib/data/empresas-usuarias";
 
 export default async function NuevaOrdenPage() {
-  const [clientes, profesionales, catalogos] = await Promise.all([
-    getClientesParaSelect(),
-    getProfesionalesParaSelect(),
-    getCatalogosInfoOrden(),
-  ]);
+  const [clientes, empresasUsuarias, profesionales, catalogos] =
+    await Promise.all([
+      getClientesParaSelect(),
+      getEmpresasUsuariasParaSelect(),
+      getProfesionalesParaSelect(),
+      getCatalogosInfoOrden(),
+    ]);
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-6 py-10">
@@ -24,6 +27,11 @@ export default async function NuevaOrdenPage() {
         mode="nueva"
         titulo="Nueva orden"
         clientes={clientes.map((c) => ({ id: c.id, label: c.nombre_cliente }))}
+        empresasUsuarias={empresasUsuarias.map((e) => ({
+          id: e.id,
+          label: e.nombre,
+          nit: e.nit,
+        }))}
         profesionales={profesionales.map((p) => ({
           id: p.id,
           label: p.nombre_completo,

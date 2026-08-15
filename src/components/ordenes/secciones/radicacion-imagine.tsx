@@ -37,6 +37,13 @@ export type SeccionRadicacionImagineProps = {
 // Admite hasta 2 radicaciones (novedades del cliente pueden forzar una
 // segunda) — de ahí los campos _1/_2. Si el rol no puede verla, la sección
 // ni se renderiza.
+//
+// "Fecha de corte" acá es la del corte con el que se radica en Imagine, y es
+// distinta de la "Fecha de corte" de la sección Cuenta de cobro
+// (cuentaCobro.fecha_corte, otra tabla). Comparten etiqueta a propósito, pero
+// el `id` del input NO puede repetirse: todas las secciones son <details> que
+// viven en el DOM a la vez, así que dos inputs con id="fecha_corte" romperían
+// la asociación <label for>. De ahí `fecha_corte_imagine`.
 export function SeccionRadicacionImagine({
   register,
   control,
@@ -149,6 +156,13 @@ export function SeccionRadicacionImagine({
             id="actualizacion_sipab"
             type="date"
             {...register("radicacionImagine.actualizacion_sipab")}
+          />
+        </FormField>
+        <FormField label="Fecha de corte" htmlFor="fecha_corte_imagine">
+          <Input
+            id="fecha_corte_imagine"
+            type="date"
+            {...register("radicacionImagine.fecha_corte")}
           />
         </FormField>
       </div>

@@ -76,7 +76,7 @@ export async function GET(
 
   const ordenQuery = supabaseAdmin
     .from("ordenes_servicio")
-    .select("*, cliente:clientes(nombre_cliente)")
+    .select("*")
     .eq("id", ordenId)
     .maybeSingle();
 
@@ -173,7 +173,7 @@ export async function GET(
     profesionalCedula: info.data?.profesional?.cedula ?? "",
     ciudad: info.data?.ciudad?.nombre ?? "",
     numeroOrden: orden.data.id_unico ?? "",
-    nombreEmpresaCliente: orden.data.cliente?.nombre_cliente ?? "",
+    nombreEmpresaCliente: info.data?.empresa_a_visitar ?? "",
     nombreActividad: info.data?.nombre_actividad ?? "",
     descripcionActividad: info.data?.descripcion_actividad ?? "",
     numeroHoras: horasAsignadas,

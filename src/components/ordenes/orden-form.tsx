@@ -100,6 +100,9 @@ type OrdenFormProps = {
   ordenId?: number;
   defaultValues?: Partial<OrdenInfoFormValues>;
   clientes: SelectOption[];
+  // Catálogo de "Datos generales": al elegir una, OrdenCampos copia su nombre
+  // y su NIT a las columnas de texto de la orden (ver orden-campos.tsx).
+  empresasUsuarias: (SelectOption & { nit: string | null })[];
   // valorHora/cedula/telefono/email viajan acá para precargar "Valor hora
   // profesional" y mostrar cédula/celular/correo de solo lectura en
   // "Profesional y contacto en sitio" — ver SeccionValorHora /
@@ -127,6 +130,7 @@ export function OrdenForm({
   ordenId,
   defaultValues,
   clientes,
+  empresasUsuarias,
   profesionales,
   participantesArl,
   vobo,
@@ -317,7 +321,9 @@ export function OrdenForm({
           control={control}
           errors={errors}
           watch={watch}
+          setValue={setValue}
           clientes={clientes}
+          empresasUsuarias={empresasUsuarias}
           disabled={!puedeEditarGeneral}
           puedeEditarObservacionesSec={puedeEditarObservacionesSec}
           open={seccionAbierta === "datos-generales"}

@@ -7,6 +7,19 @@
 import type { Database } from "./database.types";
 
 export type Cliente = Database["public"]["Tables"]["clientes"]["Row"];
+// La empresa donde se ejecuta el servicio, distinta del `Cliente` que lo
+// contrata y paga (una aseguradora puede contratar una orden para decenas de
+// empresas usuarias). Hasta la migración
+// 20260815123716_catalogo_empresas_usuarias.sql esto vivía como dos varchar
+// sueltos en cada orden; ahora es tabla propia y `ordenes_servicio` la
+// referencia por `empresa_usuaria_id`.
+export type EmpresaUsuaria =
+  Database["public"]["Tables"]["empresas_usuarias"]["Row"];
+// Para el listado: la empresa + cuántas órdenes la referencian. El conteo no
+// es una columna, sale de un embedded aggregate de PostgREST — se normaliza a
+// number en lib/data/empresas-usuarias.ts para que la UI no vea la forma
+// `{ ordenes_servicio: [{ count }] }` que devuelve Supabase.
+export type EmpresaUsuariaConConteo = EmpresaUsuaria & { ordenes: number };
 export type Profesional = Database["public"]["Tables"]["profesionales"]["Row"];
 // Catálogo fijo y separado de profesionales: equipo ARL/seguridad que firma
 // el detalle de entrega y el acta de servicio (ver participante_arl_id /

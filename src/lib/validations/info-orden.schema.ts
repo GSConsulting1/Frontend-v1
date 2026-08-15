@@ -18,7 +18,10 @@ export const infoOrdenServicioSchema = z
     empresa_a_visitar: z.string().optional(),
     nombre_actividad: z.string().optional(),
     descripcion_actividad: z.string().optional(),
-    horas_asignadas: z.number().nonnegative("Debe ser un número positivo").optional(),
+    horas_asignadas: z
+      .number()
+      .nonnegative("Debe ser un número positivo")
+      .optional(),
     fecha_inicio_ejecucion: z.string().optional(),
     fecha_fin_ejecucion: z.string().optional(),
     direccion_empresa: z.string().optional(),
@@ -29,20 +32,30 @@ export const infoOrdenServicioSchema = z
     contacto_cargo: z.string().optional(),
     contacto_celular: z.string().optional(),
     contacto_email: z
-      .union([z.literal(""), z.string().trim().email("Debe ser un email válido")])
+      .union([
+        z.literal(""),
+        z.string().trim().email("Debe ser un email válido"),
+      ])
       .optional(),
   })
   .refine(
     (v) =>
-      !v.fecha_inicio_ejecucion || !v.fecha_fin_ejecucion || v.fecha_fin_ejecucion >= v.fecha_inicio_ejecucion,
-    { message: "La fecha de fin no puede ser anterior a la de inicio", path: ["fecha_fin_ejecucion"] },
+      !v.fecha_inicio_ejecucion ||
+      !v.fecha_fin_ejecucion ||
+      v.fecha_fin_ejecucion >= v.fecha_inicio_ejecucion,
+    {
+      message: "La fecha de fin no puede ser anterior a la de inicio",
+      path: ["fecha_fin_ejecucion"],
+    },
   )
   .refine((v) => !v.hora_inicio || !v.hora_fin || v.hora_fin >= v.hora_inicio, {
     message: "La hora de fin no puede ser anterior a la de inicio",
     path: ["hora_fin"],
   });
 
-export type InfoOrdenServicioFormValues = z.infer<typeof infoOrdenServicioSchema>;
+export type InfoOrdenServicioFormValues = z.infer<
+  typeof infoOrdenServicioSchema
+>;
 
 export const detalleEntregaProfesionalSchema = z.object({
   entregables_especificos: z.string().optional(),
@@ -65,7 +78,10 @@ export type DetalleEntregaProfesionalFormValues = z.infer<
 // lo intentara, RLS lo rechazaría y tumbaría el guardado del resto de
 // secciones también.
 export const valorHoraOrdenSchema = z.object({
-  valor_hora_profesional: z.number().nonnegative("Debe ser un número positivo").optional(),
+  valor_hora_profesional: z
+    .number()
+    .nonnegative("Debe ser un número positivo")
+    .optional(),
 });
 
 export type ValorHoraOrdenFormValues = z.infer<typeof valorHoraOrdenSchema>;
@@ -120,7 +136,10 @@ export const cuentaCobroSchema = z.object({
   fecha_corte: z.string().optional(),
   fecha_pago: z.string().optional(),
   documento_soporte: z.string().optional(),
-  valor_cuenta_cobro: z.number().nonnegative("Debe ser un número positivo").optional(),
+  valor_cuenta_cobro: z
+    .number()
+    .nonnegative("Debe ser un número positivo")
+    .optional(),
 });
 
 export type CuentaCobroFormValues = z.infer<typeof cuentaCobroSchema>;
@@ -143,7 +162,13 @@ export const ESTADO_IMAGINE_OPCIONES = [
   "Rechazada",
 ] as const;
 
+//
+// `fecha_corte` acá es la de la radicación en Imagine y NO es la misma que
+// cuentaCobroSchema.fecha_corte (tabla cuenta_cobro): son dos cortes de dos
+// procesos distintos que comparten nombre. Ver la migración
+// 20260810172525_agregar_fecha_corte_radicacion_imagine.sql.
 export const radicacionImagineSchema = z.object({
+  fecha_corte: z.string().optional(),
   numero_radicado_1: z.string().optional(),
   fecha_radicacion_1: z.string().optional(),
   novedades_1: z.string().optional(),
@@ -154,7 +179,9 @@ export const radicacionImagineSchema = z.object({
   actualizacion_sipab: z.string().optional(),
 });
 
-export type RadicacionImagineFormValues = z.infer<typeof radicacionImagineSchema>;
+export type RadicacionImagineFormValues = z.infer<
+  typeof radicacionImagineSchema
+>;
 
 // Debe calzar exacto con el CHECK "chk_estado_facturacion" de la tabla
 // facturacion (ver migración 20260815120000_alinear_facturacion_estado_y_alerta) —
@@ -181,14 +208,35 @@ export const facturacionSchema = z.object({
 export type FacturacionFormValues = z.infer<typeof facturacionSchema>;
 
 export const liquidacionSchema = z.object({
-  valor_total_cotizado: z.number().nonnegative("Debe ser un número positivo").optional(),
-  valor_desplazamiento: z.number().nonnegative("Debe ser un número positivo").optional(),
-  gasto_servicio: z.number().nonnegative("Debe ser un número positivo").optional(),
+  valor_total_cotizado: z
+    .number()
+    .nonnegative("Debe ser un número positivo")
+    .optional(),
+  valor_desplazamiento: z
+    .number()
+    .nonnegative("Debe ser un número positivo")
+    .optional(),
+  gasto_servicio: z
+    .number()
+    .nonnegative("Debe ser un número positivo")
+    .optional(),
   iva: z.number().nonnegative("Debe ser un número positivo").optional(),
-  valor_antes_iva: z.number().nonnegative("Debe ser un número positivo").optional(),
-  retencion_fuente: z.number().nonnegative("Debe ser un número positivo").optional(),
-  retencion_ica: z.number().nonnegative("Debe ser un número positivo").optional(),
-  retencion_iva: z.number().nonnegative("Debe ser un número positivo").optional(),
+  valor_antes_iva: z
+    .number()
+    .nonnegative("Debe ser un número positivo")
+    .optional(),
+  retencion_fuente: z
+    .number()
+    .nonnegative("Debe ser un número positivo")
+    .optional(),
+  retencion_ica: z
+    .number()
+    .nonnegative("Debe ser un número positivo")
+    .optional(),
+  retencion_iva: z
+    .number()
+    .nonnegative("Debe ser un número positivo")
+    .optional(),
   total: z.number().nonnegative("Debe ser un número positivo").optional(),
   ganancia: z.number().optional(),
 });
@@ -211,4 +259,6 @@ export const ordenInfoExtendidaSchema = z.object({
   liquidacion: liquidacionSchema.optional(),
 });
 
-export type OrdenInfoExtendidaFormValues = z.infer<typeof ordenInfoExtendidaSchema>;
+export type OrdenInfoExtendidaFormValues = z.infer<
+  typeof ordenInfoExtendidaSchema
+>;

@@ -36,12 +36,20 @@ import {
   deleteOrdenRecord,
   actualizarCampoOrdenRecord,
   getNumerosOsExistentes,
+  getClientesParaSelect,
 } from "@/lib/data/ordenes";
 import {
   eliminarInfoOrdenCompleta,
   guardarInfoOrdenCompleta,
 } from "@/lib/data/info-orden";
 import { leerOrdenesDesdeExcel } from "@/lib/excel/leer-ordenes-excel";
+import {
+  buscarEmpresasUsuariasPorNombre,
+  resolverEmpresasUsuarias,
+  normalizarNombreEmpresa,
+  type EmpresaUsuariaResuelta,
+  type EntradaEmpresaUsuaria,
+} from "@/lib/data/empresas-usuarias";
 
 export type OrdenActionState =
   | { error: string }
@@ -202,7 +210,10 @@ export type FilaPreviewImportacion = {
 
 export async function previsualizarImportacionOrdenes(
   formData: FormData,
-): Promise<{ filas: FilaPreviewImportacion[] } | { error: string }> {
+): Promise<
+  | { filas: FilaPreviewImportacion[]; empresasNuevas: EntradaEmpresaUsuaria[] }
+  | { error: string }
+> {
   const archivo = formData.get("archivo");
   if (!(archivo instanceof File) || archivo.size === 0) {
     return { error: "Selecciona un archivo Excel (.xlsx)." };
@@ -210,6 +221,30 @@ export async function previsualizarImportacionOrdenes(
   const clienteId = Number(formData.get("clienteId"));
   if (!clienteId || Number.isNaN(clienteId)) {
     return { error: "Selecciona un cliente." };
+  }
+
+  // Que el cliente EXISTA se valida acá y no se descubre al insertar: sin este
+  // chequeo, un id que no está en `clientes` pasa toda la previsualización como
+  // válida y recién explota fila por fila con
+  // "violates foreign key constraint ordenes_servicio_cliente_id_fkey", que no
+  // le dice nada a quien está importando. Pasó de verdad con el id
+  // preseleccionado, que estaba hardcodeado al del proyecto remoto y no existe
+  // en las demás bases (ver app/ordenes/importar/page.tsx).
+  try {
+    const clientes = await getClientesParaSelect();
+    if (!clientes.some((c) => c.id === clienteId)) {
+      return {
+        error:
+          "El cliente seleccionado ya no existe. Elegí uno de la lista y volvé a previsualizar.",
+      };
+    }
+  } catch (err) {
+    return {
+      error:
+        err instanceof Error
+          ? err.message
+          : "No se pudo validar el cliente seleccionado",
+    };
   }
 
   let filasExcel;
@@ -236,7 +271,10 @@ export async function previsualizarImportacionOrdenes(
   ];
   let numerosExistentes: Set<string>;
   try {
-    numerosExistentes = await getNumerosOsExistentes(clienteId, numerosEnArchivo);
+    numerosExistentes = await getNumerosOsExistentes(
+      clienteId,
+      numerosEnArchivo,
+    );
   } catch (err) {
     return {
       error:
@@ -246,13 +284,68 @@ export async function previsualizarImportacionOrdenes(
     };
   }
 
+  // Empresas usuarias del archivo contra el catálogo. El Excel del ARL trae la
+  // razón social escrita a mano, así que se agrupa por nombre NORMALIZADO
+  // (mismo criterio que el índice único de la tabla): dos filas con "ACME SA"
+  // y "acme  sa" son la misma empresa y no dos altas distintas.
+  //
+  // Acá solo se CONSULTA — la creación pasa recién en
+  // importarOrdenesDesdeExcel, después de que el usuario vea en pantalla
+  // cuáles se van a crear. Que una importación dé de alta empresas en
+  // silencio es justo lo que llenó de variantes la etapa de texto libre.
+  const empresasDelArchivo = filasExcel
+    .map(({ valores }) => ({
+      nombre: valores.nombre_empresa_usuaria?.trim() ?? "",
+      nit: valores.nit_empresa_usuaria?.trim() || null,
+    }))
+    .filter((e) => e.nombre);
+
+  let empresasExistentes: Map<string, EmpresaUsuariaResuelta>;
+  try {
+    empresasExistentes = await buscarEmpresasUsuariasPorNombre(
+      empresasDelArchivo.map((e) => e.nombre),
+    );
+  } catch (err) {
+    return {
+      error:
+        err instanceof Error
+          ? err.message
+          : "No se pudieron validar las empresas usuarias",
+    };
+  }
+
+  const empresasNuevas: EntradaEmpresaUsuaria[] = [];
+  const clavesNuevas = new Set<string>();
+  for (const empresa of empresasDelArchivo) {
+    const clave = normalizarNombreEmpresa(empresa.nombre);
+    if (empresasExistentes.has(clave) || clavesNuevas.has(clave)) continue;
+    clavesNuevas.add(clave);
+    empresasNuevas.push(empresa);
+  }
+
   const numerosVistos = new Set<string>();
   const filas: FilaPreviewImportacion[] = filasExcel.map(
     ({ fila, valores, liquidacion }) => {
+      // Si la empresa ya está en el catálogo, la fila se muestra con el
+      // nombre y el NIT canónicos (los de la tabla), no con lo que traía el
+      // Excel: es lo que de verdad se va a guardar, y así la previsualización
+      // no miente. Las que todavía no existen se muestran tal cual vinieron.
+      const nombreEmpresa = valores.nombre_empresa_usuaria?.trim();
+      const empresa = nombreEmpresa
+        ? empresasExistentes.get(normalizarNombreEmpresa(nombreEmpresa))
+        : undefined;
+
       const candidato = {
         ...valores,
         nombre_servicio: valores.nombre_servicio ?? "",
         cliente_id: clienteId,
+        ...(empresa
+          ? {
+              empresa_usuaria_id: empresa.id,
+              nombre_empresa_usuaria: empresa.nombre,
+              nit_empresa_usuaria: empresa.nit ?? undefined,
+            }
+          : {}),
       };
       const parsed = ordenServicioSchema.safeParse(candidato);
 
@@ -269,7 +362,13 @@ export async function previsualizarImportacionOrdenes(
       }
 
       if (parsed.success && !errorDuplicado) {
-        return { fila, valores: parsed.data, liquidacion, errores: [], valida: true };
+        return {
+          fila,
+          valores: parsed.data,
+          liquidacion,
+          errores: [],
+          valida: true,
+        };
       }
 
       const erroresSchema = parsed.success
@@ -291,7 +390,7 @@ export async function previsualizarImportacionOrdenes(
     },
   );
 
-  return { filas };
+  return { filas, empresasNuevas };
 }
 
 export type FilaParaImportar = {
@@ -302,12 +401,73 @@ export type FilaParaImportar = {
 
 export async function importarOrdenesDesdeExcel(
   filas: FilaParaImportar[],
-): Promise<{ creadas: number; fallidas: { fila: number; error: string }[] }> {
+): Promise<{
+  creadas: number;
+  empresasCreadas: number;
+  fallidas: { fila: number; error: string }[];
+}> {
   let creadas = 0;
   const fallidas: { fila: number; error: string }[] = [];
 
+  // Se resuelve el catálogo ANTES de crear ninguna orden, y del lado del
+  // servidor: las `filas` vienen del cliente, así que el empresa_usuaria_id
+  // que calculó la previsualización no se usa como verdad. Además el catálogo
+  // pudo cambiar entre que se previsualizó y que se confirmó.
+  const empresasDelArchivo = filas
+    .map(({ valores }) => ({
+      nombre: valores.nombre_empresa_usuaria?.trim() ?? "",
+      nit: valores.nit_empresa_usuaria?.trim() || null,
+    }))
+    .filter((e) => e.nombre);
+
+  let empresas: Map<string, EmpresaUsuariaResuelta>;
+  const idsAntes = new Set<number>();
+  try {
+    const previas = await buscarEmpresasUsuariasPorNombre(
+      empresasDelArchivo.map((e) => e.nombre),
+    );
+    for (const empresa of previas.values()) idsAntes.add(empresa.id);
+    empresas = await resolverEmpresasUsuarias(empresasDelArchivo);
+  } catch (err) {
+    return {
+      creadas: 0,
+      empresasCreadas: 0,
+      fallidas: filas.map(({ fila }) => ({
+        fila,
+        error:
+          err instanceof Error
+            ? err.message
+            : "No se pudieron resolver las empresas usuarias",
+      })),
+    };
+  }
+
+  // Cuántas se dieron de alta recién, para informarlo en el resultado.
+  let empresasCreadas = 0;
+  for (const entrada of empresasDelArchivo) {
+    const empresa = empresas.get(normalizarNombreEmpresa(entrada.nombre));
+    if (empresa && !idsAntes.has(empresa.id)) {
+      idsAntes.add(empresa.id);
+      empresasCreadas++;
+    }
+  }
+
   for (const { fila, valores, liquidacion } of filas) {
-    const parsed = ordenServicioSchema.safeParse(valores);
+    const nombreEmpresa = valores.nombre_empresa_usuaria?.trim();
+    const empresa = nombreEmpresa
+      ? empresas.get(normalizarNombreEmpresa(nombreEmpresa))
+      : undefined;
+
+    const parsed = ordenServicioSchema.safeParse({
+      ...valores,
+      ...(empresa
+        ? {
+            empresa_usuaria_id: empresa.id,
+            nombre_empresa_usuaria: empresa.nombre,
+            nit_empresa_usuaria: empresa.nit ?? undefined,
+          }
+        : {}),
+    });
     if (!parsed.success) {
       fallidas.push({ fila, error: "Datos inválidos" });
       continue;
@@ -333,5 +493,7 @@ export async function importarOrdenesDesdeExcel(
   }
 
   revalidatePath("/ordenes");
-  return { creadas, fallidas };
+  // El catálogo de empresas usuarias también pudo cambiar.
+  revalidatePath("/clientes/empresas-usuarias");
+  return { creadas, empresasCreadas, fallidas };
 }
