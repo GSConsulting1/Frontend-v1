@@ -15,6 +15,7 @@ import { getCatalogosInfoOrden, getInfoOrdenCompleta } from "@/lib/data/info-ord
 import type {
   ChecklistProcesoFormValues,
   RadicacionImagineFormValues,
+  FacturacionFormValues,
 } from "@/lib/validations/info-orden.schema";
 import type { EstadoOrden, ResponsableOs } from "@/lib/validations/orden.schema";
 
@@ -170,7 +171,8 @@ export default async function EditarOrdenPage({
       ? {
           numero_prefactura: facturacion.numero_prefactura ?? undefined,
           numero_factura: facturacion.numero_factura ?? undefined,
-          estado_facturacion: facturacion.estado_facturacion ?? undefined,
+          estado_facturacion: (facturacion.estado_facturacion ?? undefined) as
+            FacturacionFormValues["estado_facturacion"],
           alerta_facturacion: facturacion.alerta_facturacion ?? undefined,
         }
       : undefined,

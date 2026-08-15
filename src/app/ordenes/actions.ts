@@ -26,7 +26,10 @@ import {
   type CampoOrdenInlinePatch,
   type OrdenServicioFormValues,
 } from "@/lib/validations/orden.schema";
-import { ordenInfoExtendidaSchema } from "@/lib/validations/info-orden.schema";
+import {
+  ordenInfoExtendidaSchema,
+  type LiquidacionFormValues,
+} from "@/lib/validations/info-orden.schema";
 import {
   createOrdenRecord,
   updateOrdenRecord,
@@ -192,6 +195,7 @@ export async function eliminarOrdenes(
 export type FilaPreviewImportacion = {
   fila: number;
   valores: OrdenServicioFormValues;
+  liquidacion?: Partial<LiquidacionFormValues>;
   errores: string[];
   valida: boolean;
 };
@@ -244,7 +248,7 @@ export async function previsualizarImportacionOrdenes(
 
   const numerosVistos = new Set<string>();
   const filas: FilaPreviewImportacion[] = filasExcel.map(
-    ({ fila, valores }) => {
+    ({ fila, valores, liquidacion }) => {
       const candidato = {
         ...valores,
         nombre_servicio: valores.nombre_servicio ?? "",
@@ -265,7 +269,7 @@ export async function previsualizarImportacionOrdenes(
       }
 
       if (parsed.success && !errorDuplicado) {
-        return { fila, valores: parsed.data, errores: [], valida: true };
+        return { fila, valores: parsed.data, liquidacion, errores: [], valida: true };
       }
 
       const erroresSchema = parsed.success
@@ -280,6 +284,7 @@ export async function previsualizarImportacionOrdenes(
       return {
         fila,
         valores: candidato as OrdenServicioFormValues,
+        liquidacion,
         errores: errores.length ? errores : ["Datos inválidos"],
         valida: false,
       };
@@ -292,6 +297,7 @@ export async function previsualizarImportacionOrdenes(
 export type FilaParaImportar = {
   fila: number;
   valores: OrdenServicioFormValues;
+  liquidacion?: Partial<LiquidacionFormValues>;
 };
 
 export async function importarOrdenesDesdeExcel(
@@ -300,14 +306,20 @@ export async function importarOrdenesDesdeExcel(
   let creadas = 0;
   const fallidas: { fila: number; error: string }[] = [];
 
-  for (const { fila, valores } of filas) {
+  for (const { fila, valores, liquidacion } of filas) {
     const parsed = ordenServicioSchema.safeParse(valores);
     if (!parsed.success) {
       fallidas.push({ fila, error: "Datos inválidos" });
       continue;
     }
     try {
-      await createOrdenRecord(parsed.data);
+      const ordenId = await createOrdenRecord(parsed.data);
+      // valor_desplazamiento vive en `liquidacion` (tabla aparte con
+      // orden_id como FK) — solo se puede escribir una vez la orden ya
+      // tiene id, así que va en un segundo paso después de crearla.
+      if (liquidacion?.valor_desplazamiento != null) {
+        await guardarInfoOrdenCompleta(ordenId, { liquidacion });
+      }
       creadas++;
     } catch (err) {
       fallidas.push({

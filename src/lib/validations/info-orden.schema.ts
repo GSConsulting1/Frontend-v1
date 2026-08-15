@@ -133,17 +133,16 @@ export const actaServicioSchema = z.object({
 
 export type ActaServicioFormValues = z.infer<typeof actaServicioSchema>;
 
+// Debe calzar exacto con el CHECK "chk_estado_imagine" de la tabla
+// radicacion_imagine (ver migración
+// 20260815120000_alinear_estados_imagine_y_facturacion) — un valor que no
+// esté en esta lista pasa Zod pero revienta 23514 al llegar a Supabase.
 export const ESTADO_IMAGINE_OPCIONES = [
   "Radicada",
   "Pendiente de radicar",
   "Rechazada",
 ] as const;
 
-// estado_facturacion es texto libre en la BD (sin CHECK) — no hay un catálogo
-// cerrado de valores del que partir, así que va como texto igual que
-// novedades_1/2 y alerta_facturacion. estado_imagine sí tiene un catálogo
-// cerrado a nivel de aplicación (ESTADO_IMAGINE_OPCIONES) aunque la columna
-// en BD también sea texto libre sin CHECK.
 export const radicacionImagineSchema = z.object({
   numero_radicado_1: z.string().optional(),
   fecha_radicacion_1: z.string().optional(),
@@ -157,10 +156,25 @@ export const radicacionImagineSchema = z.object({
 
 export type RadicacionImagineFormValues = z.infer<typeof radicacionImagineSchema>;
 
+// Debe calzar exacto con el CHECK "chk_estado_facturacion" de la tabla
+// facturacion (ver migración 20260815120000_alinear_facturacion_estado_y_alerta) —
+// un valor que no esté en esta lista pasa Zod pero revienta 23514 al llegar
+// a Supabase.
+export const ESTADO_FACTURACION_OPCIONES = [
+  "Pendiente de facturar",
+  "Facturado",
+] as const;
+
 export const facturacionSchema = z.object({
   numero_prefactura: z.string().optional(),
   numero_factura: z.string().optional(),
-  estado_facturacion: z.string().optional(),
+  estado_facturacion: z.enum(ESTADO_FACTURACION_OPCIONES).optional(),
+  // alerta_facturacion no la escribe el usuario: se recalcula sola en
+  // facturacion.tsx a partir de fecha_sipab (datos generales) + 40 días
+  // corridos — sigue siendo texto (fecha ISO) porque así vive en BD. La
+  // misma migración de arriba quita el CHECK viejo (catálogo de
+  // informe_guardian copiado por error a esta columna) que le impedía
+  // guardar una fecha.
   alerta_facturacion: z.string().optional(),
 });
 
