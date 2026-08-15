@@ -12,7 +12,10 @@ import {
   getProfesionalesParaSelect,
 } from "@/lib/data/ordenes";
 import { getCatalogosInfoOrden, getInfoOrdenCompleta } from "@/lib/data/info-orden";
-import type { ChecklistProcesoFormValues } from "@/lib/validations/info-orden.schema";
+import type {
+  ChecklistProcesoFormValues,
+  RadicacionImagineFormValues,
+} from "@/lib/validations/info-orden.schema";
 import type { EstadoOrden, ResponsableOs } from "@/lib/validations/orden.schema";
 
 export default async function EditarOrdenPage({
@@ -158,7 +161,8 @@ export default async function EditarOrdenPage({
           numero_radicado_2: radicacionImagine.numero_radicado_2 ?? undefined,
           fecha_radicacion_2: radicacionImagine.fecha_radicacion_2 ?? undefined,
           novedades_2: radicacionImagine.novedades_2 ?? undefined,
-          estado_imagine: radicacionImagine.estado_imagine ?? undefined,
+          estado_imagine: (radicacionImagine.estado_imagine ?? undefined) as
+            RadicacionImagineFormValues["estado_imagine"],
           actualizacion_sipab: radicacionImagine.actualizacion_sipab ?? undefined,
         }
       : undefined,

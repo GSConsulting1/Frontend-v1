@@ -133,10 +133,17 @@ export const actaServicioSchema = z.object({
 
 export type ActaServicioFormValues = z.infer<typeof actaServicioSchema>;
 
-// estado_imagine / estado_facturacion son texto libre en la BD (sin CHECK,
-// a diferencia de informe_guardian) — no hay un catálogo cerrado de valores
-// del que partir, así que van como texto igual que novedades_1/2 y
-// alerta_facturacion.
+export const ESTADO_IMAGINE_OPCIONES = [
+  "Radicada",
+  "Pendiente de radicar",
+  "Rechazada",
+] as const;
+
+// estado_facturacion es texto libre en la BD (sin CHECK) — no hay un catálogo
+// cerrado de valores del que partir, así que va como texto igual que
+// novedades_1/2 y alerta_facturacion. estado_imagine sí tiene un catálogo
+// cerrado a nivel de aplicación (ESTADO_IMAGINE_OPCIONES) aunque la columna
+// en BD también sea texto libre sin CHECK.
 export const radicacionImagineSchema = z.object({
   numero_radicado_1: z.string().optional(),
   fecha_radicacion_1: z.string().optional(),
@@ -144,7 +151,7 @@ export const radicacionImagineSchema = z.object({
   numero_radicado_2: z.string().optional(),
   fecha_radicacion_2: z.string().optional(),
   novedades_2: z.string().optional(),
-  estado_imagine: z.string().optional(),
+  estado_imagine: z.enum(ESTADO_IMAGINE_OPCIONES).optional(),
   actualizacion_sipab: z.string().optional(),
 });
 
