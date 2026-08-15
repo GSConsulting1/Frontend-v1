@@ -111,6 +111,12 @@ export function SeccionRadicacionImagine({
           <Controller
             name="radicacionImagine.estado_imagine"
             control={control}
+            // Fallback para mode="nueva" (sin defaultValues aún, ver
+            // orden-form.tsx): mismo motivo que el defaultValue de
+            // estado_ejecucion_id en checklist.tsx. En mode="existente" no
+            // pisa nada porque editar/page.tsx ya manda un valor explícito
+            // en defaultValues, que RHF prioriza sobre este.
+            defaultValue="Pendiente de radicar"
             render={({ field }) => (
               <Select
                 value={field.value ?? null}
