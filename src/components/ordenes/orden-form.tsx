@@ -39,7 +39,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Info } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
@@ -184,7 +184,18 @@ export function OrdenForm({
     reset,
     formState: { errors, isSubmitting, isDirty },
   } = useForm<OrdenInfoFormValues>({
-    resolver: zodResolver(ordenInfoFormSchema),
+    // mode="nueva" solo guarda ordenServicioSchema (ver onSubmit -> createOrden
+    // más abajo): las secciones extendidas están deshabilitadas pero sus
+    // Controllers/register igual se montan (dentro del <fieldset disabled> de
+    // OrdenInfoSecciones), así que sin este resolver más laxo, un campo
+    // requerido de una sección extendida (ej. checklist.vobo_emitido) bloquea
+    // el guardado de una orden que ni siquiera existe todavía. En
+    // mode="existente" sí se valida todo, checklist incluido.
+    resolver: (
+      mode === "nueva"
+        ? zodResolver(ordenServicioSchema)
+        : zodResolver(ordenInfoFormSchema)
+    ) as Resolver<OrdenInfoFormValues>,
     defaultValues: { entregablesIds: [], ...defaultValues },
   });
 

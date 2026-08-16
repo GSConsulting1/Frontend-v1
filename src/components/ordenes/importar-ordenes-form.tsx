@@ -161,7 +161,11 @@ export function ImportarOrdenesForm({
     setCargando(true);
     setError(null);
     const respuesta = await importarOrdenesDesdeExcel(
-      filasValidas.map((f) => ({ fila: f.fila, valores: f.valores })),
+      filasValidas.map((f) => ({
+        fila: f.fila,
+        valores: f.valores,
+        liquidacion: f.liquidacion,
+      })),
     );
     setCargando(false);
     setResultado(respuesta);
@@ -356,6 +360,7 @@ export function ImportarOrdenesForm({
                   <TableHead>Nit / Razón social</TableHead>
                   <TableHead>Cronograma</TableHead>
                   <TableHead>Tipo servicio</TableHead>
+                  <TableHead>Valor desplazamiento</TableHead>
                   <TableHead>Estado</TableHead>
                 </TableRow>
               </TableHeader>
@@ -371,6 +376,7 @@ export function ImportarOrdenesForm({
                     </TableCell>
                     <TableCell>{f.valores.cronograma ?? "—"}</TableCell>
                     <TableCell>{f.valores.tipo_servicio ?? "—"}</TableCell>
+                    <TableCell>{f.liquidacion?.valor_desplazamiento ?? "—"}</TableCell>
                     <TableCell>
                       {f.valida ? (
                         <span className="inline-flex items-center gap-1 text-sm text-emerald-600">

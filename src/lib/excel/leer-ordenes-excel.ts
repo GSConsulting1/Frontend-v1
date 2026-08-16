@@ -13,10 +13,15 @@
 
 import ExcelJS from "exceljs";
 import type { OrdenServicioFormValues } from "@/lib/validations/orden.schema";
+import type { LiquidacionFormValues } from "@/lib/validations/info-orden.schema";
 
 export type FilaExcelOrden = {
   fila: number;
   valores: Partial<OrdenServicioFormValues>;
+  // valor_desplazamiento vive en `liquidacion` (tabla 1-a-1 aparte, no
+  // ordenes_servicio) — por eso no entra en COLUMNAS_IMPORTAR/CampoImportable
+  // de abajo, que solo cubren columnas de OrdenServicioFormValues.
+  liquidacion?: Partial<LiquidacionFormValues>;
 };
 
 type CampoImportable = keyof Omit<OrdenServicioFormValues, "cliente_id">;
@@ -41,6 +46,12 @@ const COLUMNAS_IMPORTAR: Record<string, CampoImportable> = {
   observaciones: "observaciones_iniciales",
   "autoriza viaticos": "tarifa_valor_transporte",
 };
+
+// Columna aparte de COLUMNAS_IMPORTAR: escribe en `liquidacion.valor_desplazamiento`
+// (tabla 1-a-1 con orden_id, no en ordenes_servicio), así que se resuelve por
+// fuera del mapa CampoImportable de arriba — ver el bloque final de
+// leerOrdenesDesdeExcel.
+const COLUMNA_VALOR_DESPLAZAMIENTO = "valor desplazamiento";
 
 const CAMPOS_NUMERICOS = new Set<CampoImportable>(["cronograma", "horas_cargadas"]);
 const CAMPOS_FECHA = new Set<CampoImportable>(["fecha_sipab", "fecha_recepcion_os"]);
@@ -197,9 +208,12 @@ export async function leerOrdenesDesdeExcel(
   if (!hoja) return [];
 
   const indicePorCampo = new Map<CampoImportable, number>();
+  let indiceValorDesplazamiento: number | undefined;
   hoja.getRow(1).eachCell((cell, colNumber) => {
-    const campo = COLUMNAS_IMPORTAR[normalizarTexto(cell.value)];
+    const encabezado = normalizarTexto(cell.value);
+    const campo = COLUMNAS_IMPORTAR[encabezado];
     if (campo) indicePorCampo.set(campo, colNumber);
+    if (encabezado === COLUMNA_VALOR_DESPLAZAMIENTO) indiceValorDesplazamiento = colNumber;
   });
 
   const filas: FilaExcelOrden[] = [];
@@ -218,8 +232,17 @@ export async function leerOrdenesDesdeExcel(
       }
     }
 
-    if (Object.keys(valores).length > 0) {
-      filas.push({ fila: rowNumber, valores });
+    const valorDesplazamiento =
+      indiceValorDesplazamiento != null
+        ? celdaNumero(resolverValorCelda(row.getCell(indiceValorDesplazamiento).value))
+        : undefined;
+    const liquidacion =
+      valorDesplazamiento !== undefined
+        ? { valor_desplazamiento: valorDesplazamiento }
+        : undefined;
+
+    if (Object.keys(valores).length > 0 || liquidacion) {
+      filas.push({ fila: rowNumber, valores, liquidacion });
     }
   });
 

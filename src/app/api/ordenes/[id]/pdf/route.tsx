@@ -22,15 +22,10 @@ import {
   OrdenServicioDocument,
   type OrdenServicioData,
 } from "@/lib/pdf/OrdenServicioDocument";
+import { formatearFecha as formatFecha } from "@/lib/utils";
 import type { RolUsuario } from "@/types";
 
 const ROLES_PERMITIDOS: RolUsuario[] = ["administrador", "financiero"];
-
-function formatFecha(iso: string | null): string {
-  if (!iso) return "";
-  const [year, month, day] = iso.split("-");
-  return `${day}/${month}/${year}`;
-}
 
 function formatFechaHoy(): string {
   const hoy = new Date();

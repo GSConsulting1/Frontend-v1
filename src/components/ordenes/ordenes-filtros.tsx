@@ -47,6 +47,7 @@ import {
   ESTADOS_ORDEN,
   TIPO_SERVICIO_OPCIONES,
 } from "@/lib/validations/orden.schema";
+import { formatearFecha } from "@/lib/utils";
 
 type ClienteOption = { id: number; nombre_cliente: string };
 
@@ -156,7 +157,7 @@ export function OrdenesFiltros({
       label: "Ejecución",
       texto:
         initial.fechaEjecucionDesde || initial.fechaEjecucionHasta
-          ? `${initial.fechaEjecucionDesde || "…"} — ${initial.fechaEjecucionHasta || "…"}`
+          ? `${formatearFecha(initial.fechaEjecucionDesde) || "…"} — ${formatearFecha(initial.fechaEjecucionHasta) || "…"}`
           : "",
     },
   ].filter((f) => f.texto.length > 0);

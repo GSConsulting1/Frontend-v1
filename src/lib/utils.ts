@@ -18,3 +18,15 @@ export function orNull(v: string | undefined): string | null {
 export function algunoLleno(valores: unknown[]): boolean {
   return valores.some((v) => v !== undefined && v !== null && v !== "")
 }
+
+// "YYYY-MM-DD" (el formato que guardan la DB y los <input type="date">) ->
+// "DD/MM/AAAA" para cualquier lugar que muestre una fecha como texto plano
+// (tabla, chip de filtro, Excel, PDF) — un <input type="date"> no necesita
+// esto, ya se muestra en el formato local del navegador. Promovido acá
+// porque ya lo necesitaban matriz-ordenes.ts y pdf/route.tsx (duplicado) más
+// ordenes-table.tsx/ordenes-filtros.tsx — ver structure.md.
+export function formatearFecha(iso: string | null | undefined): string {
+  if (!iso) return ""
+  const [year, month, day] = iso.split("-")
+  return day && month && year ? `${day}/${month}/${year}` : iso
+}
