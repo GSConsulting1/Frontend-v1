@@ -6,10 +6,15 @@
 //
 // En modo mock (sin Supabase configurado) no hay sesión real que verificar,
 // así que la página no bloquea nada mientras se desarrolla sin credenciales.
+//
+// Primera de las 3 pestañas de la pantalla (ver profesionales-tabs.tsx). Es la
+// única que renderiza su PageHeader acá y no dentro del listado: no tiene
+// selección de filas, así que su header no depende de ningún estado de cliente.
 
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/layout/page-header";
 import { ProfesionalesListado } from "@/components/profesionales/profesionales-listado";
+import { ProfesionalesTabs } from "@/components/profesionales/profesionales-tabs";
 import { getProfesionales } from "@/lib/data/profesionales";
 import { getPerfilActual } from "@/lib/data/usuarios";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
@@ -35,6 +40,8 @@ export default async function ProfesionalesPage() {
         title="Profesionales"
         description="Equipo de profesionales que ejecuta las órdenes de servicio"
       />
+
+      <ProfesionalesTabs />
 
       <ProfesionalesListado profesionales={profesionales} />
     </div>
