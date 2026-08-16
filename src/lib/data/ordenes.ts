@@ -91,6 +91,7 @@ function normalizarInput(input: OrdenServicioFormValues) {
     asesor_gestion_riesgos: orNull(input.asesor_gestion_riesgos),
     observaciones_iniciales: orNull(input.observaciones_iniciales),
     tarifa_valor_transporte: orNull(input.tarifa_valor_transporte),
+    responsable_sec_id: input.responsable_sec_id ?? null,
     responsable_os: orNull(input.responsable_os),
     observaciones_responsable_sec: orNull(input.observaciones_responsable_sec),
     link_archivo_orden: orNull(input.link_archivo_orden),

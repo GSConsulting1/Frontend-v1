@@ -45,7 +45,6 @@ import {
 } from "@/components/ui/select";
 import {
   ESTADOS_ORDEN,
-  RESPONSABLES_OS,
   TIPO_SERVICIO_OPCIONES,
 } from "@/lib/validations/orden.schema";
 
@@ -53,6 +52,15 @@ type ClienteOption = { id: number; nombre_cliente: string };
 
 type OrdenesFiltrosProps = {
   clientes: ClienteOption[];
+  // Nombres del catálogo `responsables_sec` (ver lib/data/responsables-sec.ts).
+  // Antes eran la constante RESPONSABLES_OS; ahora llegan como prop desde el
+  // Server Component porque la lista es una tabla y se administra en
+  // /profesionales/responsables-sec.
+  //
+  // El filtro sigue comparando contra la COLUMNA DE TEXTO responsable_os, no
+  // contra la FK: son los mismos valores porque renombrar a alguien reescribe
+  // esa columna en sus órdenes (ver actualizarResponsableSecRecord).
+  responsablesSec: string[];
 };
 
 type FiltrosValues = {
@@ -84,7 +92,10 @@ function resumenSeleccion(
   return `${seleccionados.length} seleccionados`;
 }
 
-export function OrdenesFiltros({ clientes }: OrdenesFiltrosProps) {
+export function OrdenesFiltros({
+  clientes,
+  responsablesSec,
+}: OrdenesFiltrosProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -244,6 +255,7 @@ export function OrdenesFiltros({ clientes }: OrdenesFiltrosProps) {
         <FiltrosCampos
           key={searchParams.toString()}
           clientes={clientes}
+          responsablesSec={responsablesSec}
           initial={initial}
           onAplicar={aplicarFiltros}
           onLimpiar={limpiarFiltros}
@@ -255,11 +267,13 @@ export function OrdenesFiltros({ clientes }: OrdenesFiltrosProps) {
 
 function FiltrosCampos({
   clientes,
+  responsablesSec,
   initial,
   onAplicar,
   onLimpiar,
 }: {
   clientes: ClienteOption[];
+  responsablesSec: string[];
   initial: FiltrosValues;
   onAplicar: (values: FiltrosValues) => void;
   onLimpiar: () => void;
@@ -289,7 +303,7 @@ function FiltrosCampos({
   );
   const tipoServicioLabels = new Map(TIPO_SERVICIO_OPCIONES.map((t) => [t, t]));
   const estadoLabels = new Map(ESTADOS_ORDEN.map((e) => [e, e]));
-  const responsableOsLabels = new Map(RESPONSABLES_OS.map((r) => [r, r]));
+  const responsableOsLabels = new Map(responsablesSec.map((r) => [r, r]));
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -417,7 +431,7 @@ function FiltrosCampos({
           multiple
           value={responsablesOs}
           onValueChange={(v: string[]) => setResponsablesOs(v)}
-          items={RESPONSABLES_OS.map((r) => ({ label: r, value: r }))}
+          items={responsablesSec.map((r) => ({ label: r, value: r }))}
         >
           <SelectTrigger id="filtro-responsable-os" className="w-full">
             <SelectValue>
@@ -427,7 +441,7 @@ function FiltrosCampos({
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
-            {RESPONSABLES_OS.map((r) => (
+            {responsablesSec.map((r) => (
               <SelectItem key={r} value={r}>
                 {r}
               </SelectItem>

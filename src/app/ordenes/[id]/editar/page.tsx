@@ -13,8 +13,9 @@ import {
 } from "@/lib/data/ordenes";
 import { getCatalogosInfoOrden, getInfoOrdenCompleta } from "@/lib/data/info-orden";
 import { getEmpresasUsuariasParaSelect } from "@/lib/data/empresas-usuarias";
+import { getResponsablesSecParaSelect } from "@/lib/data/responsables-sec";
 import type { ChecklistProcesoFormValues } from "@/lib/validations/info-orden.schema";
-import type { EstadoOrden, ResponsableOs } from "@/lib/validations/orden.schema";
+import type { EstadoOrden } from "@/lib/validations/orden.schema";
 
 export default async function EditarOrdenPage({
   params,
@@ -35,13 +36,22 @@ export default async function EditarOrdenPage({
   const orden = await getOrdenById(ordenId);
   if (!orden) notFound();
 
-  const [clientes, empresasUsuarias, profesionales, catalogos, infoCompleta] =
-    await Promise.all([
+  const [
+    clientes,
+    empresasUsuarias,
+    responsablesSec,
+    profesionales,
+    catalogos,
+    infoCompleta,
+  ] = await Promise.all([
       getClientesParaSelect(),
       // incluirId: si la empresa de ESTA orden se marcó inactiva después, la
       // lista igual tiene que traerla — si no, el campo saldría vacío y
       // guardar le borraría el vínculo (ver lib/data/empresas-usuarias.ts).
       getEmpresasUsuariasParaSelect(orden.empresa_usuaria_id),
+      // Mismo motivo con el responsable SEC de ESTA orden si se marcó inactivo
+      // después (ver lib/data/responsables-sec.ts).
+      getResponsablesSecParaSelect(orden.responsable_sec_id),
       getProfesionalesParaSelect(),
       getCatalogosInfoOrden(),
       getInfoOrdenCompleta(ordenId),
@@ -76,7 +86,8 @@ export default async function EditarOrdenPage({
     asesor_gestion_riesgos: orden.asesor_gestion_riesgos ?? undefined,
     observaciones_iniciales: orden.observaciones_iniciales ?? undefined,
     tarifa_valor_transporte: orden.tarifa_valor_transporte ?? undefined,
-    responsable_os: (orden.responsable_os as ResponsableOs) ?? undefined,
+    responsable_sec_id: orden.responsable_sec_id ?? undefined,
+    responsable_os: orden.responsable_os ?? undefined,
     observaciones_responsable_sec:
       orden.observaciones_responsable_sec ?? undefined,
     link_archivo_orden: orden.link_archivo_orden ?? undefined,
@@ -197,6 +208,10 @@ export default async function EditarOrdenPage({
           id: e.id,
           label: e.nombre,
           nit: e.nit,
+        }))}
+        responsablesSec={responsablesSec.map((r) => ({
+          id: r.id,
+          label: r.nombre_completo,
         }))}
         profesionales={profesionales.map((p) => ({
           id: p.id,

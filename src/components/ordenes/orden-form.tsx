@@ -103,6 +103,9 @@ type OrdenFormProps = {
   // Catálogo de "Datos generales": al elegir una, OrdenCampos copia su nombre
   // y su NIT a las columnas de texto de la orden (ver orden-campos.tsx).
   empresasUsuarias: (SelectOption & { nit: string | null })[];
+  // Catálogo de "Responsable SEC para GS": al elegir uno, OrdenCampos copia su
+  // nombre a la columna responsable_os de la orden (ver orden-campos.tsx).
+  responsablesSec: SelectOption[];
   // valorHora/cedula/telefono/email viajan acá para precargar "Valor hora
   // profesional" y mostrar cédula/celular/correo de solo lectura en
   // "Profesional y contacto en sitio" — ver SeccionValorHora /
@@ -131,6 +134,7 @@ export function OrdenForm({
   defaultValues,
   clientes,
   empresasUsuarias,
+  responsablesSec,
   profesionales,
   participantesArl,
   vobo,
@@ -313,6 +317,7 @@ export function OrdenForm({
           setValue={setValue}
           clientes={clientes}
           empresasUsuarias={empresasUsuarias}
+          responsablesSec={responsablesSec}
           disabled={!puedeEditarGeneral}
           puedeEditarObservacionesSec={puedeEditarObservacionesSec}
           open={seccionAbierta === "datos-generales"}

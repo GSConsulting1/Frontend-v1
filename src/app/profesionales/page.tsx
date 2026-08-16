@@ -7,7 +7,7 @@
 // En modo mock (sin Supabase configurado) no hay sesión real que verificar,
 // así que la página no bloquea nada mientras se desarrolla sin credenciales.
 //
-// Primera de las 3 pestañas de la pantalla (ver profesionales-tabs.tsx). Es la
+// Primera de las 4 pestañas de la pantalla (ver profesionales-tabs.tsx). Es la
 // única que renderiza su PageHeader acá y no dentro del listado: no tiene
 // selección de filas, así que su header no depende de ningún estado de cliente.
 

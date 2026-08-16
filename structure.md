@@ -196,18 +196,29 @@ generado.
   de verdad de validación, usada tanto en el Client Component del
   formulario (`zodResolver`) como en el Server Action (revalidación en
   servidor, nunca confiar solo en el cliente).
-- `ESTADOS_ORDEN` y `RESPONSABLES_OS` en `orden.schema.ts`: listas fijas
-  hardcodeadas (no vienen de una tabla catálogo — `estados_orden` se
+- `ESTADOS_ORDEN` y `TIPO_SERVICIO_OPCIONES` en `orden.schema.ts`: listas
+  fijas hardcodeadas (no vienen de una tabla catálogo — `estados_orden` se
   eliminó de la DB, ver el `ALTER TABLE` que convirtió
-  `ordenes_servicio.estado_id`/`responsable_sec_id` a texto con un CHECK
-  constraint). Reflejan ese CHECK 1 a 1; si cambia en la DB, hay que
-  actualizar esta lista también. Los componentes (`orden-campos.tsx`,
-  `ordenes-table.tsx`) las importan directo — no se prop-drillean desde
-  `page.tsx` como los catálogos reales (`clientes`, `profesionales`,
-  `ciudades`, etc.), porque no son datos async de Supabase, son
-  constantes de compilación. `asesor_gestion_riesgos` en cambio quedó
-  como texto libre sin CHECK (input simple, sin lista fija) — a
-  propósito, para asesores externos que no están en `profesionales`.
+  `ordenes_servicio.estado_id` a texto con un CHECK constraint). Reflejan
+  ese CHECK 1 a 1; si cambia en la DB, hay que actualizar esta lista
+  también. Los componentes (`orden-campos.tsx`, `ordenes-table.tsx`) las
+  importan directo — no se prop-drillean desde `page.tsx` como los
+  catálogos reales (`clientes`, `profesionales`, `ciudades`, etc.), porque
+  no son datos async de Supabase, son constantes de compilación.
+- **`RESPONSABLES_OS` ya no existe**, y es el ejemplo de cuándo una lista
+  hardcodeada dejó de alcanzar. Era una constante acá + un CHECK
+  (`chk_responsable_sec`) en la DB, y las dos tenían que moverse juntas:
+  sumar a alguien pedía una migración *y* un cambio de front, y si una
+  se olvidaba el `<Select>` ofrecía a una persona que la base rechazaba
+  con `23514` recién al guardar (pasó dos veces, ver las migraciones
+  `20260805142744` y `20260810015141`). La migración
+  `20260816001045_catalogo_responsables_sec.sql` la convirtió en la tabla
+  `responsables_sec` y **tiró el CHECK**. Regla que deja: una lista se
+  puede hardcodear mientras cambie por decisión de producto (los estados
+  de una orden); si cambia porque **entra o sale gente**, es una tabla.
+- `asesor_gestion_riesgos` en cambio quedó como texto libre sin CHECK
+  (input simple, sin lista fija) — a propósito, para asesores externos
+  que no están en `profesionales`.
 
 ### `lib/utils.ts`
 - Solo helpers **genéricos y sin dominio**, usados en 2+ lugares (ej.
@@ -635,6 +646,51 @@ generado.
   `eliminarOrden` tampoco redirige, solo `revalidatePath` — la dispara
   la tabla.
 
+### `components/profesionales/`, `components/participantes-arl/`, `components/vobo/`, `components/responsables-sec/`
+- La pantalla `/profesionales` tiene **4 pestañas**, una por catálogo de
+  personas, y son **4 tablas distintas** (no roles de una misma):
+  - `/profesionales` → `profesionales` — el equipo de campo que ejecuta la
+    orden. Es la única sin borrado: sigue teniendo solo "Marcar inactivo"
+    (ver `lib/data/profesionales.ts`), y su `PageHeader` vive en el
+    `page.tsx` porque no tiene selección de filas de la que dependa.
+  - `/profesionales/participantes-arl` → `participantes_arl` — el equipo de
+    la ARL que firma el detalle de entrega
+    (`detalle_entrega_profesional.participante_arl_id`) y el acta
+    (`acta_servicio.profesional_acta_id`).
+  - `/profesionales/vobo` → `vobo` — el personal interno de GS Group del
+    `<Select>` "Quién da el VoBo"
+    (`detalle_entrega_profesional.profesional_vobo_id`).
+  - `/profesionales/responsables-sec` → `responsables_sec` — quién de GS
+    Group **responde por la orden** (`ordenes_servicio.responsable_sec_id`
+    + la copia de texto `responsable_os`).
+  `vobo` y `responsables_sec` comparten varias personas y tienen las mismas
+  columnas, pero **no se unificaron**: son dos roles, y alguien puede
+  responder por órdenes sin dar el visto bueno de ninguna. Unificarlas en una
+  tabla "personal" con flags es un refactor aparte, no algo que deba resolver
+  la migración que crea el catálogo.
+  Las tres pestañas nuevas calcan la anatomía de `components/clientes/`
+  (listado + tabla + menú "⋮" + botón de borrado en lote + campos
+  compartidos), con borrado real traducido desde el `23503` de la FK.
+  `participantes_arl` y `vobo` no tienen RLS habilitada (solo `GRANT`s en el
+  baseline) y `responsables_sec` la tiene con la policy `mvp_open_access`
+  (`USING (true)`), así que en las tres el `redirect()` de cada `page.tsx` es
+  toda la barrera real hoy — mismo estado que `clientes`.
+- **Las pestañas no salen de un `layout.tsx`**, mismo motivo que las de
+  `/clientes`: cada página monta `<ProfesionalesTabs />`
+  (`components/profesionales/profesionales-tabs.tsx`) debajo de su propio
+  `PageHeader`, porque las dos pestañas con selección de filas renderizan
+  ese header desde su listado. Al agregar una pestaña: entrada en `TABS` +
+  carpeta de ruta con `page.tsx` y `loading.tsx`, **cada uno con su propio
+  gate de rol** (`administrador`/`financiero`/`talento`) — no hay layout
+  donde centralizarlo, y olvidarlo deja la ruta abierta.
+- Los `actions.ts` de las tres pestañas nuevas revalidan
+  `revalidatePath("/ordenes", "layout")`, no `revalidatePath("/ordenes")`
+  a secas como `app/clientes/actions.ts`: estos catálogos los consumen
+  `/ordenes/nueva` y `/ordenes/[id]/editar` (vía `getCatalogos()` de
+  `lib/data/info-orden.ts` para ARL/VoBo, vía
+  `getResponsablesSecParaSelect()` para responsables SEC), y sin `"layout"`
+  el revalidate no baja a esas rutas hijas.
+
 ### `components/clientes/`
 - CRUD completo de la tabla `clientes` (`/clientes`, solo
   `administrador`). Calca la anatomía de `/ordenes` —no la de
@@ -751,6 +807,56 @@ generado.
   Si el catálogo no se puede resolver, la importación falla entera y no crea
   ninguna orden (a diferencia del bucle por fila, que sí es resiliente): es
   preferible a dejar media importación con vínculos incompletos.
+
+### `components/responsables-sec/`
+- Cuarta pestaña de `/profesionales` (`/profesionales/responsables-sec`): CRUD
+  completo de `responsables_sec`, quién de GS Group responde por una orden.
+  Mismos 5 archivos y misma anatomía que `components/vobo/`, más la columna
+  **"Órdenes"** de `components/empresas-usuarias/` (embedded aggregate
+  `ordenes_servicio(count)`, y el ítem "Eliminar" de la fila deshabilitado
+  cuando ese conteo es > 0).
+- Origen: la migración `20260816001045_catalogo_responsables_sec.sql`. Es la
+  misma forma que `empresas_usuarias` (tabla + FK + backfill + columna de texto
+  que sobrevive) con **una diferencia**: acá había un CHECK, y la migración lo
+  tira. Con el CHECK puesto, dar de alta a alguien desde esta pantalla no
+  serviría de nada — el `<Select>` lo ofrecería y el INSERT de la orden
+  explotaría igual. Quien valida ahora es la FK.
+- El backfill del catálogo sale de **la lista del CHECK**, no de un `SELECT
+  DISTINCT` sobre las órdenes: hay personas dadas de alta que todavía no tienen
+  ninguna orden y un DISTINCT las perdería. Por eso, y a diferencia de
+  `empresas_usuarias`, `supabase/seed.sql` **no** carga estas filas a mano —
+  la migración las crea sola aunque la base esté vacía; el seed solo vincula
+  las tres órdenes de prueba.
+- `lib/data/responsables-sec.ts` traduce los mismos dos códigos que
+  `empresas-usuarias.ts` (`23505` sobre el nombre normalizado, `23503` al
+  borrar a alguien con órdenes) y hace **una cosa que las otras pantallas no**:
+  al renombrar a una persona reescribe también el `responsable_os` de sus
+  órdenes. Esa columna es la copia denormalizada que leen el listado, el filtro,
+  el Excel y el PDF, y sin la cascada quedarían dos nombres para la misma
+  persona y sus órdenes viejas fuera del filtro. `empresas_usuarias` tiene el
+  mismo problema pendiente con `nombre_empresa_usuaria` — no está resuelto ahí.
+- **Consumo desde el formulario de órdenes**: "Responsable SEC para GS" es un
+  `<Select>` sobre `getResponsablesSecParaSelect()` enlazado a
+  `responsable_sec_id`, que al elegir copia el nombre a `responsable_os` con
+  `setValue`. Mismo par de casos que la empresa usuaria: `incluirId` para no
+  perder el vínculo de una orden cuyo responsable se marcó inactivo después, y
+  aviso de "sin vincular" cuando hay texto sin FK.
+- **Filtro del listado**: las opciones ya no salen de una constante, las pasa
+  `app/ordenes/page.tsx` con `getResponsablesSecTodos()` — *todos*, no solo los
+  activos: si alguien se marcó inactivo sus órdenes siguen en el listado y hay
+  que poder filtrarlas. El filtro sigue comparando contra la columna de texto,
+  no contra la FK; son los mismos valores gracias a la cascada del rename.
+- **Importación desde Excel**: al revés que las empresas usuarias, la
+  importación **no da de alta responsables**. Una empresa usuaria nueva es un
+  dato del cliente; una persona es del equipo interno, y crearla por un typo del
+  Excel deja un empleado fantasma. `leerOrdenesDesdeExcel` recibe los nombres
+  del catálogo para el match por tokens (tolera nombres de más: "Yulieth Andrea
+  Amell Gonzalez" resuelve a "Yulieth Amell"), y si el nombre no resuelve —o es
+  ambiguo, como "Amell" entre dos personas— la fila queda **inválida** con un
+  mensaje que dice qué hacer. Ojo con el orden de esos dos cambios: al dejar de
+  ser `z.enum`, `responsable_os` acepta cualquier string, así que ese chequeo
+  explícito en `previsualizarImportacionOrdenes` es lo único que impide que una
+  orden se importe con un responsable inventado y sin FK.
 
 ### `components/usuarios/`
 - `usuarios-table.tsx`: única pantalla de administración de usuarios —

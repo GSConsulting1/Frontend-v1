@@ -1,8 +1,11 @@
 // Pestañas de la pantalla /profesionales: "Profesionales" (el equipo de campo
 // que ejecuta las órdenes), "Participantes ARL" (el equipo de la ARL que firma
-// el detalle de entrega y el acta) y "VoBo" (el personal interno de GS Group
-// que da el visto bueno). Son tres catálogos DISTINTOS —tres tablas distintas—
-// que hasta ahora solo se podían tocar por SQL; acá se administran.
+// el detalle de entrega y el acta), "VoBo" (el personal interno de GS Group que
+// da el visto bueno) y "Responsables SEC" (quién de GS Group responde por la
+// orden). Son cuatro catálogos DISTINTOS —cuatro tablas distintas— que hasta
+// ahora solo se podían tocar por SQL; acá se administran. VoBo y Responsables
+// SEC comparten varias personas pero son dos roles, no uno: alguien puede
+// responder por órdenes sin dar el visto bueno de ninguna.
 //
 // Mismo criterio que components/clientes/clientes-tabs.tsx: son tres rutas, no
 // tres estados de una misma página, así que cada una tiene su propio page.tsx +
@@ -25,6 +28,7 @@ const TABS = [
   { href: "/profesionales", label: "Profesionales" },
   { href: "/profesionales/participantes-arl", label: "Participantes ARL" },
   { href: "/profesionales/vobo", label: "VoBo" },
+  { href: "/profesionales/responsables-sec", label: "Responsables SEC" },
 ];
 
 export function ProfesionalesTabs() {
