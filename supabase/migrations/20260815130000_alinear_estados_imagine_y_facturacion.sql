@@ -2,9 +2,27 @@
 -- <Select> cerrado con "Facturado" / "Pendiente de facturar", pero el CHECK
 -- de la BD seguía con la redacción vieja ('Facturada' / 'Pendiente
 -- facturar'), así que cualquier guardado revienta con 23514
--- (check_violation). Se actualizan primero las filas existentes a la
--- redacción nueva y luego se reemplaza el CHECK, para no dejar ninguna fila
--- en violación.
+-- (check_violation).
+--
+-- ORDEN DE LAS SENTENCIAS (importante, no es estilo)
+-- Primero se TIRA el CHECK viejo, después se actualizan las filas y recién
+-- al final se pone el CHECK nuevo. La versión anterior de esta migración
+-- hacía UPDATE -> DROP -> ADD y fallaba con 23514 contra cualquier base con
+-- datos: el CHECK viejo sigue activo durante el UPDATE, y 'Facturado' no
+-- está en la lista vieja, así que Postgres rechaza la propia fila que la
+-- migración está tratando de corregir.
+--
+-- En local no se notaba porque `db:reset` corre las migraciones sobre una
+-- base VACÍA (el seed va después): el UPDATE afectaba 0 filas y nunca tocaba
+-- el constraint. Reventó recién en `db:push` contra dev, con datos reales.
+--
+-- Quedarse sin CHECK entre el DROP y el ADD no abre ninguna ventana: la
+-- migración corre dentro de una transacción, así que o entra todo o no entra
+-- nada, y el ADD valida la tabla entera antes de confirmar.
+
+ALTER TABLE "public"."facturacion"
+  DROP CONSTRAINT IF EXISTS "chk_estado_facturacion";
+
 UPDATE "public"."facturacion"
 SET "estado_facturacion" = 'Facturado'
 WHERE "estado_facturacion" = 'Facturada';
@@ -12,9 +30,6 @@ WHERE "estado_facturacion" = 'Facturada';
 UPDATE "public"."facturacion"
 SET "estado_facturacion" = 'Pendiente de facturar'
 WHERE "estado_facturacion" = 'Pendiente facturar';
-
-ALTER TABLE "public"."facturacion"
-  DROP CONSTRAINT IF EXISTS "chk_estado_facturacion";
 
 ALTER TABLE "public"."facturacion"
   ADD CONSTRAINT "chk_estado_facturacion" CHECK ((("estado_facturacion")::"text" = ANY ((ARRAY[
@@ -29,6 +44,9 @@ ALTER TABLE "public"."facturacion"
 -- esta columna en el baseline: nunca hubo una fecha real ahí (cualquier fila
 -- con valor tenía que ser una de esas 6 cadenas, o NULL), así que se puede
 -- quitar sin perder datos legítimos.
+--
+-- Este bloque ya estaba bien ordenado (DROP y después UPDATE) — es el que
+-- muestra cuál era el orden correcto en los otros dos.
 ALTER TABLE "public"."facturacion"
   DROP CONSTRAINT IF EXISTS "facturacion_alerta_facturacion_check";
 
@@ -51,6 +69,12 @@ WHERE o."id" = f."orden_id"
 --   'Pendiente por cargar'       -> 'Pendiente de radicar'
 --   'Devuelto'                   -> 'Rechazada' (Imagine la regresó con
 --                                    novedades, equivalente a rechazada)
+--
+-- Mismo orden que arriba, y por el mismo motivo: ninguno de los tres valores
+-- nuevos está en el CHECK viejo.
+ALTER TABLE "public"."radicacion_imagine"
+  DROP CONSTRAINT IF EXISTS "chk_estado_imagine";
+
 UPDATE "public"."radicacion_imagine"
 SET "estado_imagine" = 'Pendiente de radicar'
 WHERE "estado_imagine" IN ('Pendiente Revisión Bolívar', 'Pendiente por cargar');
@@ -58,9 +82,6 @@ WHERE "estado_imagine" IN ('Pendiente Revisión Bolívar', 'Pendiente por cargar
 UPDATE "public"."radicacion_imagine"
 SET "estado_imagine" = 'Rechazada'
 WHERE "estado_imagine" = 'Devuelto';
-
-ALTER TABLE "public"."radicacion_imagine"
-  DROP CONSTRAINT IF EXISTS "chk_estado_imagine";
 
 ALTER TABLE "public"."radicacion_imagine"
   ADD CONSTRAINT "chk_estado_imagine" CHECK (("estado_imagine" = ANY (ARRAY[
