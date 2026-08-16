@@ -759,6 +759,16 @@ generado.
     variantes de la misma empresa.
   - `23503` — `ordenes_servicio.empresa_usuaria_id` no tiene `ON DELETE
     CASCADE`, mismo criterio que `clientes`.
+- **Editar una empresa reescribe sus órdenes.** `nombre_empresa_usuaria` y
+  `nit_empresa_usuaria` son copias denormalizadas, así que
+  `actualizarEmpresaUsuariaRecord` hace un segundo `UPDATE` sobre
+  `ordenes_servicio` filtrando por la FK. Sin eso, corregir un nombre dejaba a
+  las órdenes ya cargadas mostrando el valor viejo para siempre — dos nombres
+  para la misma empresa, justo lo que el catálogo vino a limpiar. Solo se tocan
+  las órdenes **vinculadas por FK**: las que tienen texto con
+  `empresa_usuaria_id` en NULL se dejan como están, porque nadie confirmó
+  todavía que sean esta empresa. Mismo criterio que
+  `lib/data/responsables-sec.ts` con `responsable_os`.
 - El origen de los datos es la migración
   `20260815123716_catalogo_empresas_usuarias.sql`, que creó la tabla a partir
   de los `nombre_empresa_usuaria` que ya estaban escritos a mano en las
@@ -833,8 +843,9 @@ generado.
   al renombrar a una persona reescribe también el `responsable_os` de sus
   órdenes. Esa columna es la copia denormalizada que leen el listado, el filtro,
   el Excel y el PDF, y sin la cascada quedarían dos nombres para la misma
-  persona y sus órdenes viejas fuera del filtro. `empresas_usuarias` tiene el
-  mismo problema pendiente con `nombre_empresa_usuaria` — no está resuelto ahí.
+  persona y sus órdenes viejas fuera del filtro. `empresas_usuarias` hace lo
+  mismo con `nombre_empresa_usuaria`/`nit_empresa_usuaria` desde el mismo
+  cambio.
 - **Consumo desde el formulario de órdenes**: "Responsable SEC para GS" es un
   `<Select>` sobre `getResponsablesSecParaSelect()` enlazado a
   `responsable_sec_id`, que al elegir copia el nombre a `responsable_os` con

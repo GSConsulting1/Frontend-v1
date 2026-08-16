@@ -371,6 +371,15 @@ function EditarEmpresaUsuariaRow({
             </p>
           )}
 
+          {/* El nombre y el NIT están copiados en cada orden de esta empresa
+              (las columnas que leen el listado, el Excel y el PDF), así que
+              editarlos acá los reescribe allá — ver
+              actualizarEmpresaUsuariaRecord en lib/data/empresas-usuarias.ts. */}
+          <p className="text-sm text-muted-foreground sm:col-span-2">
+            El nombre y el NIT se actualizan también en las órdenes de servicio
+            de esta empresa.
+          </p>
+
           <div className="flex justify-end gap-2 sm:col-span-2">
             <Button type="button" variant="outline" onClick={onCancelar}>
               Cancelar
