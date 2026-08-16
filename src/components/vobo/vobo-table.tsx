@@ -1,15 +1,17 @@
-// Tabla de la pestaña "Empresas usuarias" — misma anatomía que
-// components/clientes/clientes-table.tsx (columna de checkboxes en modo
-// selección, menú "⋮" por fila, fila-formulario para editar inline).
+// Tabla del listado de VoBo. Misma anatomía que clientes-table.tsx: una columna
+// de checkboxes que aparece solo en modo selección (para el borrado en lote del
+// header) y un menú "⋮" por fila con las acciones de ESA fila (Editar / Marcar
+// inactivo / Eliminar), bloqueado mientras se están eligiendo filas para que
+// "seleccionar" no se confunda con "editar o borrar".
 //
-// Dos diferencias con clientes, las dos por la columna "Órdenes":
+// "Editar" no navega a una página, abre una fila-formulario debajo — son 3
+// campos. Cuál fila está en edición lo gobierna VoboListado (editandoId), no
+// esta tabla: el formulario de alta vive allá arriba y los dos no deben poder
+// estar abiertos a la vez.
 //
-//   1. El conteo se muestra, así que se ve de antemano cuáles se pueden borrar
-//      (solo las de 0 órdenes; al resto las frena la FK).
-//   2. Por eso mismo el ítem "Eliminar" del menú va deshabilitado cuando la
-//      empresa tiene órdenes: acá SÍ sabemos el dato antes de intentar, y
-//      ofrecer una acción que va a fallar siempre es peor que no ofrecerla. En
-//      clientes-table.tsx queda habilitado porque ahí ese conteo no se carga.
+// Sin columna "Creado" (a diferencia de clientes-table.tsx): acá el email y el
+// celular son los datos que se buscan a ojo, y sumar una sexta columna los
+// aprieta sin aportar nada. `fecha_creacion` existe igual en la tabla.
 
 "use client";
 
@@ -44,24 +46,23 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { CamposEmpresaUsuaria } from "@/components/empresas-usuarias/campos-empresa-usuaria";
+import { CamposVobo } from "@/components/vobo/campos-vobo";
 import {
-  actualizarEmpresaUsuaria,
-  actualizarActivoEmpresaUsuaria,
-  eliminarEmpresaUsuaria,
-} from "@/app/clientes/empresas-usuarias/actions";
-import {
-  empresaUsuariaSchema,
-  type EmpresaUsuariaFormValues,
-} from "@/lib/validations/empresa-usuaria.schema";
+  actualizarVobo,
+  actualizarActivoVobo,
+  eliminarVobo,
+} from "@/app/profesionales/vobo/actions";
+import { voboSchema, type VoboFormValues } from "@/lib/validations/vobo.schema";
 import { cn } from "@/lib/utils";
-import type { EmpresaUsuariaConConteo } from "@/types";
+import type { Vobo } from "@/types";
 
-// Nombre, NIT, Órdenes, Estado, Acciones (la de checkbox se suma aparte).
+// Nombre, Email, Celular, Estado, Acciones (la de checkbox se suma aparte).
 const COLUMNAS_BASE = 5;
 
-type EmpresasUsuariasTableProps = {
-  empresas: EmpresaUsuariaConConteo[];
+type VoboTableProps = {
+  personas: Vobo[];
+  // Selección de filas para el borrado en lote del header — la gobierna
+  // VoboListado (el botón activo vive en el header, ver ese archivo).
   selectionMode: boolean;
   selectedIds: Set<number>;
   onToggle: (id: number) => void;
@@ -73,8 +74,8 @@ type EmpresasUsuariasTableProps = {
   mensajeVacio: string;
 };
 
-export function EmpresasUsuariasTable({
-  empresas,
+export function VoboTable({
+  personas,
   selectionMode,
   selectedIds,
   onToggle,
@@ -84,49 +85,45 @@ export function EmpresasUsuariasTable({
   onEditar,
   onCerrarEdicion,
   mensajeVacio,
-}: EmpresasUsuariasTableProps) {
+}: VoboTableProps) {
   const [deletingIds, setDeletingIds] = useState<Set<number>>(new Set());
   const [togglingIds, setTogglingIds] = useState<Set<number>>(new Set());
   const [filaError, setFilaError] = useState<string | null>(null);
-  const [empresaPendienteEliminar, setEmpresaPendienteEliminar] =
-    useState<EmpresaUsuariaConConteo | null>(null);
+  const [pendienteEliminar, setPendienteEliminar] = useState<Vobo | null>(null);
 
   async function confirmarEliminar() {
-    const empresa = empresaPendienteEliminar;
-    if (!empresa) return;
-    setEmpresaPendienteEliminar(null);
+    const persona = pendienteEliminar;
+    if (!persona) return;
+    setPendienteEliminar(null);
 
     setFilaError(null);
-    setDeletingIds((prev) => new Set(prev).add(empresa.id));
-    const result = await eliminarEmpresaUsuaria(empresa.id);
+    setDeletingIds((prev) => new Set(prev).add(persona.id));
+    const result = await eliminarVobo(persona.id);
     if (!result.ok) {
       setFilaError(result.error);
       setDeletingIds((prev) => {
         const next = new Set(prev);
-        next.delete(empresa.id);
+        next.delete(persona.id);
         return next;
       });
     }
   }
 
-  async function toggleActivo(empresa: EmpresaUsuariaConConteo) {
+  async function toggleActivo(persona: Vobo) {
     setFilaError(null);
-    setTogglingIds((prev) => new Set(prev).add(empresa.id));
-    const result = await actualizarActivoEmpresaUsuaria(
-      empresa.id,
-      !empresa.activo,
-    );
+    setTogglingIds((prev) => new Set(prev).add(persona.id));
+    const result = await actualizarActivoVobo(persona.id, !persona.activo);
     setTogglingIds((prev) => {
       const next = new Set(prev);
-      next.delete(empresa.id);
+      next.delete(persona.id);
       return next;
     });
     if (!result.ok) setFilaError(result.error);
   }
 
-  const todasSeleccionadas =
-    empresas.length > 0 && empresas.every((e) => selectedIds.has(e.id));
-  const algunaSeleccionada = empresas.some((e) => selectedIds.has(e.id));
+  const todosSeleccionados =
+    personas.length > 0 && personas.every((p) => selectedIds.has(p.id));
+  const algunoSeleccionado = personas.some((p) => selectedIds.has(p.id));
 
   return (
     <div className="space-y-3">
@@ -149,27 +146,27 @@ export function EmpresasUsuariasTable({
                 <input
                   type="checkbox"
                   className="size-4 rounded border-input accent-foreground"
-                  aria-label="Seleccionar todas las empresas usuarias"
-                  checked={todasSeleccionadas}
+                  aria-label="Seleccionar todas las personas de VoBo"
+                  checked={todosSeleccionados}
                   ref={(el) => {
                     if (el)
                       el.indeterminate =
-                        algunaSeleccionada && !todasSeleccionadas;
+                        algunoSeleccionado && !todosSeleccionados;
                   }}
                   onChange={onToggleAll}
-                  disabled={empresas.length === 0}
+                  disabled={personas.length === 0}
                 />
               </TableHead>
             )}
             <TableHead>Nombre</TableHead>
-            <TableHead>NIT</TableHead>
-            <TableHead className="text-right">Órdenes</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Celular</TableHead>
             <TableHead className="text-right">Estado</TableHead>
             <TableHead className="text-right">Acciones</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {empresas.length === 0 && (
+          {personas.length === 0 && (
             <TableRow>
               <TableCell
                 colSpan={selectionMode ? COLUMNAS_BASE + 1 : COLUMNAS_BASE}
@@ -180,12 +177,12 @@ export function EmpresasUsuariasTable({
             </TableRow>
           )}
 
-          {empresas.map((empresa) => {
-            if (editandoId === empresa.id) {
+          {personas.map((persona) => {
+            if (editandoId === persona.id) {
               return (
-                <EditarEmpresaUsuariaRow
-                  key={empresa.id}
-                  empresa={empresa}
+                <EditarVoboRow
+                  key={persona.id}
+                  persona={persona}
                   colSpan={selectionMode ? COLUMNAS_BASE + 1 : COLUMNAS_BASE}
                   onCancelar={onCerrarEdicion}
                   onGuardado={onCerrarEdicion}
@@ -193,13 +190,12 @@ export function EmpresasUsuariasTable({
               );
             }
 
-            const isDeleting = deletingIds.has(empresa.id);
-            const isToggling = togglingIds.has(empresa.id);
-            const tieneOrdenes = empresa.ordenes > 0;
+            const isDeleting = deletingIds.has(persona.id);
+            const isToggling = togglingIds.has(persona.id);
 
             return (
               <TableRow
-                key={empresa.id}
+                key={persona.id}
                 className={cn(isDeleting && "opacity-50")}
               >
                 {selectionMode && (
@@ -207,22 +203,20 @@ export function EmpresasUsuariasTable({
                     <input
                       type="checkbox"
                       className="size-4 rounded border-input accent-foreground"
-                      aria-label={`Seleccionar la empresa ${empresa.nombre}`}
-                      checked={selectedIds.has(empresa.id)}
-                      onChange={() => onToggle(empresa.id)}
+                      aria-label={`Seleccionar a ${persona.nombre_completo}`}
+                      checked={selectedIds.has(persona.id)}
+                      onChange={() => onToggle(persona.id)}
                     />
                   </TableCell>
                 )}
                 <TableCell className="whitespace-normal font-medium">
-                  {empresa.nombre}
+                  {persona.nombre_completo}
                 </TableCell>
-                <TableCell>{empresa.nit ?? "—"}</TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {empresa.ordenes}
-                </TableCell>
+                <TableCell>{persona.email ?? "—"}</TableCell>
+                <TableCell>{persona.celular ?? "—"}</TableCell>
                 <TableCell className="text-right">
-                  <Badge variant={empresa.activo ? "secondary" : "outline"}>
-                    {empresa.activo ? "Activa" : "Inactiva"}
+                  <Badge variant={persona.activo ? "secondary" : "outline"}>
+                    {persona.activo ? "Activo" : "Inactivo"}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
@@ -232,7 +226,7 @@ export function EmpresasUsuariasTable({
                         <Button
                           variant="ghost"
                           size="icon-sm"
-                          aria-label={`Acciones de ${empresa.nombre}`}
+                          aria-label={`Acciones de ${persona.nombre_completo}`}
                           disabled={selectionMode || isDeleting || isToggling}
                         >
                           <MoreHorizontal className="size-4" />
@@ -240,26 +234,21 @@ export function EmpresasUsuariasTable({
                       }
                     />
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => onEditar(empresa.id)}>
+                      <DropdownMenuItem onClick={() => onEditar(persona.id)}>
                         <Pencil className="size-4" />
                         Editar
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => toggleActivo(empresa)}>
+                      <DropdownMenuItem onClick={() => toggleActivo(persona)}>
                         <Power className="size-4" />
-                        {empresa.activo ? "Marcar inactiva" : "Marcar activa"}
+                        {persona.activo ? "Marcar inactivo" : "Marcar activo"}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         variant="destructive"
-                        disabled={tieneOrdenes}
-                        onClick={() => setEmpresaPendienteEliminar(empresa)}
+                        onClick={() => setPendienteEliminar(persona)}
                       >
                         <Trash2 className="size-4" />
-                        {tieneOrdenes
-                          ? `Eliminar (tiene ${empresa.ordenes} ${
-                              empresa.ordenes === 1 ? "orden" : "órdenes"
-                            })`
-                          : "Eliminar"}
+                        Eliminar
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -271,29 +260,33 @@ export function EmpresasUsuariasTable({
       </Table>
 
       <AlertDialog
-        open={empresaPendienteEliminar != null}
+        open={pendienteEliminar != null}
         onOpenChange={(open) => {
-          if (!open) setEmpresaPendienteEliminar(null);
+          if (!open) setPendienteEliminar(null);
         }}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Eliminar empresa usuaria</AlertDialogTitle>
+            <AlertDialogTitle>Eliminar persona de VoBo</AlertDialogTitle>
             <AlertDialogDescription>
-              {empresaPendienteEliminar && (
+              {pendienteEliminar && (
                 <>
                   ¿Eliminar a{" "}
                   <strong className="text-foreground">
-                    {empresaPendienteEliminar.nombre}
+                    {pendienteEliminar.nombre_completo}
                   </strong>
-                  ? Esta acción no se puede deshacer.
+                  ? Esta acción no se puede deshacer. Si ya dio el VoBo en
+                  alguna orden de servicio, no se va a poder eliminar.
                 </>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={confirmarEliminar}>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={confirmarEliminar}
+            >
               Eliminar
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -303,44 +296,43 @@ export function EmpresasUsuariasTable({
   );
 }
 
-type EditarEmpresaUsuariaRowProps = {
-  empresa: EmpresaUsuariaConConteo;
+type EditarVoboRowProps = {
+  persona: Vobo;
   colSpan: number;
   onCancelar: () => void;
   onGuardado: () => void;
 };
 
-function EditarEmpresaUsuariaRow({
-  empresa,
+function EditarVoboRow({
+  persona,
   colSpan,
   onCancelar,
   onGuardado,
-}: EditarEmpresaUsuariaRowProps) {
+}: EditarVoboRowProps) {
   const [serverError, setServerError] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
     setError,
     formState: { errors, isSubmitting },
-  } = useForm<EmpresaUsuariaFormValues>({
-    resolver: zodResolver(empresaUsuariaSchema),
+  } = useForm<VoboFormValues>({
+    resolver: zodResolver(voboSchema),
     defaultValues: {
-      nombre: empresa.nombre,
-      nit: empresa.nit ?? "",
+      nombre_completo: persona.nombre_completo,
+      email: persona.email ?? "",
+      celular: persona.celular ?? "",
     },
   });
 
-  async function onSubmit(values: EmpresaUsuariaFormValues) {
+  async function onSubmit(values: VoboFormValues) {
     setServerError(null);
-    const result = await actualizarEmpresaUsuaria(empresa.id, values);
+    const result = await actualizarVobo(persona.id, values);
 
     if (!result.ok) {
       if (result.fieldErrors) {
         for (const [field, messages] of Object.entries(result.fieldErrors)) {
           if (messages?.[0]) {
-            setError(field as keyof EmpresaUsuariaFormValues, {
-              message: messages[0],
-            });
+            setError(field as keyof VoboFormValues, { message: messages[0] });
           }
         }
       }
@@ -359,8 +351,8 @@ function EditarEmpresaUsuariaRow({
           className="grid gap-4 py-2 sm:grid-cols-2"
           noValidate
         >
-          <CamposEmpresaUsuaria
-            idPrefix={`editar-${empresa.id}`}
+          <CamposVobo
+            idPrefix={`editar-${persona.id}`}
             register={register}
             errors={errors}
           />
@@ -370,15 +362,6 @@ function EditarEmpresaUsuariaRow({
               {serverError}
             </p>
           )}
-
-          {/* El nombre y el NIT están copiados en cada orden de esta empresa
-              (las columnas que leen el listado, el Excel y el PDF), así que
-              editarlos acá los reescribe allá — ver
-              actualizarEmpresaUsuariaRecord en lib/data/empresas-usuarias.ts. */}
-          <p className="text-sm text-muted-foreground sm:col-span-2">
-            El nombre y el NIT se actualizan también en las órdenes de servicio
-            de esta empresa.
-          </p>
 
           <div className="flex justify-end gap-2 sm:col-span-2">
             <Button type="button" variant="outline" onClick={onCancelar}>

@@ -25,6 +25,7 @@ export type SeccionDatosGeneralesProps = {
   setValue: UseFormSetValue<OrdenInfoFormValues>;
   clientes: SelectOption[];
   empresasUsuarias: EmpresaUsuariaOption[];
+  responsablesSec: SelectOption[];
   disabled: boolean;
   // Rol programador: no puede editar el resto de "Datos generales" (llega
   // con disabled=true) pero sí el campo "Observaciones del responsable SEC
@@ -47,6 +48,7 @@ export function SeccionDatosGenerales({
   setValue,
   clientes,
   empresasUsuarias,
+  responsablesSec,
   disabled,
   puedeEditarObservacionesSec,
   open,
@@ -85,6 +87,7 @@ export function SeccionDatosGenerales({
           setValue={setValue}
           clientes={clientes}
           empresasUsuarias={empresasUsuarias}
+          responsablesSec={responsablesSec}
           disabled={disabled}
           puedeEditarObservacionesSec={puedeEditarObservacionesSec}
         />

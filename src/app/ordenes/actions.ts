@@ -50,6 +50,31 @@ import {
   type EmpresaUsuariaResuelta,
   type EntradaEmpresaUsuaria,
 } from "@/lib/data/empresas-usuarias";
+import {
+  getResponsablesSecTodos,
+  normalizarNombreResponsable,
+  type ResponsableSecOpcion,
+} from "@/lib/data/responsables-sec";
+
+// El Excel del ARL trae el nombre del responsable escrito a mano, así que se
+// resuelve contra el catálogo `responsables_sec` por nombre NORMALIZADO (mismo
+// criterio que el índice único de esa tabla).
+//
+// Lo que NO hace, a diferencia de las empresas usuarias: dar de alta a quien no
+// esté. Una empresa usuaria nueva es un dato del cliente y se crea sola; una
+// persona es del equipo interno y darla de alta por un typo del Excel deja un
+// empleado fantasma en el catálogo. Si no resuelve, la fila se marca inválida y
+// quien importa arregla el archivo o crea a la persona en
+// /profesionales/responsables-sec.
+function indexarResponsables(catalogo: ResponsableSecOpcion[]) {
+  return new Map(
+    catalogo.map((r) => [normalizarNombreResponsable(r.nombre_completo), r]),
+  );
+}
+
+function mensajeResponsableDesconocido(nombre: string): string {
+  return `El responsable SEC "${nombre}" no está en el catálogo. Corregí el nombre en el archivo o dalo de alta en Profesionales → Responsables SEC.`;
+}
 
 export type OrdenActionState =
   | { error: string }
@@ -247,10 +272,28 @@ export async function previsualizarImportacionOrdenes(
     };
   }
 
+  // El catálogo se necesita ANTES de parsear: el parser lo usa para reconocer
+  // el nombre del responsable escrito a mano en la celda (ver celdaResponsableOs
+  // en lib/excel/leer-ordenes-excel.ts).
+  let responsables: Map<string, ResponsableSecOpcion>;
+  try {
+    responsables = indexarResponsables(await getResponsablesSecTodos());
+  } catch (err) {
+    return {
+      error:
+        err instanceof Error
+          ? err.message
+          : "No se pudieron cargar los responsables SEC",
+    };
+  }
+
   let filasExcel;
   try {
     const buffer = Buffer.from(await archivo.arrayBuffer());
-    filasExcel = await leerOrdenesDesdeExcel(buffer);
+    filasExcel = await leerOrdenesDesdeExcel(
+      buffer,
+      [...responsables.values()].map((r) => r.nombre_completo),
+    );
   } catch {
     return {
       error:
@@ -335,6 +378,13 @@ export async function previsualizarImportacionOrdenes(
         ? empresasExistentes.get(normalizarNombreEmpresa(nombreEmpresa))
         : undefined;
 
+      // Mismo criterio con el responsable: si resuelve, la fila se muestra
+      // con el nombre canónico del catálogo y ya vinculada por FK.
+      const nombreResponsable = valores.responsable_os?.trim();
+      const responsable = nombreResponsable
+        ? responsables.get(normalizarNombreResponsable(nombreResponsable))
+        : undefined;
+
       const candidato = {
         ...valores,
         nombre_servicio: valores.nombre_servicio ?? "",
@@ -346,8 +396,23 @@ export async function previsualizarImportacionOrdenes(
               nit_empresa_usuaria: empresa.nit ?? undefined,
             }
           : {}),
+        ...(responsable
+          ? {
+              responsable_sec_id: responsable.id,
+              responsable_os: responsable.nombre_completo,
+            }
+          : {}),
       };
       const parsed = ordenServicioSchema.safeParse(candidato);
+
+      // responsable_os dejó de ser un z.enum al pasar la lista a tabla, así que
+      // un nombre desconocido ya NO lo rechaza el schema: si no se chequeara
+      // acá, la orden se importaría con un texto suelto y sin vínculo al
+      // catálogo, en silencio. Ver el comentario de indexarResponsables.
+      const errorResponsable =
+        nombreResponsable && !responsable
+          ? mensajeResponsableDesconocido(nombreResponsable)
+          : null;
 
       const numero = valores.numero_os_cliente?.trim();
       let errorDuplicado: string | null = null;
@@ -361,7 +426,7 @@ export async function previsualizarImportacionOrdenes(
         }
       }
 
-      if (parsed.success && !errorDuplicado) {
+      if (parsed.success && !errorDuplicado && !errorResponsable) {
         return {
           fila,
           valores: parsed.data,
@@ -376,9 +441,11 @@ export async function previsualizarImportacionOrdenes(
         : Object.values(parsed.error.flatten().fieldErrors)
             .flat()
             .filter((mensaje): mensaje is string => Boolean(mensaje));
-      const errores = errorDuplicado
-        ? [...erroresSchema, errorDuplicado]
-        : erroresSchema;
+      const errores = [
+        ...erroresSchema,
+        ...(errorDuplicado ? [errorDuplicado] : []),
+        ...(errorResponsable ? [errorResponsable] : []),
+      ];
 
       return {
         fila,
@@ -420,6 +487,26 @@ export async function importarOrdenesDesdeExcel(
     }))
     .filter((e) => e.nombre);
 
+  // El responsable se vuelve a resolver server-side por el mismo motivo (las
+  // `filas` vienen del cliente), pero acá NO se crea nada: quien no esté en el
+  // catálogo hace fallar su fila.
+  let responsables: Map<string, ResponsableSecOpcion>;
+  try {
+    responsables = indexarResponsables(await getResponsablesSecTodos());
+  } catch (err) {
+    return {
+      creadas: 0,
+      empresasCreadas: 0,
+      fallidas: filas.map(({ fila }) => ({
+        fila,
+        error:
+          err instanceof Error
+            ? err.message
+            : "No se pudieron cargar los responsables SEC",
+      })),
+    };
+  }
+
   let empresas: Map<string, EmpresaUsuariaResuelta>;
   const idsAntes = new Set<number>();
   try {
@@ -458,6 +545,18 @@ export async function importarOrdenesDesdeExcel(
       ? empresas.get(normalizarNombreEmpresa(nombreEmpresa))
       : undefined;
 
+    const nombreResponsable = valores.responsable_os?.trim();
+    const responsable = nombreResponsable
+      ? responsables.get(normalizarNombreResponsable(nombreResponsable))
+      : undefined;
+    if (nombreResponsable && !responsable) {
+      fallidas.push({
+        fila,
+        error: mensajeResponsableDesconocido(nombreResponsable),
+      });
+      continue;
+    }
+
     const parsed = ordenServicioSchema.safeParse({
       ...valores,
       ...(empresa
@@ -465,6 +564,12 @@ export async function importarOrdenesDesdeExcel(
             empresa_usuaria_id: empresa.id,
             nombre_empresa_usuaria: empresa.nombre,
             nit_empresa_usuaria: empresa.nit ?? undefined,
+          }
+        : {}),
+      ...(responsable
+        ? {
+            responsable_sec_id: responsable.id,
+            responsable_os: responsable.nombre_completo,
           }
         : {}),
     });

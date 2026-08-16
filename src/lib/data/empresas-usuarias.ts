@@ -18,6 +18,12 @@
 // El conteo de órdenes del listado sale de un embedded aggregate de PostgREST
 // (`ordenes_servicio(count)`), no de una columna: se normaliza acá a un number
 // para que la UI no vea la forma `[{ count }]` que devuelve Supabase.
+//
+// ordenes_servicio.nombre_empresa_usuaria / nit_empresa_usuaria son copias
+// denormalizadas del nombre y el NIT de esta tabla — siguen siendo las que leen
+// el listado de órdenes, el Excel de export y el PDF. Editar una empresa acá
+// las reescribe en sus órdenes (ver actualizarEmpresaUsuariaRecord); mismo
+// criterio que lib/data/responsables-sec.ts con responsable_os.
 
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -280,6 +286,12 @@ export async function actualizarEmpresaUsuariaRecord(
       ...mockEmpresasUsuarias[index],
       ...normalizado,
     };
+    for (const orden of mockOrdenes) {
+      if (orden.empresa_usuaria_id === id) {
+        orden.nombre_empresa_usuaria = normalizado.nombre;
+        orden.nit_empresa_usuaria = normalizado.nit;
+      }
+    }
     return;
   }
   const supabase = await createSupabaseServerClient();
@@ -295,6 +307,30 @@ export async function actualizarEmpresaUsuariaRecord(
       `No se pudo actualizar la empresa usuaria: ${error.message}`,
     );
   }
+
+  // nombre_empresa_usuaria / nit_empresa_usuaria son copias denormalizadas de
+  // esta fila: son las que leen el listado de órdenes, el Excel de export y el
+  // PDF (ver el encabezado de este archivo). Sin esta cascada, corregir el
+  // nombre o el NIT acá dejaba a las órdenes ya cargadas mostrando el valor
+  // viejo para siempre — o sea, dos nombres para la misma empresa, que es
+  // justo el desorden que el catálogo vino a limpiar. Alcanza con `eq` sobre
+  // la FK: las órdenes viejas que tienen texto pero empresa_usuaria_id en NULL
+  // NO se tocan, porque nadie confirmó todavía que sean esta empresa.
+  //
+  // Va después del UPDATE de la tabla y no antes para no reescribir órdenes si
+  // el nombre nuevo chocó con el índice único.
+  const { error: errorOrdenes } = await supabase
+    .from("ordenes_servicio")
+    .update({
+      nombre_empresa_usuaria: normalizado.nombre,
+      nit_empresa_usuaria: normalizado.nit,
+    })
+    .eq("empresa_usuaria_id", id);
+
+  if (errorOrdenes)
+    throw new Error(
+      `Se guardó la empresa, pero no se pudo actualizar su nombre en las órdenes: ${errorOrdenes.message}`,
+    );
 }
 
 export async function actualizarActivoEmpresaUsuariaRecord(

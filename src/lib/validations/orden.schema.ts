@@ -39,19 +39,14 @@ export const TIPO_SERVICIO_OPCIONES = [
   "N/A",
 ] as const;
 
-export const RESPONSABLES_OS = [
-  "Yulieth Amell",
-  "Bibiana Sarmiento",
-  "Daniela Rosso",
-  "Lucia Bejarano",
-  "Lina Amell",
-  "Tatiana Carrillo",
-  "Abigail Dorado",
-  "Johanna Reyes",
-] as const;
+// RESPONSABLES_OS ya no existe: la lista de responsables SEC dejó de ser una
+// constante (y un CHECK en la base) para pasar a la tabla `responsables_sec`,
+// que se administra desde /profesionales/responsables-sec. Quien necesite las
+// opciones las pide con getResponsablesSecParaSelect()
+// (lib/data/responsables-sec.ts) — ver la migración
+// 20260816001045_catalogo_responsables_sec.sql para el porqué.
 
 export type EstadoOrden = (typeof ESTADOS_ORDEN)[number];
-export type ResponsableOs = (typeof RESPONSABLES_OS)[number];
 
 export const ordenServicioSchema = z.object({
   cliente_id: z.number().int().positive(),
@@ -85,7 +80,19 @@ export const ordenServicioSchema = z.object({
   // `tarifa_valor_transporte` es character varying en la base real (no
   // numeric) — se guarda tal cual la escribe quien carga la orden.
   tarifa_valor_transporte: z.string().optional(),
-  responsable_os: z.enum(RESPONSABLES_OS).optional(),
+  // El responsable SEC se elige del catálogo `responsables_sec`
+  // (responsable_sec_id) y el nombre se copia de la opción elegida — el
+  // <Select> de OrdenCampos lo llena con setValue, no se escribe a mano.
+  // Mismo arreglo que empresa_usuaria_id: la FK es la fuente de verdad y
+  // responsable_os queda como copia denormalizada del nombre, que es lo que
+  // siguen leyendo el filtro del listado, el Excel de export y el PDF.
+  //
+  // responsable_os ya NO es un z.enum: la lista dejó de estar hardcodeada acá
+  // (y en un CHECK de la base) y ahora es una tabla. Validar contra el catálogo
+  // es tarea de la FK; lo que llegue en este campo sin un id al lado es texto
+  // de órdenes viejas o importadas.
+  responsable_sec_id: z.number().int().positive().optional(),
+  responsable_os: z.string().optional(),
   // Contraparte interna de observaciones_iniciales (que son del cliente):
   // lo que anota el responsable SEC de GS sobre la orden.
   observaciones_responsable_sec: z.string().optional(),

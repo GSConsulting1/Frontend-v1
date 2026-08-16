@@ -30,7 +30,13 @@ const RUTA = "/clientes/empresas-usuarias";
 
 function revalidar() {
   revalidatePath(RUTA);
-  revalidatePath("/ordenes");
+  // Con "layout" y no a secas: el <Combobox> de "Datos generales" sale de
+  // getEmpresasUsuariasParaSelect() y vive en /ordenes/nueva y
+  // /ordenes/[id]/editar, que son rutas hijas — sin "layout" el revalidate no
+  // baja hasta ellas y seguirían con el catálogo viejo en caché. Además
+  // renombrar una empresa reescribe el nombre/NIT de sus órdenes, y eso se ve
+  // en el listado.
+  revalidatePath("/ordenes", "layout");
 }
 
 function mensajeDeError(err: unknown, fallback: string): string {

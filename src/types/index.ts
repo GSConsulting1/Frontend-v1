@@ -32,6 +32,18 @@ export type ParticipanteArl =
 // tabla propia porque son personas distintas (staff administrativo, no
 // quien ejecuta la orden).
 export type Vobo = Database["public"]["Tables"]["vobo"]["Row"];
+// Catálogo de quién responde por una orden dentro de GS Group ("Responsable SEC
+// para GS"). Hasta la migración 20260816001045_catalogo_responsables_sec.sql
+// esto era un varchar con un CHECK de 8 nombres escritos a mano en el esquema;
+// ahora es tabla propia y `ordenes_servicio` la referencia por
+// `responsable_sec_id`. Distinta de `Vobo` (quien da el visto bueno) aunque
+// varias personas estén en las dos: son dos roles, no uno.
+export type ResponsableSec =
+  Database["public"]["Tables"]["responsables_sec"]["Row"];
+// Para el listado: la persona + cuántas órdenes la referencian. Mismo embedded
+// aggregate de PostgREST que EmpresaUsuariaConConteo, normalizado a number en
+// lib/data/responsables-sec.ts.
+export type ResponsableSecConConteo = ResponsableSec & { ordenes: number };
 export type OrdenServicio =
   Database["public"]["Tables"]["ordenes_servicio"]["Row"];
 

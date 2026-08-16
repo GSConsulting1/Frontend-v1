@@ -34,9 +34,16 @@ type AccionSeleccion = "exportar" | "eliminar" | null;
 type OrdenesListadoProps = {
   ordenes: OrdenServicioConRelaciones[];
   clientes: ClienteOption[];
+  // Nombres del catálogo de responsables SEC, para las opciones de ese filtro
+  // (ver ordenes-filtros.tsx).
+  responsablesSec: string[];
 };
 
-export function OrdenesListado({ ordenes, clientes }: OrdenesListadoProps) {
+export function OrdenesListado({
+  ordenes,
+  clientes,
+  responsablesSec,
+}: OrdenesListadoProps) {
   const [accionSeleccion, setAccionSeleccion] = useState<AccionSeleccion>(null);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [accionError, setAccionError] = useState<string | null>(null);
@@ -96,7 +103,7 @@ export function OrdenesListado({ ordenes, clientes }: OrdenesListadoProps) {
         }
       />
 
-      <OrdenesFiltros clientes={clientes} />
+      <OrdenesFiltros clientes={clientes} responsablesSec={responsablesSec} />
 
       <OrdenesTable
         ordenes={ordenes}

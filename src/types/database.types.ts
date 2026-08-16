@@ -564,6 +564,7 @@ export type Database = {
           observaciones_iniciales: string | null
           observaciones_responsable_sec: string | null
           responsable_os: string | null
+          responsable_sec_id: number | null
           secuencia: string | null
           tarifa_valor_transporte: string | null
           tipo_servicio: string | null
@@ -589,6 +590,7 @@ export type Database = {
           observaciones_iniciales?: string | null
           observaciones_responsable_sec?: string | null
           responsable_os?: string | null
+          responsable_sec_id?: number | null
           secuencia?: string | null
           tarifa_valor_transporte?: string | null
           tipo_servicio?: string | null
@@ -614,6 +616,7 @@ export type Database = {
           observaciones_iniciales?: string | null
           observaciones_responsable_sec?: string | null
           responsable_os?: string | null
+          responsable_sec_id?: number | null
           secuencia?: string | null
           tarifa_valor_transporte?: string | null
           tipo_servicio?: string | null
@@ -631,6 +634,13 @@ export type Database = {
             columns: ["empresa_usuaria_id"]
             isOneToOne: false
             referencedRelation: "empresas_usuarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordenes_servicio_responsable_sec_id_fkey"
+            columns: ["responsable_sec_id"]
+            isOneToOne: false
+            referencedRelation: "responsables_sec"
             referencedColumns: ["id"]
           },
         ]
@@ -738,6 +748,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      responsables_sec: {
+        Row: {
+          activo: boolean | null
+          celular: string | null
+          email: string | null
+          fecha_creacion: string | null
+          id: number
+          nombre_completo: string
+        }
+        Insert: {
+          activo?: boolean | null
+          celular?: string | null
+          email?: string | null
+          fecha_creacion?: string | null
+          id?: number
+          nombre_completo: string
+        }
+        Update: {
+          activo?: boolean | null
+          celular?: string | null
+          email?: string | null
+          fecha_creacion?: string | null
+          id?: number
+          nombre_completo?: string
+        }
+        Relationships: []
       }
       usuarios: {
         Row: {

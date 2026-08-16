@@ -12,6 +12,7 @@ import {
   type OrdenesFiltros,
 } from "@/lib/data/ordenes";
 import { getPerfilActual } from "@/lib/data/usuarios";
+import { getResponsablesSecTodos } from "@/lib/data/responsables-sec";
 
 export default async function OrdenesPage({
   searchParams,
@@ -70,14 +71,21 @@ export default async function OrdenesPage({
     filtros.profesionalEmail = perfil.email;
   }
 
-  const [ordenes, clientes] = await Promise.all([
+  const [ordenes, clientes, responsablesSec] = await Promise.all([
     getOrdenes(filtros),
     getClientesParaSelect(),
+    // Todos, no solo los activos: si alguien se marcó inactivo sus órdenes
+    // siguen en el listado y hay que poder filtrarlas por su nombre.
+    getResponsablesSecTodos(),
   ]);
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-10">
-      <OrdenesListado ordenes={ordenes} clientes={clientes} />
+      <OrdenesListado
+        ordenes={ordenes}
+        clientes={clientes}
+        responsablesSec={responsablesSec.map((r) => r.nombre_completo)}
+      />
     </div>
   );
 }
