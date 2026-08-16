@@ -10,10 +10,20 @@ import {
   getProfesionalesParaSelect,
 } from "@/lib/data/ordenes";
 import { getCatalogosInfoOrden } from "@/lib/data/info-orden";
+import { getEmpresasUsuariasParaSelect } from "@/lib/data/empresas-usuarias";
+import { getResponsablesSecParaSelect } from "@/lib/data/responsables-sec";
 
 export default async function NuevaOrdenPage() {
-  const [clientes, profesionales, catalogos] = await Promise.all([
+  const [
+    clientes,
+    empresasUsuarias,
+    responsablesSec,
+    profesionales,
+    catalogos,
+  ] = await Promise.all([
     getClientesParaSelect(),
+    getEmpresasUsuariasParaSelect(),
+    getResponsablesSecParaSelect(),
     getProfesionalesParaSelect(),
     getCatalogosInfoOrden(),
   ]);
@@ -24,6 +34,15 @@ export default async function NuevaOrdenPage() {
         mode="nueva"
         titulo="Nueva orden"
         clientes={clientes.map((c) => ({ id: c.id, label: c.nombre_cliente }))}
+        empresasUsuarias={empresasUsuarias.map((e) => ({
+          id: e.id,
+          label: e.nombre,
+          nit: e.nit,
+        }))}
+        responsablesSec={responsablesSec.map((r) => ({
+          id: r.id,
+          label: r.nombre_completo,
+        }))}
         profesionales={profesionales.map((p) => ({
           id: p.id,
           label: p.nombre_completo,

@@ -10,6 +10,7 @@
 import { PageHeader } from "@/components/layout/page-header";
 import { TableSkeleton } from "@/components/layout/table-skeleton";
 import { ToolbarSkeleton } from "@/components/layout/toolbar-skeleton";
+import { ProfesionalesTabs } from "@/components/profesionales/profesionales-tabs";
 
 export default function ProfesionalesLoading() {
   return (
@@ -18,6 +19,10 @@ export default function ProfesionalesLoading() {
         title="Profesionales"
         description="Equipo de profesionales que ejecuta las órdenes de servicio"
       />
+
+      {/* Las pestañas no dependen de datos, así que van reales (no esqueleto)
+          — igual que en page.tsx, para que no se muevan al cargar. */}
+      <ProfesionalesTabs />
 
       {/* space-y-4: el mismo espaciado interno que ProfesionalesListado */}
       <div className="space-y-4">

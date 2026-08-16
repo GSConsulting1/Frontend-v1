@@ -4,6 +4,7 @@ import {
   type Control,
   type FieldErrors,
   type UseFormRegister,
+  type UseFormSetValue,
   type UseFormWatch,
 } from "react-hook-form";
 import { Info } from "lucide-react";
@@ -14,13 +15,17 @@ import { algunoLleno } from "@/lib/utils";
 import type { OrdenInfoFormValues } from "@/components/ordenes/orden-form";
 
 type SelectOption = { id: number; label: string };
+type EmpresaUsuariaOption = SelectOption & { nit: string | null };
 
 export type SeccionDatosGeneralesProps = {
   register: UseFormRegister<OrdenInfoFormValues>;
   control: Control<OrdenInfoFormValues>;
   errors: FieldErrors<OrdenInfoFormValues>;
   watch: UseFormWatch<OrdenInfoFormValues>;
+  setValue: UseFormSetValue<OrdenInfoFormValues>;
   clientes: SelectOption[];
+  empresasUsuarias: EmpresaUsuariaOption[];
+  responsablesSec: SelectOption[];
   disabled: boolean;
   // Rol programador: no puede editar el resto de "Datos generales" (llega
   // con disabled=true) pero sí el campo "Observaciones del responsable SEC
@@ -40,7 +45,10 @@ export function SeccionDatosGenerales({
   control,
   errors,
   watch,
+  setValue,
   clientes,
+  empresasUsuarias,
+  responsablesSec,
   disabled,
   puedeEditarObservacionesSec,
   open,
@@ -76,7 +84,10 @@ export function SeccionDatosGenerales({
           register={register}
           control={control}
           errors={errors}
+          setValue={setValue}
           clientes={clientes}
+          empresasUsuarias={empresasUsuarias}
+          responsablesSec={responsablesSec}
           disabled={disabled}
           puedeEditarObservacionesSec={puedeEditarObservacionesSec}
         />

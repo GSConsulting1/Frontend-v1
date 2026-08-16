@@ -39,7 +39,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Info } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
@@ -100,6 +100,12 @@ type OrdenFormProps = {
   ordenId?: number;
   defaultValues?: Partial<OrdenInfoFormValues>;
   clientes: SelectOption[];
+  // Catálogo de "Datos generales": al elegir una, OrdenCampos copia su nombre
+  // y su NIT a las columnas de texto de la orden (ver orden-campos.tsx).
+  empresasUsuarias: (SelectOption & { nit: string | null })[];
+  // Catálogo de "Responsable SEC para GS": al elegir uno, OrdenCampos copia su
+  // nombre a la columna responsable_os de la orden (ver orden-campos.tsx).
+  responsablesSec: SelectOption[];
   // valorHora/cedula/telefono/email viajan acá para precargar "Valor hora
   // profesional" y mostrar cédula/celular/correo de solo lectura en
   // "Profesional y contacto en sitio" — ver SeccionValorHora /
@@ -127,6 +133,8 @@ export function OrdenForm({
   ordenId,
   defaultValues,
   clientes,
+  empresasUsuarias,
+  responsablesSec,
   profesionales,
   participantesArl,
   vobo,
@@ -176,7 +184,18 @@ export function OrdenForm({
     reset,
     formState: { errors, isSubmitting, isDirty },
   } = useForm<OrdenInfoFormValues>({
-    resolver: zodResolver(ordenInfoFormSchema),
+    // mode="nueva" solo guarda ordenServicioSchema (ver onSubmit -> createOrden
+    // más abajo): las secciones extendidas están deshabilitadas pero sus
+    // Controllers/register igual se montan (dentro del <fieldset disabled> de
+    // OrdenInfoSecciones), así que sin este resolver más laxo, un campo
+    // requerido de una sección extendida (ej. checklist.vobo_emitido) bloquea
+    // el guardado de una orden que ni siquiera existe todavía. En
+    // mode="existente" sí se valida todo, checklist incluido.
+    resolver: (
+      mode === "nueva"
+        ? zodResolver(ordenServicioSchema)
+        : zodResolver(ordenInfoFormSchema)
+    ) as Resolver<OrdenInfoFormValues>,
     defaultValues: { entregablesIds: [], ...defaultValues },
   });
 
@@ -306,7 +325,10 @@ export function OrdenForm({
           control={control}
           errors={errors}
           watch={watch}
+          setValue={setValue}
           clientes={clientes}
+          empresasUsuarias={empresasUsuarias}
+          responsablesSec={responsablesSec}
           disabled={!puedeEditarGeneral}
           puedeEditarObservacionesSec={puedeEditarObservacionesSec}
           open={seccionAbierta === "datos-generales"}

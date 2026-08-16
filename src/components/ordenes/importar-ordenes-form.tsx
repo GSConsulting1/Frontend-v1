@@ -15,6 +15,7 @@ import { useRef, useState, type DragEvent } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
+  Building2,
   CheckCircle2,
   FileSpreadsheet,
   FileUp,
@@ -52,8 +53,14 @@ type Paso = "subir" | "revisar" | "resultado";
 
 type ResultadoImport = {
   creadas: number;
+  // Empresas usuarias que no existían en el catálogo y se dieron de alta como
+  // parte de esta importación — se avisan en el paso "revisar" antes de
+  // confirmar y se cuentan acá al terminar.
+  empresasCreadas: number;
   fallidas: { fila: number; error: string }[];
 };
+
+type EmpresaNueva = { nombre: string; nit?: string | null };
 
 // Mismos valores que se muestran al usuario en el pie de la zona de carga —
 // si cambian, hay que subir también experimental.serverActions.bodySizeLimit
@@ -80,7 +87,12 @@ function formatearTamano(bytes: number): string {
 
 export type ImportarOrdenesFormProps = {
   clientes: SelectOption[];
-  clienteIdPredeterminado: number;
+  // Puede venir undefined: la página lo resuelve buscando al cliente por
+  // nombre y ese cliente no tiene por qué existir en todas las bases (ver
+  // app/ordenes/importar/page.tsx). Sin preselección, "Previsualizar" queda
+  // deshabilitado hasta que se elija uno — que es lo correcto, en vez de
+  // avanzar con un id inválido.
+  clienteIdPredeterminado?: number;
 };
 
 export function ImportarOrdenesForm({
@@ -97,6 +109,7 @@ export function ImportarOrdenesForm({
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filas, setFilas] = useState<FilaPreviewImportacion[]>([]);
+  const [empresasNuevas, setEmpresasNuevas] = useState<EmpresaNueva[]>([]);
   const [resultado, setResultado] = useState<ResultadoImport | null>(null);
   const inputArchivoRef = useRef<HTMLInputElement>(null);
 
@@ -140,6 +153,7 @@ export function ImportarOrdenesForm({
       return;
     }
     setFilas(respuesta.filas);
+    setEmpresasNuevas(respuesta.empresasNuevas);
     setPaso("revisar");
   }
 
@@ -147,7 +161,11 @@ export function ImportarOrdenesForm({
     setCargando(true);
     setError(null);
     const respuesta = await importarOrdenesDesdeExcel(
-      filasValidas.map((f) => ({ fila: f.fila, valores: f.valores })),
+      filasValidas.map((f) => ({
+        fila: f.fila,
+        valores: f.valores,
+        liquidacion: f.liquidacion,
+      })),
     );
     setCargando(false);
     setResultado(respuesta);
@@ -303,6 +321,36 @@ export function ImportarOrdenesForm({
           <p className="text-sm text-muted-foreground">
             {filasValidas.length} de {filas.length} filas listas para crear.
           </p>
+
+          {/* Las empresas usuarias que no están en el catálogo se crean al
+              importar. Se listan acá para que eso sea una decisión y no un
+              efecto secundario: si alguna es en realidad otra forma de
+              escribir una que ya existe, se corrige el Excel antes de
+              importar (después habría que unificarlas a mano). */}
+          {empresasNuevas.length > 0 && (
+            <div className="rounded-lg border border-border bg-muted/50 px-3 py-2.5 text-sm">
+              <p className="flex items-center gap-2 font-medium">
+                <Building2 className="size-4 shrink-0" aria-hidden />
+                {empresasNuevas.length === 1
+                  ? "Se va a crear 1 empresa usuaria nueva"
+                  : `Se van a crear ${empresasNuevas.length} empresas usuarias nuevas`}
+              </p>
+              <p className="mt-1 text-muted-foreground">
+                No están en el catálogo. Si alguna es otra forma de escribir
+                una que ya existe, cancelá, corregí el archivo y volvé a
+                subirlo — el resto de las filas ya quedaron apuntando a la
+                empresa que corresponde.
+              </p>
+              <ul className="mt-2 list-disc space-y-0.5 pl-5 text-muted-foreground">
+                {empresasNuevas.map((empresa) => (
+                  <li key={empresa.nombre}>
+                    {empresa.nombre}
+                    {empresa.nit ? ` — ${empresa.nit}` : ""}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <div className="overflow-x-auto rounded-lg border border-border">
             <Table>
               <TableHeader>
@@ -312,6 +360,7 @@ export function ImportarOrdenesForm({
                   <TableHead>Nit / Razón social</TableHead>
                   <TableHead>Cronograma</TableHead>
                   <TableHead>Tipo servicio</TableHead>
+                  <TableHead>Valor desplazamiento</TableHead>
                   <TableHead>Estado</TableHead>
                 </TableRow>
               </TableHeader>
@@ -327,6 +376,7 @@ export function ImportarOrdenesForm({
                     </TableCell>
                     <TableCell>{f.valores.cronograma ?? "—"}</TableCell>
                     <TableCell>{f.valores.tipo_servicio ?? "—"}</TableCell>
+                    <TableCell>{f.liquidacion?.valor_desplazamiento ?? "—"}</TableCell>
                     <TableCell>
                       {f.valida ? (
                         <span className="inline-flex items-center gap-1 text-sm text-emerald-600">
@@ -367,7 +417,17 @@ export function ImportarOrdenesForm({
       {paso === "resultado" && resultado && (
         <div className="space-y-4 rounded-lg border border-border p-4">
           <p className="text-sm">
-            Se crearon <strong>{resultado.creadas}</strong> órdenes.
+            Se crearon <strong>{resultado.creadas}</strong> órdenes
+            {resultado.empresasCreadas > 0 && (
+              <>
+                {" y "}
+                <strong>{resultado.empresasCreadas}</strong>
+                {resultado.empresasCreadas === 1
+                  ? " empresa usuaria nueva"
+                  : " empresas usuarias nuevas"}
+              </>
+            )}
+            .
           </p>
           {resultado.fallidas.length > 0 && (
             <div className="space-y-1 text-sm text-destructive">

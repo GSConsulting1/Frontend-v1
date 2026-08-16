@@ -212,6 +212,7 @@ export function OrdenInfoSecciones({
         control={control}
         errors={errors}
         watch={watch}
+        setValue={setValue}
         puedeVerFinanciera={puedeVerFinanciera}
         open={seccionAbierta === "facturacion"}
         onOpenChange={(open) => onToggleSeccion("facturacion", open)}

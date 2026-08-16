@@ -7,6 +7,19 @@
 import type { Database } from "./database.types";
 
 export type Cliente = Database["public"]["Tables"]["clientes"]["Row"];
+// La empresa donde se ejecuta el servicio, distinta del `Cliente` que lo
+// contrata y paga (una aseguradora puede contratar una orden para decenas de
+// empresas usuarias). Hasta la migración
+// 20260815123716_catalogo_empresas_usuarias.sql esto vivía como dos varchar
+// sueltos en cada orden; ahora es tabla propia y `ordenes_servicio` la
+// referencia por `empresa_usuaria_id`.
+export type EmpresaUsuaria =
+  Database["public"]["Tables"]["empresas_usuarias"]["Row"];
+// Para el listado: la empresa + cuántas órdenes la referencian. El conteo no
+// es una columna, sale de un embedded aggregate de PostgREST — se normaliza a
+// number en lib/data/empresas-usuarias.ts para que la UI no vea la forma
+// `{ ordenes_servicio: [{ count }] }` que devuelve Supabase.
+export type EmpresaUsuariaConConteo = EmpresaUsuaria & { ordenes: number };
 export type Profesional = Database["public"]["Tables"]["profesionales"]["Row"];
 // Catálogo fijo y separado de profesionales: equipo ARL/seguridad que firma
 // el detalle de entrega y el acta de servicio (ver participante_arl_id /
@@ -19,6 +32,18 @@ export type ParticipanteArl =
 // tabla propia porque son personas distintas (staff administrativo, no
 // quien ejecuta la orden).
 export type Vobo = Database["public"]["Tables"]["vobo"]["Row"];
+// Catálogo de quién responde por una orden dentro de GS Group ("Responsable SEC
+// para GS"). Hasta la migración 20260816001045_catalogo_responsables_sec.sql
+// esto era un varchar con un CHECK de 8 nombres escritos a mano en el esquema;
+// ahora es tabla propia y `ordenes_servicio` la referencia por
+// `responsable_sec_id`. Distinta de `Vobo` (quien da el visto bueno) aunque
+// varias personas estén en las dos: son dos roles, no uno.
+export type ResponsableSec =
+  Database["public"]["Tables"]["responsables_sec"]["Row"];
+// Para el listado: la persona + cuántas órdenes la referencian. Mismo embedded
+// aggregate de PostgREST que EmpresaUsuariaConConteo, normalizado a number en
+// lib/data/responsables-sec.ts.
+export type ResponsableSecConConteo = ResponsableSec & { ordenes: number };
 export type OrdenServicio =
   Database["public"]["Tables"]["ordenes_servicio"]["Row"];
 

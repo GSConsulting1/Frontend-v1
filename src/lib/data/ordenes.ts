@@ -40,18 +40,23 @@ export type OrdenesFiltros = {
   responsablesOs?: string[];
   secuencia?: string;
   cronograma?: number;
+  // Restringe el listado a las órdenes cuyo profesional asignado
+  // (info_orden_servicio.profesional_id -> profesionales.email) coincida con
+  // este correo. Lo usa app/ordenes/page.tsx para que un usuario no-admin
+  // solo vea sus propias órdenes (ver perfil.email en getPerfilActual()).
+  profesionalEmail?: string;
   // Filtran por solape: cualquier orden cuya ejecución (fecha_inicio_ejecucion
   // a fecha_fin_ejecucion, en info_orden_servicio) toque el rango pedido, no
   // solo las que empiecen/terminen exactamente dentro de él.
   fechaEjecucionDesde?: string;
   fechaEjecucionHasta?: string;
-  sortBy?: "numero_os_cliente" | "fecha_recepcion_os" | "secuencia";
+  sortBy?: "numero_os_cliente" | "fecha_sipab" | "secuencia";
   sortDir?: "asc" | "desc";
 };
 
 const COLUMNAS_ORDENABLES = new Set([
   "numero_os_cliente",
-  "fecha_recepcion_os",
+  "fecha_sipab",
   "secuencia",
 ]);
 
@@ -79,6 +84,7 @@ function normalizarInput(input: OrdenServicioFormValues) {
     estado: orNull(input.estado),
     numero_os_cliente: orNull(input.numero_os_cliente),
     fecha_recepcion_os: orNull(input.fecha_recepcion_os),
+    empresa_usuaria_id: input.empresa_usuaria_id ?? null,
     nombre_empresa_usuaria: orNull(input.nombre_empresa_usuaria),
     nit_empresa_usuaria: orNull(input.nit_empresa_usuaria),
     cronograma: input.cronograma ?? null,
@@ -90,6 +96,7 @@ function normalizarInput(input: OrdenServicioFormValues) {
     asesor_gestion_riesgos: orNull(input.asesor_gestion_riesgos),
     observaciones_iniciales: orNull(input.observaciones_iniciales),
     tarifa_valor_transporte: orNull(input.tarifa_valor_transporte),
+    responsable_sec_id: input.responsable_sec_id ?? null,
     responsable_os: orNull(input.responsable_os),
     observaciones_responsable_sec: orNull(input.observaciones_responsable_sec),
     link_archivo_orden: orNull(input.link_archivo_orden),
@@ -180,6 +187,19 @@ export async function getOrdenes(
     if (filtros.cronograma != null) {
       ordenes = ordenes.filter((o) => o.cronograma === filtros.cronograma);
     }
+    if (filtros.profesionalEmail) {
+      const needle = filtros.profesionalEmail.toLowerCase();
+      const profesional = mockProfesionales.find(
+        (p) => (p.email ?? "").toLowerCase() === needle,
+      );
+      ordenes = profesional
+        ? ordenes.filter((o) =>
+            mockInfoOrdenServicio.some(
+              (i) => i.orden_id === o.id && i.profesional_id === profesional.id,
+            ),
+          )
+        : [];
+    }
     if (filtros.fechaEjecucionDesde || filtros.fechaEjecucionHasta) {
       ordenes = ordenes.filter((o) => {
         const info = mockInfoOrdenServicio.find((i) => i.orden_id === o.id);
@@ -212,14 +232,31 @@ export async function getOrdenes(
   }
   const supabase = await createSupabaseServerClient();
 
+  // Resuelve el profesional dueño del email pedido *antes* de armar el
+  // select: si no existe ningún profesional con ese correo, el usuario no
+  // tiene ninguna orden asignada y se corta acá (evita un !inner que de
+  // todos modos filtraría todo, pero sin ida y vuelta extra a Supabase).
+  let profesionalIdFiltro: number | null = null;
+  if (filtros.profesionalEmail) {
+    const { data: profesional } = await supabase
+      .from("profesionales")
+      .select("id")
+      .eq("email", filtros.profesionalEmail)
+      .maybeSingle();
+    profesionalIdFiltro = profesional?.id ?? null;
+    if (profesionalIdFiltro == null) return [];
+  }
+
   // info_orden_servicio solo se joinea (y con !inner) cuando de verdad se
-  // filtra por fecha de ejecución: un !inner incondicional excluiría del
-  // listado cualquier orden que todavía no tenga esa info cargada.
+  // filtra por fecha de ejecución o por profesional asignado: un !inner
+  // incondicional excluiría del listado cualquier orden que todavía no
+  // tenga esa info cargada.
   const filtraPorEjecucion = Boolean(
     filtros.fechaEjecucionDesde || filtros.fechaEjecucionHasta,
   );
-  const select = filtraPorEjecucion
-    ? "*, cliente:clientes(id, nombre_cliente), checklist:checklist_proceso(estado_ejecucion:estados_ejecucion(id, nombre)), info_orden_servicio!inner(fecha_inicio_ejecucion, fecha_fin_ejecucion)"
+  const requiereInfoOrden = filtraPorEjecucion || profesionalIdFiltro != null;
+  const select = requiereInfoOrden
+    ? "*, cliente:clientes(id, nombre_cliente), checklist:checklist_proceso(estado_ejecucion:estados_ejecucion(id, nombre)), info_orden_servicio!inner(fecha_inicio_ejecucion, fecha_fin_ejecucion, profesional_id)"
     : "*, cliente:clientes(id, nombre_cliente), checklist:checklist_proceso(estado_ejecucion:estados_ejecucion(id, nombre))";
 
   const sortBy =
@@ -239,6 +276,9 @@ export async function getOrdenes(
   if (filtros.hasta) query = query.lte("fecha_recepcion_os", filtros.hasta);
   if (filtros.cronograma != null)
     query = query.eq("cronograma", filtros.cronograma);
+  if (profesionalIdFiltro != null) {
+    query = query.eq("info_orden_servicio.profesional_id", profesionalIdFiltro);
+  }
   if (filtros.fechaEjecucionHasta) {
     query = query.lte(
       "info_orden_servicio.fecha_inicio_ejecucion",

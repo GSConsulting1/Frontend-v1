@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Controller,
   type Control,
   type FieldErrors,
   type UseFormRegister,
@@ -9,7 +10,15 @@ import {
 import { FormField } from "@/components/forms/form-field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { SeccionAcordeon } from "@/components/ui/seccion-acordeon";
+import { ESTADO_IMAGINE_OPCIONES } from "@/lib/validations/info-orden.schema";
 import { algunoLleno } from "@/lib/utils";
 import type { OrdenInfoFormValues } from "@/components/ordenes/orden-form";
 
@@ -37,6 +46,7 @@ export type SeccionRadicacionImagineProps = {
 // la asociación <label for>. De ahí `fecha_corte_imagine`.
 export function SeccionRadicacionImagine({
   register,
+  control,
   watch,
   puedeVerFinanciera,
   open,
@@ -105,9 +115,40 @@ export function SeccionRadicacionImagine({
           />
         </FormField>
         <FormField label="Estado en Imagine" htmlFor="estado_imagine">
-          <Input
-            id="estado_imagine"
-            {...register("radicacionImagine.estado_imagine")}
+          <Controller
+            name="radicacionImagine.estado_imagine"
+            control={control}
+            // Fallback para mode="nueva" (sin defaultValues aún, ver
+            // orden-form.tsx): mismo motivo que el defaultValue de
+            // estado_ejecucion_id en checklist.tsx. En mode="existente" no
+            // pisa nada porque editar/page.tsx ya manda un valor explícito
+            // en defaultValues, que RHF prioriza sobre este.
+            defaultValue="Pendiente de radicar"
+            render={({ field }) => (
+              <Select
+                value={field.value ?? null}
+                onValueChange={(v: string | null) =>
+                  field.onChange(
+                    v as (typeof ESTADO_IMAGINE_OPCIONES)[number] | undefined,
+                  )
+                }
+                items={ESTADO_IMAGINE_OPCIONES.map((o) => ({
+                  label: o,
+                  value: o,
+                }))}
+              >
+                <SelectTrigger id="estado_imagine" className="w-full">
+                  <SelectValue placeholder="Selecciona un estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ESTADO_IMAGINE_OPCIONES.map((o) => (
+                    <SelectItem key={o} value={o}>
+                      {o}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           />
         </FormField>
         <FormField label="Actualización SIPAB" htmlFor="actualizacion_sipab">

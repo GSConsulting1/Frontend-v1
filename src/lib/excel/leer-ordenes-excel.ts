@@ -12,14 +12,16 @@
 // app/ordenes/actions.ts), nunca desde código de cliente.
 
 import ExcelJS from "exceljs";
-import {
-  RESPONSABLES_OS,
-  type OrdenServicioFormValues,
-} from "@/lib/validations/orden.schema";
+import type { OrdenServicioFormValues } from "@/lib/validations/orden.schema";
+import type { LiquidacionFormValues } from "@/lib/validations/info-orden.schema";
 
 export type FilaExcelOrden = {
   fila: number;
   valores: Partial<OrdenServicioFormValues>;
+  // valor_desplazamiento vive en `liquidacion` (tabla 1-a-1 aparte, no
+  // ordenes_servicio) — por eso no entra en COLUMNAS_IMPORTAR/CampoImportable
+  // de abajo, que solo cubren columnas de OrdenServicioFormValues.
+  liquidacion?: Partial<LiquidacionFormValues>;
 };
 
 type CampoImportable = keyof Omit<OrdenServicioFormValues, "cliente_id">;
@@ -44,6 +46,12 @@ const COLUMNAS_IMPORTAR: Record<string, CampoImportable> = {
   observaciones: "observaciones_iniciales",
   "autoriza viaticos": "tarifa_valor_transporte",
 };
+
+// Columna aparte de COLUMNAS_IMPORTAR: escribe en `liquidacion.valor_desplazamiento`
+// (tabla 1-a-1 con orden_id, no en ordenes_servicio), así que se resuelve por
+// fuera del mapa CampoImportable de arriba — ver el bloque final de
+// leerOrdenesDesdeExcel.
+const COLUMNA_VALOR_DESPLAZAMIENTO = "valor desplazamiento";
 
 const CAMPOS_NUMERICOS = new Set<CampoImportable>(["cronograma", "horas_cargadas"]);
 const CAMPOS_FECHA = new Set<CampoImportable>(["fecha_sipab", "fecha_recepcion_os"]);
@@ -148,37 +156,51 @@ function tokenizar(valor: string): string[] {
 }
 
 // Match tolerante a nombres/apellidos de más (ej. "Yulieth Andrea Amell
-// Gonzalez" sigue matcheando a "Yulieth Amell"): un responsable de
-// RESPONSABLES_OS coincide si todos sus tokens están contenidos en los
-// tokens de la celda. Si hay 0 o 2+ coincidencias (p. ej. "Amell" solo,
-// ambiguo entre Yulieth Amell y Lina Amell) se devuelve el texto crudo sin
-// normalizar en vez de un match adivinado: como no es ninguno de los
-// valores de RESPONSABLES_OS, ordenServicioSchema.safeParse lo rechaza (es
-// un z.enum) y la fila queda marcada inválida en la previsualización en vez
-// de asignarse en silencio a la persona equivocada.
-function celdaResponsableOs(valor: unknown): string | undefined {
+// Gonzalez" sigue matcheando a "Yulieth Amell"): un responsable del catálogo
+// coincide si todos sus tokens están contenidos en los tokens de la celda. Si
+// hay 0 o 2+ coincidencias (p. ej. "Amell" solo, ambiguo entre Yulieth Amell y
+// Lina Amell) se devuelve el texto crudo sin normalizar en vez de un match
+// adivinado: la previsualización no lo va a poder resolver contra el catálogo y
+// la fila queda marcada inválida, en vez de asignarse en silencio a la persona
+// equivocada.
+//
+// `responsables` son los nombres de la tabla `responsables_sec`, que llegan
+// desde app/ordenes/actions.ts. Antes eran la constante RESPONSABLES_OS; desde
+// la migración 20260816001045_catalogo_responsables_sec.sql la lista es una
+// tabla que se administra desde /profesionales/responsables-sec, así que este
+// parser ya no puede tenerla hardcodeada.
+function celdaResponsableOs(
+  valor: unknown,
+  responsables: string[],
+): string | undefined {
   const texto = celdaTexto(valor);
   if (!texto) return undefined;
 
   const tokensCelda = new Set(tokenizar(texto));
-  const coincidencias = RESPONSABLES_OS.filter((nombre) =>
+  const coincidencias = responsables.filter((nombre) =>
     tokenizar(nombre).every((token) => tokensCelda.has(token)),
   );
 
   return coincidencias.length === 1 ? coincidencias[0] : texto;
 }
 
-function extraerValor(campo: CampoImportable, valorCelda: unknown) {
+function extraerValor(
+  campo: CampoImportable,
+  valorCelda: unknown,
+  responsables: string[],
+) {
   const resuelto = resolverValorCelda(valorCelda);
   if (CAMPOS_FECHA.has(campo)) return celdaFecha(resuelto);
   if (campo === "tipo_servicio") return celdaTipoServicio(resuelto);
-  if (campo === "responsable_os") return celdaResponsableOs(resuelto);
+  if (campo === "responsable_os")
+    return celdaResponsableOs(resuelto, responsables);
   if (CAMPOS_NUMERICOS.has(campo)) return celdaNumero(resuelto);
   return celdaTexto(resuelto);
 }
 
 export async function leerOrdenesDesdeExcel(
   buffer: Buffer,
+  responsables: string[],
 ): Promise<FilaExcelOrden[]> {
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(buffer as unknown as ArrayBuffer);
@@ -186,9 +208,12 @@ export async function leerOrdenesDesdeExcel(
   if (!hoja) return [];
 
   const indicePorCampo = new Map<CampoImportable, number>();
+  let indiceValorDesplazamiento: number | undefined;
   hoja.getRow(1).eachCell((cell, colNumber) => {
-    const campo = COLUMNAS_IMPORTAR[normalizarTexto(cell.value)];
+    const encabezado = normalizarTexto(cell.value);
+    const campo = COLUMNAS_IMPORTAR[encabezado];
     if (campo) indicePorCampo.set(campo, colNumber);
+    if (encabezado === COLUMNA_VALOR_DESPLAZAMIENTO) indiceValorDesplazamiento = colNumber;
   });
 
   const filas: FilaExcelOrden[] = [];
@@ -197,14 +222,27 @@ export async function leerOrdenesDesdeExcel(
 
     const valores: Partial<OrdenServicioFormValues> = {};
     for (const [campo, colNumber] of indicePorCampo) {
-      const valor = extraerValor(campo, row.getCell(colNumber).value);
+      const valor = extraerValor(
+        campo,
+        row.getCell(colNumber).value,
+        responsables,
+      );
       if (valor !== undefined) {
         (valores as Record<string, unknown>)[campo] = valor;
       }
     }
 
-    if (Object.keys(valores).length > 0) {
-      filas.push({ fila: rowNumber, valores });
+    const valorDesplazamiento =
+      indiceValorDesplazamiento != null
+        ? celdaNumero(resolverValorCelda(row.getCell(indiceValorDesplazamiento).value))
+        : undefined;
+    const liquidacion =
+      valorDesplazamiento !== undefined
+        ? { valor_desplazamiento: valorDesplazamiento }
+        : undefined;
+
+    if (Object.keys(valores).length > 0 || liquidacion) {
+      filas.push({ fila: rowNumber, valores, liquidacion });
     }
   });
 
