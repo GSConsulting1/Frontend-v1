@@ -11,7 +11,6 @@ import {
   getClientesParaSelect,
   type OrdenesFiltros,
 } from "@/lib/data/ordenes";
-import { getPerfilActual } from "@/lib/data/usuarios";
 import { getResponsablesSecTodos } from "@/lib/data/responsables-sec";
 
 export default async function OrdenesPage({
@@ -60,16 +59,6 @@ export default async function OrdenesPage({
     sortBy,
     sortDir: params.dir === "asc" ? ("asc" as const) : ("desc" as const),
   };
-
-  // No-administradores solo ven las órdenes de su propio profesional
-  // (cruce por email contra profesionales.email vía
-  // info_orden_servicio.profesional_id) — ver getOrdenes() en lib/data/ordenes.ts.
-  // getPerfilActual() devuelve null sin sesión real (o en modo mock sin
-  // Supabase configurado), así que ahí no se restringe nada.
-  const perfil = await getPerfilActual();
-  if (perfil && perfil.rol !== "administrador" && perfil.email) {
-    filtros.profesionalEmail = perfil.email;
-  }
 
   const [ordenes, clientes, responsablesSec] = await Promise.all([
     getOrdenes(filtros),
