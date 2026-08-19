@@ -8,7 +8,7 @@
 // getResponsablesSecParaSelect(), y ese formulario vive en /ordenes/nueva y
 // /ordenes/[id]/editar — un revalidatePath sin "layout" solo alcanzaría a
 // /ordenes y esas dos seguirían con el catálogo viejo en caché. El listado de
-// /ordenes también lo necesita: renombrar a alguien reescribe el
+// /ordenes también lo necesita: cambiarle el email a una casilla reescribe el
 // `responsable_os` de sus órdenes (ver lib/data/responsables-sec.ts) y esa
 // columna se ve en la tabla y en el filtro.
 

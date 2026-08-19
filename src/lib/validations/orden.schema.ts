@@ -81,11 +81,16 @@ export const ordenServicioSchema = z.object({
   // numeric) — se guarda tal cual la escribe quien carga la orden.
   tarifa_valor_transporte: z.string().optional(),
   // El responsable SEC se elige del catálogo `responsables_sec`
-  // (responsable_sec_id) y el nombre se copia de la opción elegida — el
+  // (responsable_sec_id) y el EMAIL se copia de la opción elegida — el
   // <Select> de OrdenCampos lo llena con setValue, no se escribe a mano.
   // Mismo arreglo que empresa_usuaria_id: la FK es la fuente de verdad y
-  // responsable_os queda como copia denormalizada del nombre, que es lo que
+  // responsable_os queda como copia denormalizada del email, que es lo que
   // siguen leyendo el filtro del listado, el Excel de export y el PDF.
+  //
+  // El nombre del responsable NO viaja por acá y no debería volver a hacerlo:
+  // desde 20260819012529_responsables_sec_identidad_por_email.sql la identidad
+  // de una casilla es su email, entre otras cosas porque tres personas
+  // distintas compartían una sola.
   //
   // responsable_os ya NO es un z.enum: la lista dejó de estar hardcodeada acá
   // (y en un CHECK de la base) y ahora es una tabla. Validar contra el catálogo

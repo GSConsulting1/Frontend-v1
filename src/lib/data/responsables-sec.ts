@@ -6,14 +6,19 @@
 // 20260816001045_catalogo_responsables_sec.sql tenía la lista de nombres
 // escrita a mano en el esquema — ver esa migración para el porqué.
 //
+// La identidad de un responsable es su EMAIL, no su nombre (ver
+// 20260819012529_responsables_sec_identidad_por_email.sql): es lo único que esta
+// tabla comparte con `public.usuarios`. El nombre quedó como etiqueta del ABM y
+// no se lee desde ninguna otra pantalla.
+//
 // Dos errores de Postgres se traducen acá a mensajes que se entiendan en
 // pantalla, porque los dos son casos ESPERABLES de esta pantalla y no bugs:
 //
-//   23505 (unique_violation) — el índice único es sobre el nombre NORMALIZADO
-//     (trim + espacios colapsados + mayúsculas, ver la migración), así que dar
-//     de alta "lucia  bejarano" cuando ya existe "Lucia Bejarano" choca aunque
-//     el texto no sea idéntico. Sin traducir, el mensaje habla de un índice por
-//     expresión y no dice nada.
+//   23505 (unique_violation) — el índice único es sobre el email NORMALIZADO
+//     (lower + trim, ver la migración), así que dar de alta
+//     " Gerencia@GSGroupSAS.com " cuando ya existe "gerencia@gsgroupsas.com"
+//     choca aunque el texto no sea idéntico. Sin traducir, el mensaje habla de
+//     un índice por expresión y no dice nada.
 //   23503 (foreign_key_violation) — ordenes_servicio.responsable_sec_id no
 //     tiene ON DELETE CASCADE: alguien con órdenes a cargo no se puede borrar.
 //     Mismo criterio y mismo mensaje que lib/data/vobo.ts.
@@ -33,24 +38,27 @@ const UNIQUE_VIOLATION = "23505";
 const FK_VIOLATION = "23503";
 
 const MSG_DUPLICADO =
-  "Ya existe un responsable con ese nombre (se comparan sin distinguir mayúsculas ni espacios de más).";
+  "Ya existe un responsable con ese email (se comparan sin distinguir mayúsculas ni espacios de más).";
 const MSG_CON_ORDENES =
-  "No se puede eliminar: la persona tiene órdenes de servicio a cargo. Marcala como inactiva en su lugar.";
+  "No se puede eliminar: la casilla tiene órdenes de servicio a cargo. Marcala como inactiva en su lugar.";
 
 // La misma normalización que usa el índice único de la migración
-// (btrim + espacios colapsados + upper). Se exporta porque la importación de
-// órdenes desde Excel resuelve el nombre del archivo contra el catálogo con el
-// mismo criterio con el que la base decide si dos nombres son "el mismo".
-export function normalizarNombreResponsable(nombre: string): string {
-  return nombre.trim().replace(/\s+/g, " ").toUpperCase();
+// (lower + btrim). Se exporta porque la importación de órdenes desde Excel
+// resuelve el email del archivo contra el catálogo con el mismo criterio con el
+// que la base decide si dos emails son "el mismo".
+export function normalizarEmailResponsable(email: string): string {
+  return email.trim().toLowerCase();
 }
 
-const normalizar = normalizarNombreResponsable;
+const normalizar = normalizarEmailResponsable;
 
 function normalizarInput(input: ResponsableSecFormValues) {
   return {
     nombre_completo: input.nombre_completo,
-    email: input.email || null,
+    // El email ya viene en minúsculas y sin espacios desde el schema (que lo
+    // transforma, no solo lo valida). No lleva `|| null`: es NOT NULL en la
+    // base y obligatorio en el schema.
+    email: input.email,
     celular: input.celular || null,
   };
 }
@@ -59,14 +67,14 @@ function contarOrdenesMock(persona: ResponsableSec): number {
   return mockOrdenes.filter(
     (o) =>
       o.responsable_os != null &&
-      normalizar(o.responsable_os) === normalizar(persona.nombre_completo),
+      normalizar(o.responsable_os) === normalizar(persona.email),
   ).length;
 }
 
 export async function getResponsablesSec(): Promise<ResponsableSecConConteo[]> {
   if (!isSupabaseConfigured) {
     return [...mockResponsablesSec]
-      .sort((a, b) => a.nombre_completo.localeCompare(b.nombre_completo))
+      .sort((a, b) => a.email.localeCompare(b.email))
       .map((p) => ({ ...p, ordenes: contarOrdenesMock(p) }));
   }
   const supabase = await createSupabaseServerClient();
@@ -74,7 +82,7 @@ export async function getResponsablesSec(): Promise<ResponsableSecConConteo[]> {
   const { data, error } = await supabase
     .from("responsables_sec")
     .select("*, ordenes_servicio(count)")
-    .order("nombre_completo");
+    .order("email");
 
   if (error)
     throw new Error(
@@ -89,36 +97,38 @@ export async function getResponsablesSec(): Promise<ResponsableSecConConteo[]> {
   });
 }
 
-export type ResponsableSecOpcion = { id: number; nombre_completo: string };
+// Solo el email: es lo que se muestra en el <Select>, en el filtro, en el Excel
+// y en el PDF, y también con lo que se resuelve una celda de importación. El
+// nombre no viaja a propósito — quien lo pida desde una de esas pantallas
+// probablemente esté volviendo a identificar por nombre.
+export type ResponsableSecOpcion = { id: number; email: string };
 
 // Catálogo para el <Select> "Responsable SEC para GS" del formulario de órdenes
 // (ver components/ordenes/orden-campos.tsx) y para las opciones del filtro del
 // listado.
 //
 // `incluirId` es para la pantalla de edición: la lista son los ACTIVOS, pero si
-// la orden que se está editando apunta a alguien que se marcó inactivo después,
-// hay que incluirlo igual o el campo aparecería vacío y guardar la orden le
-// borraría el vínculo sin que nadie lo pidiera.
+// la orden que se está editando apunta a una casilla que se marcó inactiva
+// después, hay que incluirla igual o el campo aparecería vacío y guardar la
+// orden le borraría el vínculo sin que nadie lo pidiera.
 export async function getResponsablesSecParaSelect(
   incluirId?: number | null,
 ): Promise<ResponsableSecOpcion[]> {
   if (!isSupabaseConfigured) {
     return mockResponsablesSec
       .filter((p) => p.activo || p.id === incluirId)
-      .sort((a, b) => a.nombre_completo.localeCompare(b.nombre_completo))
-      .map((p) => ({ id: p.id, nombre_completo: p.nombre_completo }));
+      .sort((a, b) => a.email.localeCompare(b.email))
+      .map((p) => ({ id: p.id, email: p.email }));
   }
   const supabase = await createSupabaseServerClient();
 
-  const query = supabase
-    .from("responsables_sec")
-    .select("id, nombre_completo");
+  const query = supabase.from("responsables_sec").select("id, email");
 
   const { data, error } = await (
     incluirId != null
       ? query.or(`activo.eq.true,id.eq.${incluirId}`)
       : query.eq("activo", true)
-  ).order("nombre_completo");
+  ).order("email");
 
   if (error)
     throw new Error(
@@ -130,33 +140,29 @@ export async function getResponsablesSecParaSelect(
 // Catálogo COMPLETO —inactivos incluidos—, para los dos lugares donde no
 // alcanza con los activos:
 //
-//   * las opciones del filtro "Responsable SEC" del listado de órdenes: si
-//     alguien se marcó inactivo, sus órdenes siguen existiendo y hay que poder
+//   * las opciones del filtro "Responsable SEC" del listado de órdenes: si una
+//     casilla se marcó inactiva, sus órdenes siguen existiendo y hay que poder
 //     filtrarlas;
-//   * resolver los nombres sueltos que trae un Excel de importación, donde un
-//     archivo de órdenes viejas puede nombrar a alguien que ya no está en el
-//     equipo.
+//   * resolver los emails sueltos que trae un Excel de importación, donde un
+//     archivo de órdenes viejas puede nombrar una casilla que ya no está en uso.
 //
 // A diferencia de empresas usuarias, la importación NO da de alta a nadie: si
-// el nombre del archivo no resuelve contra este catálogo, la fila queda marcada
+// el email del archivo no resuelve contra este catálogo, la fila queda marcada
 // como inválida en la previsualización (ver app/ordenes/actions.ts). Las
-// personas se dan de alta solo desde /profesionales/responsables-sec — un typo
-// del Excel no debería crear un empleado fantasma.
+// casillas se dan de alta solo desde /profesionales/responsables-sec — un typo
+// del Excel no debería crear un responsable fantasma.
 export async function getResponsablesSecTodos(): Promise<
   ResponsableSecOpcion[]
 > {
   if (!isSupabaseConfigured) {
-    return mockResponsablesSec.map((p) => ({
-      id: p.id,
-      nombre_completo: p.nombre_completo,
-    }));
+    return mockResponsablesSec.map((p) => ({ id: p.id, email: p.email }));
   }
   const supabase = await createSupabaseServerClient();
 
   const { data, error } = await supabase
     .from("responsables_sec")
-    .select("id, nombre_completo")
-    .order("nombre_completo");
+    .select("id, email")
+    .order("email");
 
   if (error)
     throw new Error(
@@ -172,9 +178,7 @@ export async function crearResponsableSecRecord(
 
   if (!isSupabaseConfigured) {
     const yaExiste = mockResponsablesSec.some(
-      (p) =>
-        normalizar(p.nombre_completo) ===
-        normalizar(normalizado.nombre_completo),
+      (p) => normalizar(p.email) === normalizar(normalizado.email),
     );
     if (yaExiste) throw new Error(MSG_DUPLICADO);
 
@@ -213,10 +217,7 @@ export async function actualizarResponsableSecRecord(
     const index = mockResponsablesSec.findIndex((p) => p.id === id);
     if (index === -1) throw new Error("Responsable SEC no encontrado");
     const chocaConOtro = mockResponsablesSec.some(
-      (p) =>
-        p.id !== id &&
-        normalizar(p.nombre_completo) ===
-          normalizar(normalizado.nombre_completo),
+      (p) => p.id !== id && normalizar(p.email) === normalizar(normalizado.email),
     );
     if (chocaConOtro) throw new Error(MSG_DUPLICADO);
 
@@ -225,9 +226,9 @@ export async function actualizarResponsableSecRecord(
     for (const orden of mockOrdenes) {
       if (
         orden.responsable_os != null &&
-        normalizar(orden.responsable_os) === normalizar(anterior.nombre_completo)
+        normalizar(orden.responsable_os) === normalizar(anterior.email)
       ) {
-        orden.responsable_os = normalizado.nombre_completo;
+        orden.responsable_os = normalizado.email;
       }
     }
     return;
@@ -246,20 +247,20 @@ export async function actualizarResponsableSecRecord(
     );
   }
 
-  // ordenes_servicio.responsable_os es una copia denormalizada del nombre (la
+  // ordenes_servicio.responsable_os es una copia denormalizada del EMAIL (la
   // siguen leyendo el filtro del listado, el Excel de export y el PDF), así que
-  // un rename que no la actualice deja al equipo con dos nombres para la misma
-  // persona y las órdenes viejas fuera del filtro. Va después del UPDATE de la
-  // tabla y no antes para no reescribir órdenes si el nombre chocó con el
+  // cambiar el email sin actualizarla deja al equipo con dos direcciones para la
+  // misma casilla y las órdenes viejas fuera del filtro. Va después del UPDATE
+  // de la tabla y no antes para no reescribir órdenes si el email chocó con el
   // índice único.
   const { error: errorOrdenes } = await supabase
     .from("ordenes_servicio")
-    .update({ responsable_os: normalizado.nombre_completo })
+    .update({ responsable_os: normalizado.email })
     .eq("responsable_sec_id", id);
 
   if (errorOrdenes)
     throw new Error(
-      `Se guardó el responsable, pero no se pudo actualizar su nombre en las órdenes: ${errorOrdenes.message}`,
+      `Se guardó el responsable, pero no se pudo actualizar su email en las órdenes: ${errorOrdenes.message}`,
     );
 }
 

@@ -250,7 +250,7 @@ export default async function EditarOrdenPage({
         }))}
         responsablesSec={responsablesSec.map((r) => ({
           id: r.id,
-          label: r.nombre_completo,
+          label: r.email,
         }))}
         profesionales={profesionales.map((p) => ({
           id: p.id,
