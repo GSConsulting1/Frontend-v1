@@ -753,7 +753,7 @@ export type Database = {
         Row: {
           activo: boolean | null
           celular: string | null
-          email: string | null
+          email: string
           fecha_creacion: string | null
           id: number
           nombre_completo: string
@@ -761,7 +761,7 @@ export type Database = {
         Insert: {
           activo?: boolean | null
           celular?: string | null
-          email?: string | null
+          email: string
           fecha_creacion?: string | null
           id?: number
           nombre_completo: string
@@ -769,7 +769,7 @@ export type Database = {
         Update: {
           activo?: boolean | null
           celular?: string | null
-          email?: string | null
+          email?: string
           fecha_creacion?: string | null
           id?: number
           nombre_completo?: string

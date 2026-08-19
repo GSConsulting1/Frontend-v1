@@ -61,7 +61,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { ResponsableSec, ResponsableSecConConteo } from "@/types";
 
-// Nombre, Email, Celular, Órdenes, Estado, Acciones (la de checkbox se suma
+// Email, Nombre, Celular, Órdenes, Estado, Acciones (la de checkbox se suma
 // aparte).
 const COLUMNAS_BASE = 6;
 
@@ -168,8 +168,8 @@ export function ResponsablesSecTable({
                 />
               </TableHead>
             )}
-            <TableHead>Nombre</TableHead>
             <TableHead>Email</TableHead>
+            <TableHead>Nombre</TableHead>
             <TableHead>Celular</TableHead>
             <TableHead className="text-right">Órdenes</TableHead>
             <TableHead className="text-right">Estado</TableHead>
@@ -215,16 +215,18 @@ export function ResponsablesSecTable({
                     <input
                       type="checkbox"
                       className="size-4 rounded border-input accent-foreground"
-                      aria-label={`Seleccionar a ${persona.nombre_completo}`}
+                      aria-label={`Seleccionar ${persona.email}`}
                       checked={selectedIds.has(persona.id)}
                       onChange={() => onToggle(persona.id)}
                     />
                   </TableCell>
                 )}
                 <TableCell className="whitespace-normal font-medium">
+                  {persona.email}
+                </TableCell>
+                <TableCell className="whitespace-normal">
                   {persona.nombre_completo}
                 </TableCell>
-                <TableCell>{persona.email ?? "—"}</TableCell>
                 <TableCell>{persona.celular ?? "—"}</TableCell>
                 <TableCell className="text-right tabular-nums">
                   {persona.ordenes}
@@ -241,7 +243,7 @@ export function ResponsablesSecTable({
                         <Button
                           variant="ghost"
                           size="icon-sm"
-                          aria-label={`Acciones de ${persona.nombre_completo}`}
+                          aria-label={`Acciones de ${persona.email}`}
                           disabled={selectionMode || isDeleting || isToggling}
                         >
                           <MoreHorizontal className="size-4" />
@@ -291,9 +293,9 @@ export function ResponsablesSecTable({
             <AlertDialogDescription>
               {pendienteEliminar && (
                 <>
-                  ¿Eliminar a{" "}
+                  ¿Eliminar{" "}
                   <strong className="text-foreground">
-                    {pendienteEliminar.nombre_completo}
+                    {pendienteEliminar.email}
                   </strong>
                   ? Esta acción no se puede deshacer.
                 </>
@@ -338,7 +340,7 @@ function EditarResponsableSecRow({
     resolver: zodResolver(responsableSecSchema),
     defaultValues: {
       nombre_completo: persona.nombre_completo,
-      email: persona.email ?? "",
+      email: persona.email,
       celular: persona.celular ?? "",
     },
   });
@@ -384,13 +386,15 @@ function EditarResponsableSecRow({
             </p>
           )}
 
-          {/* Cambiar el nombre acá también lo reescribe en las órdenes que esta
-              persona tiene a cargo (ver lib/data/responsables-sec.ts): la
-              columna responsable_os del listado es una copia del nombre, y sin
-              eso quedarían dos nombres para la misma persona. */}
+          {/* Cambiar el email acá también lo reescribe en las órdenes que esta
+              casilla tiene a cargo (ver lib/data/responsables-sec.ts): la
+              columna responsable_os del listado es una copia del email, y sin
+              eso quedarían dos direcciones para la misma casilla y las órdenes
+              viejas fuera del filtro. El nombre no se propaga: no lo lee nadie
+              fuera de esta pantalla. */}
           <p className="text-sm text-muted-foreground sm:col-span-2">
-            Si cambiás el nombre, se actualiza también en las órdenes de
-            servicio que tenga a cargo.
+            Si cambiás el email, se actualiza también en las órdenes de servicio
+            que tenga a cargo.
           </p>
 
           <div className="flex justify-end gap-2 sm:col-span-2">

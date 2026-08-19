@@ -73,7 +73,7 @@ export default async function OrdenesPage({
       <OrdenesListado
         ordenes={ordenes}
         clientes={clientes}
-        responsablesSec={responsablesSec.map((r) => r.nombre_completo)}
+        responsablesSec={responsablesSec.map((r) => r.email)}
       />
     </div>
   );

@@ -1,4 +1,4 @@
-// Los 3 campos de un responsable SEC, compartidos por el formulario de alta
+// Los 3 campos de una casilla de responsable SEC, compartidos por el alta
 // (responsables-sec-listado.tsx) y por la fila de edición inline
 // (responsables-sec-table.tsx) — mismo schema, solo cambia qué Server Action se
 // llama al enviar. Vive en su propio archivo, y no dentro de uno de los dos,
@@ -28,6 +28,18 @@ export function CamposResponsableSec({
 }: CamposResponsableSecProps) {
   return (
     <>
+      {/* El email va primero porque es la IDENTIDAD de la casilla: es lo único
+          que se muestra en el formulario de órdenes, el filtro, el Excel y el
+          PDF, lo único único en la tabla, y lo que empareja con `usuarios`.
+          El nombre quedó como etiqueta interna de esta pantalla. */}
+      <FormField
+        label="Email"
+        htmlFor={`${idPrefix}-email`}
+        required
+        error={errors.email?.message}
+      >
+        <Input id={`${idPrefix}-email`} type="email" {...register("email")} />
+      </FormField>
       <FormField
         label="Nombre completo"
         htmlFor={`${idPrefix}-nombre_completo`}
@@ -38,13 +50,6 @@ export function CamposResponsableSec({
           id={`${idPrefix}-nombre_completo`}
           {...register("nombre_completo")}
         />
-      </FormField>
-      <FormField
-        label="Email"
-        htmlFor={`${idPrefix}-email`}
-        error={errors.email?.message}
-      >
-        <Input id={`${idPrefix}-email`} type="email" {...register("email")} />
       </FormField>
       <FormField
         label="Celular"

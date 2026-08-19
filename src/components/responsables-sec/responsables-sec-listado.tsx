@@ -58,7 +58,7 @@ export function ResponsablesSecListado({
     const termino = busqueda.trim().toLowerCase();
     if (!termino) return personas;
     return personas.filter((p) =>
-      [p.nombre_completo, p.email, p.celular]
+      [p.email, p.nombre_completo, p.celular]
         .filter(Boolean)
         .some((campo) => campo!.toLowerCase().includes(termino)),
     );
@@ -174,7 +174,7 @@ export function ResponsablesSecListado({
           type="search"
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
-          placeholder="Buscar por nombre, email o celular"
+          placeholder="Buscar por email, nombre o celular"
           aria-label="Buscar responsable SEC"
           className="pl-8"
         />
