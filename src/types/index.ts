@@ -38,6 +38,12 @@ export type Vobo = Database["public"]["Tables"]["vobo"]["Row"];
 // ahora es tabla propia y `ordenes_servicio` la referencia por
 // `responsable_sec_id`. Distinta de `Vobo` (quien da el visto bueno) aunque
 // varias personas estén en las dos: son dos roles, no uno.
+//
+// La identidad de una fila es su `email`, no su `nombre_completo`
+// (20260819012529_responsables_sec_identidad_por_email.sql): una fila es una
+// CASILLA de GS Group, que puede corresponder a más de una persona, y el email
+// es lo único que empareja con `Usuario`. El nombre sobrevive como etiqueta del
+// ABM y no se lee en ninguna otra pantalla.
 export type ResponsableSec =
   Database["public"]["Tables"]["responsables_sec"]["Row"];
 // Para el listado: la persona + cuántas órdenes la referencian. Mismo embedded

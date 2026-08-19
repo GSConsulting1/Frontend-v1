@@ -19,7 +19,19 @@ import { z } from "zod";
 // supabase/005_ordenes_servicio_financiero_edicion.sql y el ALTER TABLE que
 // migró ordenes_servicio.estado_id/responsable_sec_id a texto). Si cambia el
 // CHECK en la DB, hay que reflejarlo acá también — es la única fuente de
-// verdad del lado del front.
+// verdad del lado del front, y desincronizarlas hace que el <Select> ofrezca
+// un estado que la base rechaza al guardar con 23514. El CHECK vigente lo deja
+// 20260819021420_estados_orden_programada_y_en_ejecucion.sql.
+//
+// OJO: este es el "Estado Gerencia" del listado. El otro estado que se ve en
+// esa tabla —"Estado de ejecución"— NO sale de acá sino de la tabla catálogo
+// `estados_ejecucion`, vía checklist_proceso. Son dos campos distintos que
+// comparten algunos textos a propósito ('Cancelada' desde el baseline;
+// 'Programada' y 'En ejecución' desde 20260819021420).
+//
+// El ORDEN de este array es el orden en que se ven las opciones en el filtro,
+// en el <Select> del formulario y en la edición inline de la tabla. A la base
+// no le importa; a quien carga una orden, sí.
 export const ESTADOS_ORDEN = [
   "Pendiente revisión Bolívar",
   "Enviado a facturación",
@@ -30,6 +42,8 @@ export const ESTADOS_ORDEN = [
   "Pendiente por cancelar",
   "Programar mes siguiente",
   "Facturada",
+  "Programada",
+  "En ejecución",
 ] as const;
 
 export const TIPO_SERVICIO_OPCIONES = [
@@ -81,11 +95,16 @@ export const ordenServicioSchema = z.object({
   // numeric) — se guarda tal cual la escribe quien carga la orden.
   tarifa_valor_transporte: z.string().optional(),
   // El responsable SEC se elige del catálogo `responsables_sec`
-  // (responsable_sec_id) y el nombre se copia de la opción elegida — el
+  // (responsable_sec_id) y el EMAIL se copia de la opción elegida — el
   // <Select> de OrdenCampos lo llena con setValue, no se escribe a mano.
   // Mismo arreglo que empresa_usuaria_id: la FK es la fuente de verdad y
-  // responsable_os queda como copia denormalizada del nombre, que es lo que
+  // responsable_os queda como copia denormalizada del email, que es lo que
   // siguen leyendo el filtro del listado, el Excel de export y el PDF.
+  //
+  // El nombre del responsable NO viaja por acá y no debería volver a hacerlo:
+  // desde 20260819012529_responsables_sec_identidad_por_email.sql la identidad
+  // de una casilla es su email, entre otras cosas porque tres personas
+  // distintas compartían una sola.
   //
   // responsable_os ya NO es un z.enum: la lista dejó de estar hardcodeada acá
   // (y en un CHECK de la base) y ahora es una tabla. Validar contra el catálogo

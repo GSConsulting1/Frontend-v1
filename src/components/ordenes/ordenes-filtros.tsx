@@ -53,14 +53,15 @@ type ClienteOption = { id: number; nombre_cliente: string };
 
 type OrdenesFiltrosProps = {
   clientes: ClienteOption[];
-  // Nombres del catálogo `responsables_sec` (ver lib/data/responsables-sec.ts).
-  // Antes eran la constante RESPONSABLES_OS; ahora llegan como prop desde el
-  // Server Component porque la lista es una tabla y se administra en
-  // /profesionales/responsables-sec.
+  // Emails del catálogo `responsables_sec` (ver lib/data/responsables-sec.ts).
+  // Antes eran la constante RESPONSABLES_OS con nombres; ahora llegan como prop
+  // desde el Server Component porque la lista es una tabla que se administra en
+  // /profesionales/responsables-sec, y son EMAILS porque la identidad de un
+  // responsable dejó de ser su nombre (ver la migración 20260819012529).
   //
   // El filtro sigue comparando contra la COLUMNA DE TEXTO responsable_os, no
-  // contra la FK: son los mismos valores porque renombrar a alguien reescribe
-  // esa columna en sus órdenes (ver actualizarResponsableSecRecord).
+  // contra la FK: son los mismos valores porque cambiarle el email a una casilla
+  // reescribe esa columna en sus órdenes (ver actualizarResponsableSecRecord).
   responsablesSec: string[];
 };
 

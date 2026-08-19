@@ -52,28 +52,28 @@ import {
 } from "@/lib/data/empresas-usuarias";
 import {
   getResponsablesSecTodos,
-  normalizarNombreResponsable,
+  normalizarEmailResponsable,
   type ResponsableSecOpcion,
 } from "@/lib/data/responsables-sec";
 
-// El Excel del ARL trae el nombre del responsable escrito a mano, así que se
-// resuelve contra el catálogo `responsables_sec` por nombre NORMALIZADO (mismo
+// El Excel del ARL trae el email del responsable escrito a mano, así que se
+// resuelve contra el catálogo `responsables_sec` por email NORMALIZADO (mismo
 // criterio que el índice único de esa tabla).
 //
 // Lo que NO hace, a diferencia de las empresas usuarias: dar de alta a quien no
 // esté. Una empresa usuaria nueva es un dato del cliente y se crea sola; una
-// persona es del equipo interno y darla de alta por un typo del Excel deja un
-// empleado fantasma en el catálogo. Si no resuelve, la fila se marca inválida y
-// quien importa arregla el archivo o crea a la persona en
+// casilla es del equipo interno y darla de alta por un typo del Excel deja un
+// responsable fantasma en el catálogo. Si no resuelve, la fila se marca inválida
+// y quien importa arregla el archivo o crea la casilla en
 // /profesionales/responsables-sec.
 function indexarResponsables(catalogo: ResponsableSecOpcion[]) {
   return new Map(
-    catalogo.map((r) => [normalizarNombreResponsable(r.nombre_completo), r]),
+    catalogo.map((r) => [normalizarEmailResponsable(r.email), r]),
   );
 }
 
-function mensajeResponsableDesconocido(nombre: string): string {
-  return `El responsable SEC "${nombre}" no está en el catálogo. Corregí el nombre en el archivo o dalo de alta en Profesionales → Responsables SEC.`;
+function mensajeResponsableDesconocido(email: string): string {
+  return `El responsable SEC "${email}" no está en el catálogo. La columna tiene que traer el EMAIL de la casilla, no el nombre de la persona. Corregí el archivo o dá de alta la casilla en Profesionales → Responsables SEC.`;
 }
 
 export type OrdenActionState =
@@ -272,9 +272,11 @@ export async function previsualizarImportacionOrdenes(
     };
   }
 
-  // El catálogo se necesita ANTES de parsear: el parser lo usa para reconocer
-  // el nombre del responsable escrito a mano en la celda (ver celdaResponsableOs
-  // en lib/excel/leer-ordenes-excel.ts).
+  // El catálogo ya no hace falta para PARSEAR —el parser sólo normaliza el
+  // email de la celda, ver celdaResponsableOs en lib/excel/leer-ordenes-excel.ts—
+  // pero sí para RESOLVER cada fila unas líneas más abajo. Se carga acá, antes
+  // de leer el archivo, para no llegar a mitad del preview y recién ahí fallar
+  // por una consulta que se podía hacer de entrada.
   let responsables: Map<string, ResponsableSecOpcion>;
   try {
     responsables = indexarResponsables(await getResponsablesSecTodos());
@@ -290,10 +292,7 @@ export async function previsualizarImportacionOrdenes(
   let filasExcel;
   try {
     const buffer = Buffer.from(await archivo.arrayBuffer());
-    filasExcel = await leerOrdenesDesdeExcel(
-      buffer,
-      [...responsables.values()].map((r) => r.nombre_completo),
-    );
+    filasExcel = await leerOrdenesDesdeExcel(buffer);
   } catch {
     return {
       error:
@@ -379,10 +378,10 @@ export async function previsualizarImportacionOrdenes(
         : undefined;
 
       // Mismo criterio con el responsable: si resuelve, la fila se muestra
-      // con el nombre canónico del catálogo y ya vinculada por FK.
-      const nombreResponsable = valores.responsable_os?.trim();
-      const responsable = nombreResponsable
-        ? responsables.get(normalizarNombreResponsable(nombreResponsable))
+      // con el email canónico del catálogo y ya vinculada por FK.
+      const emailResponsable = valores.responsable_os?.trim();
+      const responsable = emailResponsable
+        ? responsables.get(normalizarEmailResponsable(emailResponsable))
         : undefined;
 
       const candidato = {
@@ -399,7 +398,7 @@ export async function previsualizarImportacionOrdenes(
         ...(responsable
           ? {
               responsable_sec_id: responsable.id,
-              responsable_os: responsable.nombre_completo,
+              responsable_os: responsable.email,
             }
           : {}),
       };
@@ -410,8 +409,8 @@ export async function previsualizarImportacionOrdenes(
       // acá, la orden se importaría con un texto suelto y sin vínculo al
       // catálogo, en silencio. Ver el comentario de indexarResponsables.
       const errorResponsable =
-        nombreResponsable && !responsable
-          ? mensajeResponsableDesconocido(nombreResponsable)
+        emailResponsable && !responsable
+          ? mensajeResponsableDesconocido(emailResponsable)
           : null;
 
       const numero = valores.numero_os_cliente?.trim();
@@ -545,14 +544,14 @@ export async function importarOrdenesDesdeExcel(
       ? empresas.get(normalizarNombreEmpresa(nombreEmpresa))
       : undefined;
 
-    const nombreResponsable = valores.responsable_os?.trim();
-    const responsable = nombreResponsable
-      ? responsables.get(normalizarNombreResponsable(nombreResponsable))
+    const emailResponsable = valores.responsable_os?.trim();
+    const responsable = emailResponsable
+      ? responsables.get(normalizarEmailResponsable(emailResponsable))
       : undefined;
-    if (nombreResponsable && !responsable) {
+    if (emailResponsable && !responsable) {
       fallidas.push({
         fila,
-        error: mensajeResponsableDesconocido(nombreResponsable),
+        error: mensajeResponsableDesconocido(emailResponsable),
       });
       continue;
     }
@@ -569,7 +568,7 @@ export async function importarOrdenesDesdeExcel(
       ...(responsable
         ? {
             responsable_sec_id: responsable.id,
-            responsable_os: responsable.nombre_completo,
+            responsable_os: responsable.email,
           }
         : {}),
     });

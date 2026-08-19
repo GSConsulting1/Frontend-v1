@@ -428,7 +428,9 @@ export function OrdenCampos({
                   field.onChange(id);
                   // responsable_os sigue siendo la columna que leen el listado,
                   // el filtro, el Excel y el PDF, así que se copia acá desde la
-                  // opción elegida en vez de escribirse a mano.
+                  // opción elegida en vez de escribirse a mano. Desde la
+                  // migración 20260819012529 lo que se copia es el EMAIL de la
+                  // casilla, no el nombre de una persona.
                   setValue(
                     "responsable_os",
                     responsablesSec.find((r) => r.id === id)?.label ?? "",

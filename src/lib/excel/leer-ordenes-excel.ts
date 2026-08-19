@@ -151,56 +151,35 @@ function celdaTipoServicio(
   return TIPO_SERVICIO_POR_CODIGO[codigo] ?? "N/A";
 }
 
-function tokenizar(valor: string): string[] {
-  return normalizarTexto(valor).split(/\s+/).filter(Boolean);
-}
-
-// Match tolerante a nombres/apellidos de más (ej. "Yulieth Andrea Amell
-// Gonzalez" sigue matcheando a "Yulieth Amell"): un responsable del catálogo
-// coincide si todos sus tokens están contenidos en los tokens de la celda. Si
-// hay 0 o 2+ coincidencias (p. ej. "Amell" solo, ambiguo entre Yulieth Amell y
-// Lina Amell) se devuelve el texto crudo sin normalizar en vez de un match
-// adivinado: la previsualización no lo va a poder resolver contra el catálogo y
-// la fila queda marcada inválida, en vez de asignarse en silencio a la persona
-// equivocada.
+// La celda del responsable SEC trae un EMAIL desde que la identidad del
+// catálogo dejó de ser el nombre (ver
+// 20260819012529_responsables_sec_identidad_por_email.sql). Acá sólo se
+// normaliza —lower + trim, el mismo criterio del índice único de la tabla— y
+// quien resuelve contra el catálogo es app/ordenes/actions.ts.
 //
-// `responsables` son los nombres de la tabla `responsables_sec`, que llegan
-// desde app/ordenes/actions.ts. Antes eran la constante RESPONSABLES_OS; desde
-// la migración 20260816001045_catalogo_responsables_sec.sql la lista es una
-// tabla que se administra desde /profesionales/responsables-sec, así que este
-// parser ya no puede tenerla hardcodeada.
-function celdaResponsableOs(
-  valor: unknown,
-  responsables: string[],
-): string | undefined {
+// Antes esta función recibía la lista de nombres del catálogo y hacía un match
+// tolerante por tokens, para que "Yulieth Andrea Amell Gonzalez" siguiera
+// cayendo en "Yulieth Amell". Con emails esa heurística no tiene sentido y sería
+// peligrosa: un email es exacto o no es, y "parecerse" a otro no lo vuelve el
+// mismo. Un archivo con nombres en esta columna ahora falla la fila en la
+// previsualización, que es lo pedido: sin fallback (confirmado 2026-08-18).
+function celdaResponsableOs(valor: unknown): string | undefined {
   const texto = celdaTexto(valor);
   if (!texto) return undefined;
-
-  const tokensCelda = new Set(tokenizar(texto));
-  const coincidencias = responsables.filter((nombre) =>
-    tokenizar(nombre).every((token) => tokensCelda.has(token)),
-  );
-
-  return coincidencias.length === 1 ? coincidencias[0] : texto;
+  return texto.trim().toLowerCase();
 }
 
-function extraerValor(
-  campo: CampoImportable,
-  valorCelda: unknown,
-  responsables: string[],
-) {
+function extraerValor(campo: CampoImportable, valorCelda: unknown) {
   const resuelto = resolverValorCelda(valorCelda);
   if (CAMPOS_FECHA.has(campo)) return celdaFecha(resuelto);
   if (campo === "tipo_servicio") return celdaTipoServicio(resuelto);
-  if (campo === "responsable_os")
-    return celdaResponsableOs(resuelto, responsables);
+  if (campo === "responsable_os") return celdaResponsableOs(resuelto);
   if (CAMPOS_NUMERICOS.has(campo)) return celdaNumero(resuelto);
   return celdaTexto(resuelto);
 }
 
 export async function leerOrdenesDesdeExcel(
   buffer: Buffer,
-  responsables: string[],
 ): Promise<FilaExcelOrden[]> {
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(buffer as unknown as ArrayBuffer);
@@ -222,11 +201,7 @@ export async function leerOrdenesDesdeExcel(
 
     const valores: Partial<OrdenServicioFormValues> = {};
     for (const [campo, colNumber] of indicePorCampo) {
-      const valor = extraerValor(
-        campo,
-        row.getCell(colNumber).value,
-        responsables,
-      );
+      const valor = extraerValor(campo, row.getCell(colNumber).value);
       if (valor !== undefined) {
         (valores as Record<string, unknown>)[campo] = valor;
       }

@@ -26,12 +26,16 @@
 -- `.test` o `.local` y toda cédula/NIT arranca en 1000 o 9001. Si alguna fila
 -- podría confundirse con una real, está mal puesta.
 --
--- La excepción son los nombres de `responsable_os`: tienen que existir en el
--- catálogo `responsables_sec`, que lo llena sola la migración
--- 20260816001045_catalogo_responsables_sec.sql con las personas reales del
--- equipo, así que ahí no se puede inventar. No son datos de clientes.
--- (Antes la lista cerrada la imponía el CHECK `chk_responsable_sec`, que esa
--- misma migración elimina.)
+-- La excepción son los `responsable_os`: tienen que existir en el catálogo
+-- `responsables_sec`, que lo llenan solas las migraciones
+-- 20260816001045_catalogo_responsables_sec.sql y
+-- 20260819012529_responsables_sec_identidad_por_email.sql con las casillas
+-- reales del equipo, así que ahí no se puede inventar. No son datos de
+-- clientes: son casillas de rol de GS Group (gerencia@, consultoria@…), no
+-- direcciones personales.
+-- (Antes la lista cerrada la imponía el CHECK `chk_responsable_sec`, y hasta la
+-- segunda de esas dos migraciones lo que se guardaba acá era el NOMBRE de la
+-- persona en vez del email de la casilla.)
 --
 -- Para regenerar los catálogos desde el remoto (ojo: `--schema public` NO es
 -- opcional — sin esa bandera el dump se trae el esquema `auth` entero, con
@@ -236,17 +240,19 @@ INSERT INTO "public"."ordenes_servicio" (
 	 'Comercializadora Andina S.A.S.', '900100001-1', 1, 'A',
 	 'Capacitación en trabajo seguro en alturas', 8, 'Capacitación', CURRENT_DATE - 18,
 	 'Asesor Prueba Uno', 'Orden de prueba para el listado y la edición.', '120000',
-	 'Yulieth Amell'),
+	 'consultoria@gsgroupsas.com'),
 	(2, 2, 'Facturada', 'OS-CLI-0002', CURRENT_DATE - 45,
 	 'Transportes del Llano Ltda.', '900100002-2', 2, 'B',
 	 'Asesoría en gestión de riesgo vial', 4, 'Asesoría', CURRENT_DATE - 40,
 	 'Asesor Prueba Dos', 'Orden cerrada, sirve para probar la sección financiera.', '80000',
-	 'Daniela Rosso'),
+	 'talentogs@gsgroupsas.com'),
 	(3, 3, 'Programar urgente', 'OS-CLI-0003', CURRENT_DATE - 5,
 	 'Alimentos Ejemplo S.A.', '900100003-3', 3, 'C',
 	 'Informe técnico de condiciones de seguridad', 12, 'Informe técnico', NULL,
+	 -- La casilla fusionada (era Lina Amell + Lucia Bejarano + Tatiana Carrillo),
+	 -- a propósito: es la fila que más fácil se rompe si alguien toca la fusión.
 	 'Asesor Prueba Tres', 'Orden recién recibida, sin ejecutar.', '150000',
-	 'Tatiana Carrillo')
+	 'administrativo@gsgroupsas.com')
 ON CONFLICT DO NOTHING;
 
 -- Vincula cada orden con su empresa usuaria por el nombre, exactamente con la
@@ -261,15 +267,65 @@ WHERE upper(regexp_replace(btrim(o."nombre_empresa_usuaria"), '\s+', ' ', 'g'))
   AND o."empresa_usuaria_id" IS NULL;
 
 -- Lo mismo con el responsable SEC. Acá no hace falta cargar el catálogo a mano
--- (a diferencia de `empresas_usuarias` arriba): la migración
--- 20260816001045_catalogo_responsables_sec.sql inserta las 8 personas desde una
--- lista fija, no leyendo las órdenes, así que sobre una base vacía igual quedan
--- creadas. Lo único que falta es el vínculo de estas tres órdenes.
+-- (a diferencia de `empresas_usuarias` arriba): las migraciones
+-- 20260816001045_catalogo_responsables_sec.sql y
+-- 20260819012529_responsables_sec_identidad_por_email.sql dejan las 7 casillas
+-- creadas desde listas fijas, no leyendo las órdenes, así que sobre una base
+-- vacía igual quedan. Lo único que falta es el vínculo de estas tres órdenes.
+--
+-- El join es por EMAIL normalizado, con el mismo criterio que el índice único
+-- que dejó la segunda de esas migraciones (lower + btrim). Antes era por nombre;
+-- si esto siguiera comparando nombres, la orden 3 quedaría sin vincular, porque
+-- 'Tatiana Carrillo' dejó de existir como fila al fusionarse en administrativo@.
 UPDATE "public"."ordenes_servicio" o
 SET "responsable_sec_id" = r."id"
 FROM "public"."responsables_sec" r
-WHERE upper(regexp_replace(btrim(o."responsable_os"), '\s+', ' ', 'g'))
-    = upper(regexp_replace(btrim(r."nombre_completo"), '\s+', ' ', 'g'))
+WHERE lower(btrim(o."responsable_os")) = lower(btrim(r."email"))
+  AND o."responsable_sec_id" IS NULL;
+
+-- ---------------------------------------------------------------------------
+-- Casilla + orden de prueba para la visibilidad por rol
+-- (20260819022820_visibilidad_ordenes_programador_por_casilla.sql).
+--
+-- Esa policy restringe al rol `programador` a las órdenes de SU casilla,
+-- cruzando `usuarios.email` con `responsables_sec.email`. Las 7 casillas reales
+-- las crean las migraciones y son direcciones @gsgroupsas.com, mientras que los
+-- usuarios del seed son @local.test — o sea que sin esto NINGÚN usuario local
+-- matchea, `programador@local.test` ve cero órdenes y la ruta feliz no se puede
+-- probar. Ese "cero órdenes" es indistinguible de un bug, y es exactamente el
+-- síntoma que hizo revertir el primer intento (ver f859863).
+--
+-- La casilla va con email .test, como manda la cabecera de este archivo: no
+-- hace falta un email real para ejercitar el mecanismo, solo que coincida con
+-- el de un usuario sembrado.
+INSERT INTO "public"."responsables_sec" ("nombre_completo", "email", "activo")
+VALUES ('Programadora Prueba Local', 'programador@local.test', true)
+ON CONFLICT DO NOTHING;
+
+-- Una cuarta orden, asignada a esa casilla. Va sin secciones extendidas a
+-- propósito: lo único que tiene que probar es que `programador@local.test` ve
+-- ESTA y no las otras tres, y que el resto de los roles ve las cuatro.
+INSERT INTO "public"."ordenes_servicio" (
+	"id", "cliente_id", "estado", "numero_os_cliente", "fecha_recepcion_os",
+	"nombre_empresa_usuaria", "nit_empresa_usuaria", "cronograma", "secuencia",
+	"nombre_servicio", "horas_cargadas", "tipo_servicio", "asesor_gestion_riesgos",
+	"observaciones_iniciales", "responsable_os"
+) VALUES
+	(4, 1, 'Pendiente revisión Bolívar', 'OS-CLI-0004', CURRENT_DATE - 3,
+	 'Comercializadora Andina S.A.S.', '900100001-1', 4, 'D',
+	 'Orden para probar la visibilidad por rol', 2, 'Asesoría',
+	 'Asesor Prueba Cuatro',
+	 'Solo la ve el rol programador del seed.', 'programador@local.test')
+ON CONFLICT DO NOTHING;
+
+UPDATE "public"."ordenes_servicio" o
+SET "responsable_sec_id" = r."id",
+    "empresa_usuaria_id" = e."id"
+FROM "public"."responsables_sec" r, "public"."empresas_usuarias" e
+WHERE o."id" = 4
+  AND lower(btrim(r."email")) = 'programador@local.test'
+  AND upper(regexp_replace(btrim(e."nombre"), '\s+', ' ', 'g'))
+    = upper(regexp_replace(btrim(o."nombre_empresa_usuaria"), '\s+', ' ', 'g'))
   AND o."responsable_sec_id" IS NULL;
 
 -- ---------------------------------------------------------------------------
@@ -441,7 +497,7 @@ BEGIN
 			('public.usuarios',                     6, (SELECT count(*) FROM public.usuarios)),
 			('public.clientes',                     4, (SELECT count(*) FROM public.clientes)),
 			('public.profesionales',                4, (SELECT count(*) FROM public.profesionales)),
-			('public.ordenes_servicio',             3, (SELECT count(*) FROM public.ordenes_servicio)),
+			('public.ordenes_servicio',             4, (SELECT count(*) FROM public.ordenes_servicio)),
 			('public.checklist_proceso',            3, (SELECT count(*) FROM public.checklist_proceso)),
 			('public.info_orden_servicio',          3, (SELECT count(*) FROM public.info_orden_servicio)),
 			('public.detalle_entrega_profesional',  3, (SELECT count(*) FROM public.detalle_entrega_profesional)),
@@ -450,7 +506,17 @@ BEGIN
 			('public.entregables_estandar',         5, (SELECT count(*) FROM public.entregables_estandar)),
 			('public.estados_ejecucion',            6, (SELECT count(*) FROM public.estados_ejecucion)),
 			('public.participantes_arl',            3, (SELECT count(*) FROM public.participantes_arl)),
-			('public.vobo',                         2, (SELECT count(*) FROM public.vobo))
+			('public.vobo',                         2, (SELECT count(*) FROM public.vobo)),
+			-- 7 casillas de las migraciones (8 nombres, menos 2 que se fusionan
+			-- en administrativo@, más finanzas@) + la de prueba local
+			-- 'programador@local.test' que agrega este seed = 8.
+			('public.responsables_sec',             8, (SELECT count(*) FROM public.responsables_sec)),
+			-- El que de verdad importa: que el join por email de más arriba haya
+			-- enganchado las 4 órdenes. Sin esta línea, un email mal escrito en
+			-- el seed deja `responsable_sec_id` en NULL y no se entera nadie
+			-- hasta abrir el formulario — y para la orden 4 eso además haría que
+			-- la prueba de visibilidad por rol pasara por el motivo equivocado.
+			('ordenes con responsable vinculado',   4, (SELECT count(*) FROM public.ordenes_servicio WHERE responsable_sec_id IS NOT NULL))
 		) AS t(tabla, minimo, actual)
 		WHERE actual < minimo
 	LOOP
