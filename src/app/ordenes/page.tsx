@@ -5,13 +5,18 @@
 // hay estado de "guardar cambios" que gobernar en un Client Component
 // intermedio, así que no hace falta OrdenesManager.
 
+import { AlertTriangle } from "lucide-react";
 import { OrdenesListado } from "@/components/ordenes/ordenes-listado";
 import {
   getOrdenes,
   getClientesParaSelect,
   type OrdenesFiltros,
 } from "@/lib/data/ordenes";
-import { getResponsablesSecTodos } from "@/lib/data/responsables-sec";
+import {
+  getResponsablesSecTodos,
+  normalizarEmailResponsable,
+} from "@/lib/data/responsables-sec";
+import { getPerfilActual } from "@/lib/data/usuarios";
 
 export default async function OrdenesPage({
   searchParams,
@@ -60,16 +65,53 @@ export default async function OrdenesPage({
     sortDir: params.dir === "asc" ? ("asc" as const) : ("desc" as const),
   };
 
-  const [ordenes, clientes, responsablesSec] = await Promise.all([
+  const [ordenes, clientes, responsablesSec, perfil] = await Promise.all([
     getOrdenes(filtros),
     getClientesParaSelect(),
-    // Todos, no solo los activos: si alguien se marcó inactivo sus órdenes
-    // siguen en el listado y hay que poder filtrarlas por su nombre.
+    // Todos, no solo los activos: si una casilla se marcó inactiva sus órdenes
+    // siguen en el listado y hay que poder filtrarlas por su email.
     getResponsablesSecTodos(),
+    getPerfilActual(),
   ]);
+
+  // Un `programador` ve solo las órdenes de su casilla de responsable SEC — eso
+  // lo impone RLS, no este archivo (ver
+  // 20260819022820_visibilidad_ordenes_programador_por_casilla.sql). Pero si su
+  // email no está en el catálogo, la policy no le deja ver NINGUNA, y un listado
+  // vacío sin explicación es indistinguible de un bug: es el síntoma exacto que
+  // hizo revertir el primer intento de esta feature (f859863).
+  //
+  // Así que lo único que hace el front acá es EXPLICAR el vacío. No filtra ni
+  // decide nada: si esta condición se calculara mal, se mostraría un cartel de
+  // más o de menos, nunca una orden de más.
+  //
+  // `perfil` es null en modo mock (sin Supabase) — ahí no hay sesión ni RLS, así
+  // que no hay nada que avisar.
+  const emailPerfil = perfil?.email
+    ? normalizarEmailResponsable(perfil.email)
+    : null;
+  const programadorSinCasilla =
+    perfil?.rol === "programador" &&
+    !responsablesSec.some(
+      (r) => normalizarEmailResponsable(r.email) === emailPerfil,
+    );
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-10">
+      {programadorSinCasilla && (
+        <p
+          role="alert"
+          className="flex items-start gap-2 rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground"
+        >
+          <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
+          <span>
+            Tu cuenta ({perfil?.email ?? "sin email"}) no está registrada como
+            responsable SEC, así que todavía no tenés órdenes asignadas. Pedile a
+            un administrador que dé de alta tu correo en Profesionales →
+            Responsables SEC.
+          </span>
+        </p>
+      )}
       <OrdenesListado
         ordenes={ordenes}
         clientes={clientes}

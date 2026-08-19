@@ -284,6 +284,51 @@ WHERE lower(btrim(o."responsable_os")) = lower(btrim(r."email"))
   AND o."responsable_sec_id" IS NULL;
 
 -- ---------------------------------------------------------------------------
+-- Casilla + orden de prueba para la visibilidad por rol
+-- (20260819022820_visibilidad_ordenes_programador_por_casilla.sql).
+--
+-- Esa policy restringe al rol `programador` a las órdenes de SU casilla,
+-- cruzando `usuarios.email` con `responsables_sec.email`. Las 7 casillas reales
+-- las crean las migraciones y son direcciones @gsgroupsas.com, mientras que los
+-- usuarios del seed son @local.test — o sea que sin esto NINGÚN usuario local
+-- matchea, `programador@local.test` ve cero órdenes y la ruta feliz no se puede
+-- probar. Ese "cero órdenes" es indistinguible de un bug, y es exactamente el
+-- síntoma que hizo revertir el primer intento (ver f859863).
+--
+-- La casilla va con email .test, como manda la cabecera de este archivo: no
+-- hace falta un email real para ejercitar el mecanismo, solo que coincida con
+-- el de un usuario sembrado.
+INSERT INTO "public"."responsables_sec" ("nombre_completo", "email", "activo")
+VALUES ('Programadora Prueba Local', 'programador@local.test', true)
+ON CONFLICT DO NOTHING;
+
+-- Una cuarta orden, asignada a esa casilla. Va sin secciones extendidas a
+-- propósito: lo único que tiene que probar es que `programador@local.test` ve
+-- ESTA y no las otras tres, y que el resto de los roles ve las cuatro.
+INSERT INTO "public"."ordenes_servicio" (
+	"id", "cliente_id", "estado", "numero_os_cliente", "fecha_recepcion_os",
+	"nombre_empresa_usuaria", "nit_empresa_usuaria", "cronograma", "secuencia",
+	"nombre_servicio", "horas_cargadas", "tipo_servicio", "asesor_gestion_riesgos",
+	"observaciones_iniciales", "responsable_os"
+) VALUES
+	(4, 1, 'Pendiente revisión Bolívar', 'OS-CLI-0004', CURRENT_DATE - 3,
+	 'Comercializadora Andina S.A.S.', '900100001-1', 4, 'D',
+	 'Orden para probar la visibilidad por rol', 2, 'Asesoría',
+	 'Asesor Prueba Cuatro',
+	 'Solo la ve el rol programador del seed.', 'programador@local.test')
+ON CONFLICT DO NOTHING;
+
+UPDATE "public"."ordenes_servicio" o
+SET "responsable_sec_id" = r."id",
+    "empresa_usuaria_id" = e."id"
+FROM "public"."responsables_sec" r, "public"."empresas_usuarias" e
+WHERE o."id" = 4
+  AND lower(btrim(r."email")) = 'programador@local.test'
+  AND upper(regexp_replace(btrim(e."nombre"), '\s+', ' ', 'g'))
+    = upper(regexp_replace(btrim(o."nombre_empresa_usuaria"), '\s+', ' ', 'g'))
+  AND o."responsable_sec_id" IS NULL;
+
+-- ---------------------------------------------------------------------------
 -- Secciones de cada orden.
 --
 -- `checklist_proceso` es la que hace que la columna Estado del listado no
@@ -452,7 +497,7 @@ BEGIN
 			('public.usuarios',                     6, (SELECT count(*) FROM public.usuarios)),
 			('public.clientes',                     4, (SELECT count(*) FROM public.clientes)),
 			('public.profesionales',                4, (SELECT count(*) FROM public.profesionales)),
-			('public.ordenes_servicio',             3, (SELECT count(*) FROM public.ordenes_servicio)),
+			('public.ordenes_servicio',             4, (SELECT count(*) FROM public.ordenes_servicio)),
 			('public.checklist_proceso',            3, (SELECT count(*) FROM public.checklist_proceso)),
 			('public.info_orden_servicio',          3, (SELECT count(*) FROM public.info_orden_servicio)),
 			('public.detalle_entrega_profesional',  3, (SELECT count(*) FROM public.detalle_entrega_profesional)),
@@ -462,16 +507,16 @@ BEGIN
 			('public.estados_ejecucion',            6, (SELECT count(*) FROM public.estados_ejecucion)),
 			('public.participantes_arl',            3, (SELECT count(*) FROM public.participantes_arl)),
 			('public.vobo',                         2, (SELECT count(*) FROM public.vobo)),
-			-- Las 7 casillas que dejan las dos migraciones de `responsables_sec`
-			-- (8 nombres, menos 2 que se fusionan en administrativo@, más
-			-- finanzas@). Si acá aparece 8, la fusión de
-			-- 20260819012529 no corrió.
-			('public.responsables_sec',             7, (SELECT count(*) FROM public.responsables_sec)),
+			-- 7 casillas de las migraciones (8 nombres, menos 2 que se fusionan
+			-- en administrativo@, más finanzas@) + la de prueba local
+			-- 'programador@local.test' que agrega este seed = 8.
+			('public.responsables_sec',             8, (SELECT count(*) FROM public.responsables_sec)),
 			-- El que de verdad importa: que el join por email de más arriba haya
-			-- enganchado las 3 órdenes. Sin esta línea, un email mal escrito en
+			-- enganchado las 4 órdenes. Sin esta línea, un email mal escrito en
 			-- el seed deja `responsable_sec_id` en NULL y no se entera nadie
-			-- hasta abrir el formulario.
-			('ordenes con responsable vinculado',   3, (SELECT count(*) FROM public.ordenes_servicio WHERE responsable_sec_id IS NOT NULL))
+			-- hasta abrir el formulario — y para la orden 4 eso además haría que
+			-- la prueba de visibilidad por rol pasara por el motivo equivocado.
+			('ordenes con responsable vinculado',   4, (SELECT count(*) FROM public.ordenes_servicio WHERE responsable_sec_id IS NOT NULL))
 		) AS t(tabla, minimo, actual)
 		WHERE actual < minimo
 	LOOP
