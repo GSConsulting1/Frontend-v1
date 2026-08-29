@@ -563,6 +563,7 @@ export type Database = {
           numero_os_cliente: string | null
           observaciones_iniciales: string | null
           observaciones_responsable_sec: string | null
+          oculta: boolean
           responsable_os: string | null
           responsable_sec_id: number | null
           secuencia: string | null
@@ -589,6 +590,7 @@ export type Database = {
           numero_os_cliente?: string | null
           observaciones_iniciales?: string | null
           observaciones_responsable_sec?: string | null
+          oculta?: boolean
           responsable_os?: string | null
           responsable_sec_id?: number | null
           secuencia?: string | null
@@ -615,6 +617,7 @@ export type Database = {
           numero_os_cliente?: string | null
           observaciones_iniciales?: string | null
           observaciones_responsable_sec?: string | null
+          oculta?: boolean
           responsable_os?: string | null
           responsable_sec_id?: number | null
           secuencia?: string | null

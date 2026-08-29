@@ -177,6 +177,13 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: "#666",
   },
+  numeroPagina: {
+    position: "absolute",
+    bottom: 10,
+    right: 40,
+    fontSize: 8,
+    color: "#666",
+  },
 });
 
 // Datos de quien firma la orden como gerente general — no existe tabla para
@@ -384,6 +391,14 @@ export function OrdenServicioDocument({ data }: { data: OrdenServicioData }) {
             </View>
           </View>
         </View>
+
+        <Text
+          style={styles.numeroPagina}
+          fixed
+          render={({ pageNumber, totalPages }) =>
+            `Página ${pageNumber} de ${totalPages}`
+          }
+        />
       </Page>
     </Document>
   );
