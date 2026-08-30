@@ -122,6 +122,10 @@ export async function getOrdenes(
   filtros: OrdenesFiltros = {},
 ): Promise<OrdenServicioConRelaciones[]> {
   if (!isSupabaseConfigured) {
+    // No filtra por `oculta` acá: mismo precedente que la visibilidad de
+    // programador por casilla (ver 20260819022820_visibilidad_ordenes_programador_por_casilla.sql)
+    // — sin Supabase configurado no hay sesión real que consultar, así que
+    // esta regla vive solo en la RLS de la base, no en el mock.
     let ordenes = enriquecerMock();
     if (filtros.clienteIds?.length) {
       ordenes = ordenes.filter((o) =>
@@ -408,6 +412,7 @@ export async function createOrdenRecord(input: OrdenServicioFormValues) {
       id_unico: `OS-${dia.replace(/-/g, "")}-${String(consecutivoHoy).padStart(4, "0")}`,
       fecha_creacion: now.toISOString(),
       fecha_actualizacion: now.toISOString(),
+      oculta: false,
     });
     return nextId;
   }
@@ -479,6 +484,42 @@ export async function actualizarCampoOrdenRecord(
     .eq("id", id);
   if (error)
     throw new Error(`No se pudo actualizar la orden: ${error.message}`);
+}
+
+// Ocultar/mostrar en lote — solo cambia la columna `oculta`. La protección
+// real es la RLS de la migración 20260829120000_ocultar_ordenes_solo_admin.sql
+// (puede_ver_orden ya no deja ver ni escribir una fila oculta a quien no sea
+// administrador); ocultarOrdenes() en app/ordenes/actions.ts además chequea
+// el rol server-side para devolver un mensaje entendible en vez de un error
+// crudo de Postgres si alguien más llegara a invocar esta acción.
+export async function ocultarOrdenesRecord(
+  ids: number[],
+  oculta: boolean,
+): Promise<void> {
+  if (!isSupabaseConfigured) {
+    const ahora = new Date().toISOString();
+    for (const id of ids) {
+      const index = mockOrdenes.findIndex((o) => o.id === id);
+      if (index !== -1) {
+        mockOrdenes[index] = {
+          ...mockOrdenes[index],
+          oculta,
+          fecha_actualizacion: ahora,
+        };
+      }
+    }
+    return;
+  }
+  const supabase = await createSupabaseServerClient();
+
+  const { error } = await supabase
+    .from("ordenes_servicio")
+    .update({ oculta, fecha_actualizacion: new Date().toISOString() })
+    .in("id", ids);
+  if (error)
+    throw new Error(
+      `No se pudieron ${oculta ? "ocultar" : "mostrar"} las órdenes: ${error.message}`,
+    );
 }
 
 export async function deleteOrdenRecord(id: number) {

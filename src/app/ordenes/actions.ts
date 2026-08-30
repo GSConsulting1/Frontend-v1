@@ -35,9 +35,11 @@ import {
   updateOrdenRecord,
   deleteOrdenRecord,
   actualizarCampoOrdenRecord,
+  ocultarOrdenesRecord,
   getNumerosOsExistentes,
   getClientesParaSelect,
 } from "@/lib/data/ordenes";
+import { getPerfilActual } from "@/lib/data/usuarios";
 import {
   eliminarInfoOrdenCompleta,
   guardarInfoOrdenCompleta,
@@ -223,6 +225,49 @@ export async function eliminarOrdenes(
 
   revalidatePath("/ordenes");
   return { eliminadas, fallidas };
+}
+
+// Solo administrador puede ocultar/mostrar órdenes — acá es donde de verdad
+// importa (mismo criterio que actualizarRolUsuario en app/usuarios/actions.ts):
+// OcultarOrdenesButton solo se renderiza para ese rol (RoleGate), pero
+// cualquiera con acceso directo a esta Server Action tiene que chocar con
+// este mismo chequeo. La RLS de ordenes_servicio (ver migración
+// 20260829120000_ocultar_ordenes_solo_admin.sql) respalda esto igual si
+// este chequeo se saltara: para un rol no-administrador, poner oculta=true
+// hace que la fila deje de ser visible para su propia sesión y el UPDATE se
+// rechaza completo.
+export async function ocultarOrdenes(
+  ids: number[],
+  oculta: boolean,
+): Promise<MutacionResult> {
+  if (ids.length === 0) {
+    return { ok: false, error: "Selecciona al menos una orden." };
+  }
+
+  const perfilActual = await getPerfilActual();
+  // null = modo mock (sin Supabase configurado, ver getPerfilActual) — no
+  // hay sesión real que verificar todavía.
+  if (perfilActual && perfilActual.rol !== "administrador") {
+    return {
+      ok: false,
+      error: "Solo un administrador puede ocultar o mostrar órdenes.",
+    };
+  }
+
+  try {
+    await ocultarOrdenesRecord(ids, oculta);
+  } catch (err) {
+    return {
+      ok: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Error desconocido al ocultar las órdenes",
+    };
+  }
+
+  revalidatePath("/ordenes");
+  return { ok: true };
 }
 
 export type FilaPreviewImportacion = {

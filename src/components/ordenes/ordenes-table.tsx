@@ -123,9 +123,9 @@ function SortableHeader({
 
 type OrdenesTableProps = {
   ordenes: OrdenServicioConRelaciones[];
-  // Selección de filas para las acciones en lote del header (exportar o
-  // eliminar) — la gobierna OrdenesListado (el estado se sube ahí porque
-  // el botón activo vive en el header, ver ordenes-listado.tsx).
+  // Selección de filas para las acciones en lote del header (exportar,
+  // eliminar u ocultar) — la gobierna OrdenesListado (el estado se sube ahí
+  // porque el botón activo vive en el header, ver ordenes-listado.tsx).
   selectionMode: boolean;
   selectedIds: Set<number>;
   onToggle: (id: number) => void;
@@ -154,6 +154,11 @@ export function OrdenesTable({
   // el nombre de la empresa usuaria en su lugar y no ve el número de OS.
   const esFinanciero = perfil?.rol === "financiero";
   const columnasBase = esFinanciero ? 9 : 8;
+  // Solo administrador puede recibir filas con oculta=true (ver RLS de
+  // ordenes_servicio) — la marca "Oculta" no hace falta gatearla por rol acá
+  // aparte, pero sí queda detrás de esAdmin para que en modo mock (sin RLS
+  // real, ver getOrdenes) no se le muestre a cualquier otro rol.
+  const esAdmin = perfil?.rol === "administrador";
   const [deletingIds, setDeletingIds] = useState<Set<number>>(new Set());
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [ordenPendienteEliminar, setOrdenPendienteEliminar] =
@@ -295,7 +300,10 @@ export function OrdenesTable({
             return (
               <TableRow
                 key={orden.id}
-                className={cn(isDeleting && "opacity-50")}
+                className={cn(
+                  isDeleting && "opacity-50",
+                  esAdmin && orden.oculta && "opacity-60",
+                )}
               >
                 {selectionMode && (
                   <TableCell className="w-8">
@@ -311,9 +319,16 @@ export function OrdenesTable({
                   </TableCell>
                 )}
                 <TableCell className="whitespace-normal font-medium">
-                  {esFinanciero
-                    ? (orden.cliente?.nombre_cliente ?? "—")
-                    : (orden.nombre_empresa_usuaria ?? "—")}
+                  <span className="inline-flex items-center gap-1.5">
+                    {esFinanciero
+                      ? (orden.cliente?.nombre_cliente ?? "—")
+                      : (orden.nombre_empresa_usuaria ?? "—")}
+                    {esAdmin && orden.oculta && (
+                      <Badge variant="secondary" className="shrink-0">
+                        Oculta
+                      </Badge>
+                    )}
+                  </span>
                 </TableCell>
                 {esFinanciero && (
                   <TableCell>{orden.numero_os_cliente ?? "—"}</TableCell>

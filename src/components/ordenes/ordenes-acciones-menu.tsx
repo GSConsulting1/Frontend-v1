@@ -1,9 +1,14 @@
-// Menú "⋮" del header de /ordenes — agrupa las 4 acciones que antes eran
+// Menú "⋮" del header de /ordenes — agrupa las acciones que antes eran
 // botones sueltos (Nueva orden, Importar desde Excel, Exportar Excel,
-// Eliminar órdenes). Mismo patrón que el menú de acciones de cada fila
-// (ver ordenes-table.tsx): DropdownMenu + DropdownMenuTrigger
-// render={<Button .../>} + DropdownMenuItem render={<Link .../>} para los
-// ítems de navegación.
+// Ocultar/mostrar órdenes, Eliminar órdenes). Mismo patrón que el menú de
+// acciones de cada fila (ver ordenes-table.tsx): DropdownMenu +
+// DropdownMenuTrigger render={<Button .../>} + DropdownMenuItem
+// render={<Link .../>} para los ítems de navegación.
+//
+// "Ocultar / mostrar órdenes" arranca el modo selección igual que
+// "Eliminar órdenes" (ver OcultarOrdenesButton) — es administrador-only por
+// lo mismo que Eliminar: solo ese rol puede tocar la columna `oculta` (ver
+// 20260829120000_ocultar_ordenes_solo_admin.sql).
 //
 // No se envuelve cada ítem en <RoleGate> por separado: se calcula el rol
 // una sola vez (mismo criterio que puedeVerFinanciera en orden-form.tsx) y,
@@ -22,7 +27,14 @@
 "use client";
 
 import Link from "next/link";
-import { Download, FilePlus, MoreVertical, Trash2, Upload } from "lucide-react";
+import {
+  Download,
+  EyeOff,
+  FilePlus,
+  MoreVertical,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -41,11 +53,13 @@ type OrdenesAccionesMenuProps = {
   // todas formas. Cada onClick la llama solo si existe.
   onExportar?: () => void;
   onEliminar?: () => void;
+  onOcultar?: () => void;
 };
 
 export function OrdenesAccionesMenu({
   onExportar,
   onEliminar,
+  onOcultar,
 }: OrdenesAccionesMenuProps) {
   const { perfil } = useAuth();
   const esAdmin = perfil?.rol === "administrador";
@@ -87,6 +101,12 @@ export function OrdenesAccionesMenu({
           </DropdownMenuItem>
         )}
         {(grupoNavegacion || puedeExportar) && esAdmin && <DropdownMenuSeparator />}
+        {esAdmin && (
+          <DropdownMenuItem onClick={() => onOcultar?.()}>
+            <EyeOff className="size-4" />
+            Ocultar / mostrar órdenes
+          </DropdownMenuItem>
+        )}
         {esAdmin && (
           <DropdownMenuItem
             variant="destructive"

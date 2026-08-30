@@ -463,34 +463,38 @@ generado.
   `<OrdenesListado ordenes={...} />`. Existe porque las acciones en lote
   del `PageHeader` (ver `ordenes-acciones-menu.tsx` abajo) necesitan
   compartir con la tabla el `Set<number>` de IDs seleccionados, así que
-  ese estado se sube acá. `accionSeleccion: "exportar" | "eliminar" | null`
-  (no un simple `selectionMode: boolean`) — hay dos acciones en lote
-  distintas que usan la misma columna de checkboxes: `"exportar"` muestra
+  ese estado se sube acá.
+  `accionSeleccion: "exportar" | "eliminar" | "ocultar" | null` (no un
+  simple `selectionMode: boolean`) — hay tres acciones en lote distintas
+  que usan la misma columna de checkboxes: `"exportar"` muestra
   `ExportarExcelButton`, `"eliminar"` muestra `EliminarOrdenesButton`,
-  `null` muestra el menú "⋮". NO es el viejo `ordenes-manager.tsx` de
-  guardado en lote (ver más abajo): lo único que gobierna es la
-  selección para estas dos acciones.
-- `ordenes-acciones-menu.tsx`: único punto de entrada a las 4 acciones del
-  listado (Nueva orden, Importar desde Excel, Exportar Excel, Eliminar
-  órdenes) — un botón "⋮" (`MoreVertical`) que abre un `DropdownMenu`,
-  mismo patrón que el menú de acciones por fila de `ordenes-table.tsx`
-  (`DropdownMenuItem render={<Link .../>}` para navegación). No usa
-  `<RoleGate>` por ítem: calcula `esAdmin`/`puedeExportar`/`puedeImportar`
-  una sola vez vía `useAuth()` (mismo criterio que `puedeVerFinanciera` en
-  `orden-form.tsx`) y no renderiza nada si el rol no tiene ningún permiso
-  — evita un botón "⋮" que abre un menú vacío. "Nueva orden" y "Eliminar
-  órdenes" solo para `administrador`; "Exportar Excel" e "Importar desde
-  Excel" para `administrador`+`financiero`+`talento` (protección real del
-  export en `app/api/ordenes/excel/route.tsx`, `ROLES_PERMITIDOS` — esa
-  misma ruta filtra la sección financiera para `talento`, ver arriba). El
-  import no tiene protección real del lado del servidor (mismo hueco que
-  "Datos generales", ver `mvp_open_access` más abajo), solo se oculta el
-  ítem del menú.
-  `exportar-excel-button.tsx`/`eliminar-ordenes-button.tsx` no son el
-  botón disparador: cada uno renderiza sus propios controles
-  ("Descargar (N)"/"Cancelar", o "Eliminar (N)"/"Cancelar") solo mientras
-  `accionSeleccion` está en ese valor (lo prenden los ítems del menú, vía
-  `onExportar`/`onEliminar` → `iniciarSeleccion("exportar"|"eliminar")` de
+  `"ocultar"` muestra `OcultarOrdenesButton`, `null` muestra el menú "⋮".
+  NO es el viejo `ordenes-manager.tsx` de guardado en lote (ver más
+  abajo): lo único que gobierna es la selección para estas acciones.
+- `ordenes-acciones-menu.tsx`: único punto de entrada a las acciones del
+  listado (Nueva orden, Importar desde Excel, Exportar Excel, Ocultar /
+  mostrar órdenes, Eliminar órdenes) — un botón "⋮" (`MoreVertical`) que
+  abre un `DropdownMenu`, mismo patrón que el menú de acciones por fila de
+  `ordenes-table.tsx` (`DropdownMenuItem render={<Link .../>}` para
+  navegación). No usa `<RoleGate>` por ítem: calcula
+  `esAdmin`/`puedeExportar`/`puedeImportar` una sola vez vía `useAuth()`
+  (mismo criterio que `puedeVerFinanciera` en `orden-form.tsx`) y no
+  renderiza nada si el rol no tiene ningún permiso — evita un botón "⋮"
+  que abre un menú vacío. "Nueva orden", "Ocultar / mostrar órdenes" y
+  "Eliminar órdenes" solo para `administrador`; "Exportar Excel" e
+  "Importar desde Excel" para `administrador`+`financiero`+`talento`
+  (protección real del export en `app/api/ordenes/excel/route.tsx`,
+  `ROLES_PERMITIDOS` — esa misma ruta filtra la sección financiera para
+  `talento`, ver arriba). El import no tiene protección real del lado del
+  servidor (mismo hueco que "Datos generales", ver `mvp_open_access` más
+  abajo), solo se oculta el ítem del menú.
+  `exportar-excel-button.tsx`/`eliminar-ordenes-button.tsx`/`ocultar-ordenes-button.tsx`
+  no son el botón disparador: cada uno renderiza sus propios controles
+  ("Descargar (N)"/"Cancelar", "Eliminar (N)"/"Cancelar", u
+  "Ocultar (N)"/"Mostrar (N)"/"Cancelar") solo mientras `accionSeleccion`
+  está en ese valor (lo prenden los ítems del menú, vía
+  `onExportar`/`onEliminar`/`onOcultar` →
+  `iniciarSeleccion("exportar"|"eliminar"|"ocultar")` de
   `ordenes-listado.tsx`). `ExportarExcelButton` sigue descargando el
   `.xlsx` con `POST /api/ordenes/excel` igual que siempre (mismo patrón
   `fetch → blob → <a download>` que el PDF de la tabla).
@@ -500,8 +504,21 @@ generado.
   con el mismo criterio que `eliminarOrden` — primero las tablas
   extendidas, después la orden — sin abortar el lote si una fila falla, y
   hace un solo `revalidatePath` al final; mismo espíritu resiliente que
-  `importarOrdenesDesdeExcel`). El `<RoleGate>` de los tres es solo UX —
-  la protección real la hace la ruta/RLS (ver sección `app/`).
+  `importarOrdenesDesdeExcel`).
+  `OcultarOrdenesButton` no pide confirmación (es reversible, a diferencia
+  de eliminar): sus dos botones llaman a `ocultarOrdenes(ids, true|false)`
+  (Server Action en `app/ordenes/actions.ts`) con el valor de `oculta` fijo
+  por botón — la selección puede mezclar filas ya ocultas (para volver a
+  mostrarlas) con visibles (para ocultarlas). A diferencia de
+  Exportar/Eliminar, acá el `<RoleGate>` de administrador SÍ tiene respaldo
+  real: `ocultarOrdenes` vuelve a chequear el rol server-side
+  (`getPerfilActual`, mismo patrón que `actualizarRolUsuario` en
+  `app/usuarios/actions.ts`) y la RLS de `ordenes_servicio` (ver
+  `20260829120000_ocultar_ordenes_solo_admin.sql` en `supabase/`) hace que
+  un no-administrador ni siquiera pueda escribir `oculta=true` aunque se
+  salte el front. El `<RoleGate>` de Exportar/Eliminar sigue siendo solo
+  UX — la protección real de esos dos vive en la ruta/RLS ya documentada
+  (ver sección `app/`).
 - `/ordenes/importar` (`app/ordenes/importar/page.tsx` +
   `importar-ordenes-form.tsx`): crea órdenes en lote desde el Excel de
   cronograma que manda el ARL — una orden por fila, llenando solo los
