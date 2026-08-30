@@ -56,8 +56,8 @@ const COLUMNA_VALOR_DESPLAZAMIENTO = "valor desplazamiento";
 const CAMPOS_NUMERICOS = new Set<CampoImportable>(["cronograma", "horas_cargadas"]);
 const CAMPOS_FECHA = new Set<CampoImportable>(["fecha_sipab", "fecha_recepcion_os"]);
 
-// A=Asesoría, T=Informe técnico, C=Capacitación — cualquier otro código (o
-// vacío) cae en "N/A". Confirmado por negocio.
+// A=Asesoría, T=Informe técnico, C=Capacitación, M=Material — cualquier otro
+// código (o vacío) cae en "N/A". Confirmado por negocio.
 const TIPO_SERVICIO_POR_CODIGO: Record<
   string,
   OrdenServicioFormValues["tipo_servicio"]
@@ -65,6 +65,7 @@ const TIPO_SERVICIO_POR_CODIGO: Record<
   a: "Asesoría",
   t: "Informe técnico",
   c: "Capacitación",
+  m: "Material",
 };
 
 const MESES: Record<string, string> = {

@@ -88,6 +88,7 @@ export const mockOrdenes: OrdenServicio[] = [
     link_archivo_orden: "https://drive.google.com/file/d/mock-os-0001",
     fecha_creacion: "2026-06-15T09:00:00Z",
     fecha_actualizacion: "2026-06-15T09:00:00Z",
+    oculta: false,
   },
   {
     id: 2,
@@ -114,6 +115,7 @@ export const mockOrdenes: OrdenServicio[] = [
     link_archivo_orden: null,
     fecha_creacion: "2026-05-20T09:00:00Z",
     fecha_actualizacion: "2026-06-02T09:00:00Z",
+    oculta: false,
   },
   {
     id: 3,
@@ -140,6 +142,7 @@ export const mockOrdenes: OrdenServicio[] = [
     link_archivo_orden: null,
     fecha_creacion: "2026-06-28T09:00:00Z",
     fecha_actualizacion: "2026-06-28T09:00:00Z",
+    oculta: false,
   },
   {
     id: 4,
@@ -166,5 +169,6 @@ export const mockOrdenes: OrdenServicio[] = [
     link_archivo_orden: "https://drive.google.com/file/d/mock-os-0004",
     fecha_creacion: "2026-06-20T09:00:00Z",
     fecha_actualizacion: "2026-06-25T09:00:00Z",
+    oculta: false,
   },
 ];

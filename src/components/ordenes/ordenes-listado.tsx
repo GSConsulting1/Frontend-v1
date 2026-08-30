@@ -1,16 +1,17 @@
 // Envoltorio de cliente del listado de órdenes. Existe porque las acciones
-// en lote del header (Exportar Excel / Eliminar órdenes, disparadas desde
-// el menú "⋮" — ver ordenes-acciones-menu.tsx) necesitan compartir el
-// estado de selección de filas con la tabla — se sube acá (lifting state
-// up). page.tsx sigue siendo Server Component (hace el fetch) y solo
-// renderiza este componente.
+// en lote del header (Exportar Excel / Eliminar órdenes / Ocultar órdenes,
+// disparadas desde el menú "⋮" — ver ordenes-acciones-menu.tsx) necesitan
+// compartir el estado de selección de filas con la tabla — se sube acá
+// (lifting state up). page.tsx sigue siendo Server Component (hace el
+// fetch) y solo renderiza este componente.
 //
 // accionSeleccion (en vez de un simple selectionMode: boolean) porque hay
-// DOS acciones en lote distintas que usan la misma columna de checkboxes
+// TRES acciones en lote distintas que usan la misma columna de checkboxes
 // de OrdenesTable: "exportar" muestra ExportarExcelButton, "eliminar"
-// muestra EliminarOrdenesButton — mismo Set<number> de IDs seleccionados,
-// pero el botón/acción del header cambia según cuál se inició. null =
-// sin modo selección, el header muestra el menú "⋮".
+// muestra EliminarOrdenesButton, "ocultar" muestra OcultarOrdenesButton —
+// mismo Set<number> de IDs seleccionados, pero el botón/acción del header
+// cambia según cuál se inició. null = sin modo selección, el header
+// muestra el menú "⋮".
 //
 // Nota: esto NO es el viejo "OrdenesManager" de guardado en lote (que se
 // eliminó al pasar a solo lectura). El único estado compartido que
@@ -25,11 +26,12 @@ import { OrdenesTable } from "@/components/ordenes/ordenes-table";
 import { OrdenesAccionesMenu } from "@/components/ordenes/ordenes-acciones-menu";
 import { ExportarExcelButton } from "@/components/ordenes/exportar-excel-button";
 import { EliminarOrdenesButton } from "@/components/ordenes/eliminar-ordenes-button";
+import { OcultarOrdenesButton } from "@/components/ordenes/ocultar-ordenes-button";
 import type { OrdenServicioConRelaciones } from "@/types";
 
 type ClienteOption = { id: number; nombre_cliente: string };
 
-type AccionSeleccion = "exportar" | "eliminar" | null;
+type AccionSeleccion = "exportar" | "eliminar" | "ocultar" | null;
 
 type OrdenesListadoProps = {
   ordenes: OrdenServicioConRelaciones[];
@@ -65,7 +67,7 @@ export function OrdenesListado({
     );
   }
 
-  function iniciarSeleccion(accion: "exportar" | "eliminar") {
+  function iniciarSeleccion(accion: "exportar" | "eliminar" | "ocultar") {
     setAccionError(null);
     setAccionSeleccion(accion);
   }
@@ -94,10 +96,17 @@ export function OrdenesListado({
               onCancelSelection={cancelarSeleccion}
               onError={setAccionError}
             />
+          ) : accionSeleccion === "ocultar" ? (
+            <OcultarOrdenesButton
+              selectedIds={[...selectedIds]}
+              onCancelSelection={cancelarSeleccion}
+              onError={setAccionError}
+            />
           ) : (
             <OrdenesAccionesMenu
               onExportar={() => iniciarSeleccion("exportar")}
               onEliminar={() => iniciarSeleccion("eliminar")}
+              onOcultar={() => iniciarSeleccion("ocultar")}
             />
           )
         }

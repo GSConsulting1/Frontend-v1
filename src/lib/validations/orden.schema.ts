@@ -51,6 +51,7 @@ export const TIPO_SERVICIO_OPCIONES = [
   "Informe técnico",
   "Capacitación",
   "N/A",
+  "Material",
 ] as const;
 
 // RESPONSABLES_OS ya no existe: la lista de responsables SEC dejó de ser una
