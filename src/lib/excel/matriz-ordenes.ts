@@ -1,8 +1,9 @@
 // Especificación de la "matriz de órdenes" que se exporta a Excel desde
 // /ordenes (botón "Exportar Excel"). Es la ÚNICA fuente de verdad del orden
-// y el mapeo de columnas: la lista COLUMNAS_MATRIZ está en el orden EXACTO
-// del documento de referencia (matriz desarrollo 2.0), con los mismos textos
-// de encabezado. Si cambia el orden o el texto, se edita solo acá.
+// y el mapeo de columnas: la lista COLUMNAS_MATRIZ sigue el documento de
+// referencia (matriz desarrollo 2.0) con los mismos textos de encabezado,
+// salvo las desviaciones marcadas con un comentario en la propia lista. Si
+// cambia el orden o el texto, se edita solo acá.
 //
 // Cada orden seleccionada se exporta como UNA fila. Los datos vienen de 12
 // tablas (ordenes_servicio + sus tablas 1-a-1 extendidas + catálogos), ya
@@ -320,6 +321,16 @@ export const COLUMNAS_MATRIZ: ColumnaMatriz[] = [
     financiera: true,
   },
   {
+    header: "Número de radicado",
+    value: (f) => f.cuentaCobro?.numero_radicado ?? "",
+    financiera: true,
+  },
+  {
+    header: "Fecha de corte",
+    value: (f) => fecha(f.cuentaCobro?.fecha_corte),
+    financiera: true,
+  },
+  {
     header: "Valor Cuenta de cobro",
     value: (f) => f.cuentaCobro?.valor_cuenta_cobro ?? null,
     money: true,
@@ -369,11 +380,6 @@ export const COLUMNAS_MATRIZ: ColumnaMatriz[] = [
   {
     header: "Profesional del acta",
     value: (f) => f.acta?.profesional_acta?.nombre_completo ?? "",
-    financiera: true,
-  },
-  {
-    header: "Fecha de corte",
-    value: (f) => fecha(f.cuentaCobro?.fecha_corte),
     financiera: true,
   },
   {
