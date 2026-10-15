@@ -21,6 +21,30 @@ import { Button } from "@/components/ui/button";
 import { PendingRing } from "@/components/forms/pending-ring";
 import { RoleGate } from "@/components/auth/role-gate";
 
+// Pide la matriz a POST /api/ordenes/excel y dispara la descarga. También
+// la usa ExportarTodoDialog con { todas: true }.
+export async function descargarMatrizExcel(
+  body: { ids: number[] } | { todas: true },
+) {
+  const response = await fetch("/api/ordenes/excel", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new Error("No se pudo generar el Excel.");
+  }
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "ordenes-servicio.xlsx";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 type ExportarExcelButtonProps = {
   selectedIds: number[];
   onCancelSelection: () => void;
@@ -38,23 +62,7 @@ export function ExportarExcelButton({
     onError?.(null);
     setExportando(true);
     try {
-      const response = await fetch("/api/ordenes/excel", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids: selectedIds }),
-      });
-      if (!response.ok) {
-        throw new Error("No se pudo generar el Excel.");
-      }
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "ordenes-servicio.xlsx";
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
+      await descargarMatrizExcel({ ids: selectedIds });
       onCancelSelection();
     } catch {
       onError?.(

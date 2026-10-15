@@ -1,6 +1,10 @@
-// Exporta a Excel (.xlsx) la "matriz de órdenes" de las filas seleccionadas
-// en /ordenes. Recibe los IDs por POST { ids: number[] } (no query string:
-// la selección puede ser larga y no queremos toparnos con el límite de URL).
+// Exporta a Excel (.xlsx) la "matriz de órdenes". Dos modos por POST:
+// { ids: number[] } exporta las filas seleccionadas en /ordenes (no query
+// string: la selección puede ser larga y no queremos toparnos con el límite
+// de URL); { todas: true } exporta todas las órdenes que el usuario ve en
+// la tabla según la RLS — un administrador incluye las ocultas, los demás
+// roles no ("Exportar todo" del menú ⋮). Ambos paginan cada tabla, porque
+// PostgREST corta en 1.000 filas sin avisar.
 //
 // Misma excepción documentada en structure.md que app/api/ordenes/[id]/pdf:
 // no es CRUD, es la generación de un binario (Content-Type de xlsx) que un
@@ -37,6 +41,46 @@ function indexarPorOrden<T extends { orden_id: number }>(
   return mapa;
 }
 
+// PostgREST corta toda respuesta en `max_rows` (1.000) EN SILENCIO — ver
+// el comentario de getTodasLasCiudades en lib/data/info-orden.ts. Así que
+// cada tabla se pide por páginas hasta que una vuelve incompleta.
+//
+// Con `ids`, además se parten en lotes: un .in(...) con miles de IDs arma
+// una URL que el gateway rechaza. Con `ids` null se recorre la tabla entera.
+const TAMANO_PAGINA = 1000;
+const TAMANO_LOTE_IDS = 200;
+
+type Pagina<T> = PromiseLike<{
+  data: T[] | null;
+  error: { message: string } | null;
+}>;
+
+async function traerTodasLasPaginas<T>(
+  ids: number[] | null,
+  pedirPagina: (lote: number[] | null, desde: number, hasta: number) => Pagina<T>,
+): Promise<T[]> {
+  const lotes: (number[] | null)[] = [];
+  if (ids === null) lotes.push(null);
+  else
+    for (let i = 0; i < ids.length; i += TAMANO_LOTE_IDS)
+      lotes.push(ids.slice(i, i + TAMANO_LOTE_IDS));
+
+  const filas: T[] = [];
+  for (const lote of lotes) {
+    for (let desde = 0; ; desde += TAMANO_PAGINA) {
+      const { data, error } = await pedirPagina(
+        lote,
+        desde,
+        desde + TAMANO_PAGINA - 1,
+      );
+      if (error) throw new Error(error.message);
+      filas.push(...(data ?? []));
+      if ((data?.length ?? 0) < TAMANO_PAGINA) break;
+    }
+  }
+  return filas;
+}
+
 export async function POST(request: Request) {
   // 1. Sesión + rol (protección real, porque abajo usamos service role).
   const supabase = await createSupabaseServerClient();
@@ -58,26 +102,147 @@ export async function POST(request: Request) {
     perfil.rol as RolUsuario,
   );
 
-  // 2. IDs seleccionados.
+  // 2. Qué exportar: { todas: true } = todas las órdenes que este usuario
+  // ve en la tabla ("Exportar todo" del menú ⋮); { ids } = la selección.
   let body: unknown;
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Body inválido" }, { status: 400 });
   }
+  const todas = (body as { todas?: unknown }).todas === true;
   const idsRaw = (body as { ids?: unknown }).ids;
   const ids = Array.isArray(idsRaw)
     ? Array.from(new Set(idsRaw.map(Number).filter((n) => Number.isInteger(n))))
     : [];
-  if (ids.length === 0) {
+  if (!todas && ids.length === 0) {
     return NextResponse.json(
       { error: "No se seleccionaron órdenes" },
       { status: 400 },
     );
   }
 
-  // 3. Todas las tablas de la matriz, filtradas por los IDs. Un query por
-  // tabla (~12 en total) sin importar cuántas órdenes se seleccionen.
+  // "Exportar todo" = exactamente las órdenes que el usuario ve en la tabla.
+  // Por eso los IDs se piden con SU sesión (`supabase`, no supabaseAdmin):
+  // la RLS de ordenes_servicio (puede_ver_orden()) ya decide qué ve cada
+  // rol — las ocultas solo para administrador, la visibilidad por casilla
+  // del programador, etc. Repetir esas reglas acá a mano las dejaría
+  // desincronizadas apenas cambie la función en la base.
+  let idsOrdenes = ids;
+  if (todas) {
+    try {
+      const visibles = await traerTodasLasPaginas(null, (_lote, desde, hasta) =>
+        supabase
+          .from("ordenes_servicio")
+          .select("id")
+          .order("id")
+          .range(desde, hasta),
+      );
+      idsOrdenes = visibles.map((o) => o.id);
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : "Error al consultar" },
+        { status: 500 },
+      );
+    }
+  }
+  // null = sin filtro por orden: en "Exportar todo" las tablas 1-a-1 se
+  // traen completas y las filas de órdenes que el usuario no ve se
+  // descartan al unir en memoria (paso 5, que recorre solo `ordenes`), en
+  // vez de mandar más de mil IDs en un .in(...) por cada tabla.
+  const filtroIds = todas ? null : ids;
+
+  // 3. Todas las tablas de la matriz, cada una paginada (ver
+  // traerTodasLasPaginas). El orden por la PK es el desempate estable que la
+  // paginación necesita para no saltar ni repetir filas entre páginas.
+  let resultados;
+  try {
+    resultados = await Promise.all([
+      traerTodasLasPaginas(idsOrdenes, (lote, desde, hasta) =>
+        supabaseAdmin
+          .from("ordenes_servicio")
+          .select("*, cliente:clientes(id, nombre_cliente)")
+          .in("id", lote ?? [])
+          .order("id")
+          .range(desde, hasta),
+      ),
+      traerTodasLasPaginas(filtroIds, (lote, desde, hasta) => {
+        let q = supabaseAdmin
+          .from("info_orden_servicio")
+          .select(
+            "*, ciudad:ciudades(nombre), profesional:profesionales(nombre_completo, cedula, telefono, email)",
+          );
+        if (lote) q = q.in("orden_id", lote);
+        return q.order("orden_id").range(desde, hasta);
+      }),
+      traerTodasLasPaginas(filtroIds, (lote, desde, hasta) => {
+        let q = supabaseAdmin
+          .from("detalle_entrega_profesional")
+          .select(
+            "*, profesional_vobo:vobo!detalle_entrega_profesional_profesional_vobo_id_fkey(nombre_completo), participante_arl:participantes_arl!detalle_entrega_profesional_participante_arl_id_fkey(nombre_completo)",
+          );
+        if (lote) q = q.in("orden_id", lote);
+        return q.order("orden_id").range(desde, hasta);
+      }),
+      traerTodasLasPaginas(filtroIds, (lote, desde, hasta) => {
+        let q = supabaseAdmin
+          .from("checklist_proceso")
+          .select("*, estado_ejecucion:estados_ejecucion(nombre)");
+        if (lote) q = q.in("orden_id", lote);
+        return q.order("orden_id").range(desde, hasta);
+      }),
+      traerTodasLasPaginas(filtroIds, (lote, desde, hasta) => {
+        let q = supabaseAdmin
+          .from("valor_hora_orden")
+          .select("orden_id, valor_hora_profesional");
+        if (lote) q = q.in("orden_id", lote);
+        return q.order("orden_id").range(desde, hasta);
+      }),
+      // Varias filas por orden: es la tabla que más rápido pasa de 1.000.
+      traerTodasLasPaginas(filtroIds, (lote, desde, hasta) => {
+        let q = supabaseAdmin
+          .from("orden_entregables_estandar")
+          .select("orden_id, entregable_id, entregables_estandar(nombre)");
+        if (lote) q = q.in("orden_id", lote);
+        return q
+          .order("orden_id")
+          .order("entregable_id")
+          .range(desde, hasta);
+      }),
+      traerTodasLasPaginas(filtroIds, (lote, desde, hasta) => {
+        let q = supabaseAdmin
+          .from("acta_servicio")
+          .select("*, profesional_acta:participantes_arl(nombre_completo)");
+        if (lote) q = q.in("orden_id", lote);
+        return q.order("orden_id").range(desde, hasta);
+      }),
+      traerTodasLasPaginas(filtroIds, (lote, desde, hasta) => {
+        let q = supabaseAdmin.from("cuenta_cobro").select("*");
+        if (lote) q = q.in("orden_id", lote);
+        return q.order("orden_id").range(desde, hasta);
+      }),
+      traerTodasLasPaginas(filtroIds, (lote, desde, hasta) => {
+        let q = supabaseAdmin.from("facturacion").select("*");
+        if (lote) q = q.in("orden_id", lote);
+        return q.order("orden_id").range(desde, hasta);
+      }),
+      traerTodasLasPaginas(filtroIds, (lote, desde, hasta) => {
+        let q = supabaseAdmin.from("radicacion_imagine").select("*");
+        if (lote) q = q.in("orden_id", lote);
+        return q.order("orden_id").range(desde, hasta);
+      }),
+      traerTodasLasPaginas(filtroIds, (lote, desde, hasta) => {
+        let q = supabaseAdmin.from("liquidacion").select("*");
+        if (lote) q = q.in("orden_id", lote);
+        return q.order("orden_id").range(desde, hasta);
+      }),
+    ]);
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Error al consultar" },
+      { status: 500 },
+    );
+  }
   const [
     ordenes,
     infos,
@@ -90,95 +255,35 @@ export async function POST(request: Request) {
     facturaciones,
     radicaciones,
     liquidaciones,
-  ] = await Promise.all([
-    supabaseAdmin
-      .from("ordenes_servicio")
-      .select("*, cliente:clientes(id, nombre_cliente)")
-      .in("id", ids),
-    supabaseAdmin
-      .from("info_orden_servicio")
-      .select(
-        "*, ciudad:ciudades(nombre), profesional:profesionales(nombre_completo, cedula, telefono, email)",
-      )
-      .in("orden_id", ids),
-    supabaseAdmin
-      .from("detalle_entrega_profesional")
-      .select(
-        "*, profesional_vobo:vobo!detalle_entrega_profesional_profesional_vobo_id_fkey(nombre_completo), participante_arl:participantes_arl!detalle_entrega_profesional_participante_arl_id_fkey(nombre_completo)",
-      )
-      .in("orden_id", ids),
-    supabaseAdmin
-      .from("checklist_proceso")
-      .select("*, estado_ejecucion:estados_ejecucion(nombre)")
-      .in("orden_id", ids),
-    supabaseAdmin
-      .from("valor_hora_orden")
-      .select("orden_id, valor_hora_profesional")
-      .in("orden_id", ids),
-    supabaseAdmin
-      .from("orden_entregables_estandar")
-      .select("orden_id, entregables_estandar(nombre)")
-      .in("orden_id", ids),
-    supabaseAdmin
-      .from("acta_servicio")
-      .select("*, profesional_acta:participantes_arl(nombre_completo)")
-      .in("orden_id", ids),
-    supabaseAdmin.from("cuenta_cobro").select("*").in("orden_id", ids),
-    supabaseAdmin.from("facturacion").select("*").in("orden_id", ids),
-    supabaseAdmin.from("radicacion_imagine").select("*").in("orden_id", ids),
-    supabaseAdmin.from("liquidacion").select("*").in("orden_id", ids),
-  ]);
-
-  const resultados = [
-    ordenes,
-    infos,
-    detalles,
-    checklists,
-    valores,
-    entregables,
-    actas,
-    cuentas,
-    facturaciones,
-    radicaciones,
-    liquidaciones,
-  ];
-  for (const resultado of resultados) {
-    if (resultado.error) {
-      return NextResponse.json(
-        { error: resultado.error.message },
-        { status: 500 },
-      );
-    }
-  }
-
-  if (!ordenes.data || ordenes.data.length === 0) {
+  ] = resultados;
+  if (ordenes.length === 0) {
     return NextResponse.json(
-      { error: "No se encontraron las órdenes seleccionadas" },
+      { error: "No se encontraron órdenes para exportar" },
       { status: 404 },
     );
   }
 
   // 4. Índices por orden_id para unir en memoria.
   const infoMap = indexarPorOrden(
-    infos.data as unknown as { orden_id: number }[],
+    infos as unknown as { orden_id: number }[],
   );
   const detalleMap = indexarPorOrden(
-    detalles.data as unknown as { orden_id: number }[],
+    detalles as unknown as { orden_id: number }[],
   );
   const checklistMap = indexarPorOrden(
-    checklists.data as unknown as { orden_id: number }[],
+    checklists as unknown as { orden_id: number }[],
   );
-  const valorMap = indexarPorOrden(valores.data);
+  const valorMap = indexarPorOrden(valores);
   const actaMap = indexarPorOrden(
-    actas.data as unknown as { orden_id: number }[],
+    actas as unknown as { orden_id: number }[],
   );
-  const cuentaMap = indexarPorOrden(cuentas.data);
-  const facturacionMap = indexarPorOrden(facturaciones.data);
-  const radicacionMap = indexarPorOrden(radicaciones.data);
-  const liquidacionMap = indexarPorOrden(liquidaciones.data);
+  const cuentaMap = indexarPorOrden(cuentas);
+  const facturacionMap = indexarPorOrden(facturaciones);
+  const radicacionMap = indexarPorOrden(radicaciones);
+  const liquidacionMap = indexarPorOrden(liquidaciones);
 
   const entregablesMap = new Map<number, string[]>();
-  for (const fila of entregables.data ?? []) {
+  for (const fila of entregables) {
     const nombre = (fila.entregables_estandar as { nombre: string } | null)
       ?.nombre;
     if (!nombre) continue;
@@ -188,7 +293,7 @@ export async function POST(request: Request) {
   }
 
   // 5. Una fila por orden, ordenadas por id descendente (igual que la tabla).
-  const filas: MatrizOrdenRow[] = [...ordenes.data]
+  const filas: MatrizOrdenRow[] = [...ordenes]
     .sort((a, b) => b.id - a.id)
     .map((orden) => ({
       orden: orden as unknown as MatrizOrdenRow["orden"],

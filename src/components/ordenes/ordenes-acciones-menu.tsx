@@ -15,7 +15,10 @@
 // si el usuario no tiene ningún permiso, el componente no renderiza nada —
 // así no queda un botón "⋮" que abre un menú vacío.
 //
-// "Importar desde Excel" y "Exportar Excel" son ambos
+// "Exportar todo" no entra en modo selección: abre ExportarTodoDialog, que
+// descarga todas las órdenes que el usuario ve (ver app/api/ordenes/excel).
+//
+// "Importar desde Excel", "Exportar Excel" y "Exportar todo" son
 // administrador/financiero/talento — coincide con ROLES_PERMITIDOS de
 // app/api/ordenes/excel/route.tsx, que sí es la protección real para el
 // export (esa misma ruta decide, ya del lado del servidor, si el .xlsx
@@ -30,6 +33,7 @@ import Link from "next/link";
 import {
   Download,
   EyeOff,
+  FileDown,
   FilePlus,
   MoreVertical,
   Trash2,
@@ -52,12 +56,14 @@ type OrdenesAccionesMenuProps = {
   // se puede pasar desde un Server Component a este Client Component de
   // todas formas. Cada onClick la llama solo si existe.
   onExportar?: () => void;
+  onExportarTodo?: () => void;
   onEliminar?: () => void;
   onOcultar?: () => void;
 };
 
 export function OrdenesAccionesMenu({
   onExportar,
+  onExportarTodo,
   onEliminar,
   onOcultar,
 }: OrdenesAccionesMenuProps) {
@@ -98,6 +104,12 @@ export function OrdenesAccionesMenu({
           <DropdownMenuItem onClick={() => onExportar?.()}>
             <Download className="size-4" />
             Exportar Excel
+          </DropdownMenuItem>
+        )}
+        {puedeExportar && (
+          <DropdownMenuItem onClick={() => onExportarTodo?.()}>
+            <FileDown className="size-4" />
+            Exportar todo
           </DropdownMenuItem>
         )}
         {(grupoNavegacion || puedeExportar) && esAdmin && <DropdownMenuSeparator />}
