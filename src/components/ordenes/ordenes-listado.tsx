@@ -27,6 +27,7 @@ import { OrdenesAccionesMenu } from "@/components/ordenes/ordenes-acciones-menu"
 import { ExportarExcelButton } from "@/components/ordenes/exportar-excel-button";
 import { EliminarOrdenesButton } from "@/components/ordenes/eliminar-ordenes-button";
 import { OcultarOrdenesButton } from "@/components/ordenes/ocultar-ordenes-button";
+import { ExportarTodoDialog } from "@/components/ordenes/exportar-todo-dialog";
 import type { OrdenServicioConRelaciones } from "@/types";
 
 type ClienteOption = { id: number; nombre_cliente: string };
@@ -49,6 +50,7 @@ export function OrdenesListado({
   const [accionSeleccion, setAccionSeleccion] = useState<AccionSeleccion>(null);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [accionError, setAccionError] = useState<string | null>(null);
+  const [exportarTodoAbierto, setExportarTodoAbierto] = useState(false);
 
   function toggle(id: number) {
     setSelectedIds((prev) => {
@@ -105,11 +107,21 @@ export function OrdenesListado({
           ) : (
             <OrdenesAccionesMenu
               onExportar={() => iniciarSeleccion("exportar")}
+              onExportarTodo={() => {
+                setAccionError(null);
+                setExportarTodoAbierto(true);
+              }}
               onEliminar={() => iniciarSeleccion("eliminar")}
               onOcultar={() => iniciarSeleccion("ocultar")}
             />
           )
         }
+      />
+
+      <ExportarTodoDialog
+        open={exportarTodoAbierto}
+        onClose={() => setExportarTodoAbierto(false)}
+        onError={setAccionError}
       />
 
       <OrdenesFiltros clientes={clientes} responsablesSec={responsablesSec} />

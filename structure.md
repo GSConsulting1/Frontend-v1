@@ -246,7 +246,14 @@ generado.
 - Misma excepción, segundo caso: `app/api/ordenes/excel/route.tsx` genera
   la "matriz de órdenes" en `.xlsx` (`Content-Type` de xlsx) de las filas
   seleccionadas en el listado. Recibe los IDs por `POST { ids: number[] }`
-  (no query string: la selección puede ser larga). Arma el binario con
+  (no query string: la selección puede ser larga), o `POST { todas: true }`
+  para exportar todas las órdenes que el usuario ve en el listado
+  (`ExportarTodoDialog`). Ese "ve" lo decide la RLS, no la ruta: los IDs se
+  piden con la sesión del usuario (`puede_ver_orden()`: un administrador
+  incluye las ocultas, el resto de roles no) y recién después se consulta
+  el detalle con el service role. En ambos modos cada tabla se pide paginada
+  (`traerTodasLasPaginas`, IDs en lotes de 200) porque PostgREST corta en
+  `max_rows` = 1.000 sin avisar. Arma el binario con
   `lib/excel/` (ver abajo) y también usa `lib/supabaseAdmin.ts` porque la
   matriz incluye `valor_hora_orden` y toda la sección financiera. Como el
   service role saltaría RLS para cualquiera, la protección real vive en la
@@ -472,7 +479,8 @@ generado.
   NO es el viejo `ordenes-manager.tsx` de guardado en lote (ver más
   abajo): lo único que gobierna es la selección para estas acciones.
 - `ordenes-acciones-menu.tsx`: único punto de entrada a las acciones del
-  listado (Nueva orden, Importar desde Excel, Exportar Excel, Ocultar /
+  listado (Nueva orden, Importar desde Excel, Exportar Excel, Exportar
+  todo, Ocultar /
   mostrar órdenes, Eliminar órdenes) — un botón "⋮" (`MoreVertical`) que
   abre un `DropdownMenu`, mismo patrón que el menú de acciones por fila de
   `ordenes-table.tsx` (`DropdownMenuItem render={<Link .../>}` para
@@ -498,6 +506,10 @@ generado.
   `ordenes-listado.tsx`). `ExportarExcelButton` sigue descargando el
   `.xlsx` con `POST /api/ordenes/excel` igual que siempre (mismo patrón
   `fetch → blob → <a download>` que el PDF de la tabla).
+  "Exportar todo" no usa modo selección: abre `exportar-todo-dialog.tsx`,
+  un `<AlertDialog>` que avisa que el archivo es grande y tarda, y llama a
+  `descargarMatrizExcel({ todas: true })` (exportada desde
+  `exportar-excel-button.tsx`).
   `EliminarOrdenesButton` abre un `<AlertDialog>` de confirmación antes de
   llamar a `eliminarOrdenes` (Server Action nueva en
   `app/ordenes/actions.ts`: recorre los IDs seleccionados, borra cada uno
