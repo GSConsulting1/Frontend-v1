@@ -262,6 +262,18 @@ export const COLUMNAS_MATRIZ: ColumnaMatriz[] = [
     value: (f) => f.valorHora ?? null,
     money: true,
   },
+  // No está en el documento de referencia: replica el "Costo total del
+  // servicio" del PDF (app/api/ordenes/[id]/pdf/route.tsx), valor hora ×
+  // horas asignadas. Vacía si la orden no tiene valor hora registrado. Sin
+  // flag financiera por lo mismo que "Valor Hora Profesional".
+  {
+    header: "Costo total del servicio",
+    value: (f) =>
+      f.valorHora != null && f.info?.horas_asignadas != null
+        ? f.valorHora * f.info.horas_asignadas
+        : null,
+    money: true,
+  },
   {
     header: "Envio de OS al profesional GS",
     value: (f) => siNo(f.detalle?.envio_os_profesional),
